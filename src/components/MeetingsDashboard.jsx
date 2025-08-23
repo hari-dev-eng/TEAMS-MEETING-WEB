@@ -5,7 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Constants
 const PAGE_SIZE = 10;
-const api = axios.create({ baseURL: "https://locahttps://teamsbackendapi-production.up.railway.applhost:7141" });
+const api = axios.create({ baseURL: "https://teamsbackendapi-production.up.railway.app" });
 const floorHeaders = ["Ground Floor", "1st Floor", "Conference Room", "3rd Floor"];
 
 // Card gradients for different statuses - same for all floors
