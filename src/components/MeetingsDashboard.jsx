@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import axios from "axios";
 
 // Constants
 const PAGE_SIZE = 10;
