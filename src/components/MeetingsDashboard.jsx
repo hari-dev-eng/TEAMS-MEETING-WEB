@@ -769,7 +769,7 @@ const MeetingsDashboard = () => {
             <div className="row g-2 g-md-3 g-lg-4">
               {floorHeaders.map((floor, colIdx) => (
                 <div key={colIdx} className="col-12 col-sm-6 col-xl-3">
-                  <div className="card h-100 shadow-sm" style={{ borderRadius: "16px", background: "rgba(225, 225, 225, 0.5)" }}>
+                  <div className="card h-100 shadow-sm" style={{ borderRadius: "16px", background: "rgba(225, 225, 225, 0.8)" }}>
                     <div
                       className="card-header text-white text-center fw-bold py-2 py-md-3"
                       style={{
