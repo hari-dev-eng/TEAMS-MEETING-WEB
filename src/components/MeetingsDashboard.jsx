@@ -630,6 +630,13 @@ const MeetingsDashboard = () => {
           .card-utilization-color {
             background-color: #fff8e6;
           }
+            @font-face {
+  font-family: "Stylus BT";
+  src: url("/fonts/StylusBT.woff2") format("woff2"),
+       url("/fonts/StylusBT.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
           
           /* Responsive scaling for large screens */
           .scaling-container {
