@@ -621,8 +621,8 @@ const MeetingsDashboard = () => {
       <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: 'relative', zIndex: 1 }}>
         {/* Header */}
         <div
-          className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0 mb-3 mb-md-4 p-2 p-md-3"
-          style={{ background: "linear-gradient(135deg, #fcecc1ff, #f28da4ff, #84a8c4ff, #a0f7a0ff)", color: "#fff", borderRadius: "12px" }}
+          className="card h-100 shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0 mb-3 mb-md-4 p-2 p-md-3"
+           style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
         >
           <div className="d-flex align-items-center gap-2">
             <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
@@ -765,7 +765,7 @@ const MeetingsDashboard = () => {
                                 className="text-truncate"
                                 title={meeting.subject}
                               >
-                                {status === "Live" && <LiveIndicator />}
+                                
                                 {meeting.subject}
                               </div>
 
@@ -785,7 +785,7 @@ const MeetingsDashboard = () => {
                               <div style={{ fontSize: "clamp(0.75rem, 1.7vw, 0.9rem)", color: "#555" }}>
                                 {formatTimeOnly(meeting.startTime)} - {formatTimeOnly(meeting.endTime)}
                               </div>
-
+                    
                               <div
                                 style={{
                                   fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)",
@@ -806,7 +806,7 @@ const MeetingsDashboard = () => {
                                   justifyContent: "flex-end",
                                 }}
                               >
-                                {status}
+                               {status === "Live" && <LiveIndicator />} {status}
                               </div>
                             </motion.div>
                           );
