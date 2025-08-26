@@ -3,6 +3,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImage from "../image.png";
 import backGroundImage from "../team.png";
+import WebFont from "webfontloader";
 
 // These are custom icon components created from SVG to replace react-icons
 const CalendarIcon = (props) => (
@@ -188,6 +189,13 @@ const LoadingIndicator = () => (
 // Particles Component
 const ParticlesBackground = () => {
   useEffect(() => {
+
+  WebFont.load({
+    google: {
+      families: ["stylus bt", "Montserrat:600"],
+    },
+  });
+
     // Load particles.js script
     const particlesScript = document.createElement('script');
     particlesScript.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js';
