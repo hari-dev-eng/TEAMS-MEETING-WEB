@@ -148,12 +148,12 @@ const calculateStats = (meetings) => {
   const avgDuration =
     meetings.length > 0
       ? Math.round(
-          meetings.reduce((sum, m) => {
-            const start = new Date(m.startTime);
-            const end = new Date(m.endTime);
-            return sum + (end - start) / (1000 * 60);
-          }, 0) / meetings.length
-        )
+        meetings.reduce((sum, m) => {
+          const start = new Date(m.startTime);
+          const end = new Date(m.endTime);
+          return sum + (end - start) / (1000 * 60);
+        }, 0) / meetings.length
+      )
       : 0;
 
   const totalPossibleMinutes = 8 * 60; // Assuming an 8-hour workday
@@ -191,15 +191,15 @@ const ParticlesBackground = () => {
     const particlesScript = document.createElement('script');
     particlesScript.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js';
     particlesScript.async = true;
-    
+
     // Load stats.js script
     const statsScript = document.createElement('script');
     statsScript.src = 'https://threejs.org/examples/js/libs/stats.min.js';
     statsScript.async = true;
-    
+
     document.head.appendChild(particlesScript);
     document.head.appendChild(statsScript);
-    
+
     particlesScript.onload = () => {
       // Initialize particles once the script is loaded
       if (window.particlesJS) {
@@ -212,7 +212,7 @@ const ParticlesBackground = () => {
                 "value_area": 800
               }
             },
-            "color": {         
+            "color": {
               "value": "#1b1616"
             },
             "shape": {
@@ -313,7 +313,7 @@ const ParticlesBackground = () => {
           },
           "retina_detect": true
         });
-        
+
         // Initialize stats
         if (window.Stats) {
           const stats = new window.Stats();
@@ -322,9 +322,9 @@ const ParticlesBackground = () => {
           stats.domElement.style.left = '0px';
           stats.domElement.style.top = '0px';
           document.body.appendChild(stats.domElement);
-          
+
           const countParticles = document.querySelector('.js-count-particles');
-          const update = function() {
+          const update = function () {
             stats.begin();
             stats.end();
             if (window.pJSDom && window.pJSDom[0] && window.pJSDom[0].pJS && window.pJSDom[0].pJS.particles && window.pJSDom[0].pJS.particles.array) {
@@ -336,16 +336,16 @@ const ParticlesBackground = () => {
         }
       }
     };
-    
+
     return () => {
       // Clean up if needed
     };
   }, []);
-  
+
   return (
     <>
-      <div 
-        id="particles-js" 
+      <div
+        id="particles-js"
         style={{
           position: 'fixed',
           top: 0,
@@ -475,9 +475,9 @@ const MeetingsDashboard = () => {
         xintegrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
         crossorigin="anonymous"
       />
-      
+
       <ParticlesBackground />
-      
+
       {/* Add particles.js styles */}
       <style>
         {`
@@ -587,7 +587,17 @@ const MeetingsDashboard = () => {
           .utilization-icon {
             color: orange;
           }
-          
+          .card-body::-webkit-scrollbar {
+  width: 6px;
+}
+.card-body::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.4);
+  border-radius: 4px;
+}
+.card-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.7);
+}
+
           .card-body-main .card-value {
             font-size: 32px;
             font-weight: bold;
@@ -622,19 +632,19 @@ const MeetingsDashboard = () => {
         {/* Header */}
         <div
           className="card h-100 shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0 mb-3 mb-md-4 p-2 p-md-3"
-           style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
+          style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
         >
           <div className="d-flex align-items-center gap-2">
             <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
             <h2
-                className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bold"
-                style={{
-                    background: "linear-gradient(90deg, #0074BD, #76B042)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                }}
+              className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bold"
+              style={{
+                background: "linear-gradient(90deg, #0074BD, #76B042)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
             >
-                Meetly Dashboard
+              Meetly Dashboard
             </h2>
           </div>
 
@@ -652,10 +662,10 @@ const MeetingsDashboard = () => {
             </button>
           </div>
         </div>
-        
+
         {/* Display Date from Image */}
         <div className="mb-3">
-          <h4 className="text-muted fw-bold" style={{ fontFamily:"Verdana, Geneva, sans-serif", fontSize: "1.2rem", color: "#000" }}>
+          <h4 className="text-muted fw-bold" style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "1.2rem", color: "#000" }}>
             {date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </h4>
         </div>
@@ -735,37 +745,43 @@ const MeetingsDashboard = () => {
                   >
                     {floor}
                   </div>
-                  <div className="card-body p-2 p-md-3" style={{ minHeight: "280px" }}>
+                  <div
+                    className="card-body p-2 p-md-3"
+                    style={{
+                      minHeight: "280px",
+                      maxHeight: "400px",     // 🔹 set max height
+                      overflowY: "auto"       // 🔹 enable vertical scrolling
+                    }}
+                  >
                     <AnimatePresence>
                       {pagedMeetings[floor]?.length > 0 ? (
                         pagedMeetings[floor].map((meeting, idx) => {
                           const status = getMeetingStatus(meeting.startTime, meeting.endTime);
                           const attendeesCount = getAttendeesCount(meeting);
 
-                            return (
-                              <motion.div
-                                key={meeting.id || `${meeting.subject}-${idx}`}
-                                initial={{ opacity: 0, y: 60 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 60 }}
-                                transition={{ duration: 0.6, ease: "easeOut", delay: idx * 0.1 }}
-                                className="p-2 p-md-3 mb-2 mb-md-3 rounded shadow-sm"
-                                style={{
-                                  background: statusGradients[status],
-                                  borderLeft: `4px solid ${
-                                    status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"
+                          return (
+                            <motion.div
+                              key={meeting.id || `${meeting.subject}-${idx}`}
+                              initial={{ opacity: 0, y: 60 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 60 }}
+                              transition={{ duration: 0.6, ease: "easeOut", delay: idx * 0.1 }}
+                              className="p-2 p-md-3 mb-2 mb-md-3 rounded shadow-sm"
+                              style={{
+                                background: statusGradients[status],
+                                borderLeft: `4px solid ${status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"
                                   }`,
-                                  minHeight: "80px",
-                                  fontWeight: 700,
-                                  opacity: status === "completed" ? 0.8 : 1,
-                                }}
+                                minHeight: "80px",
+                                fontWeight: 700,
+                                opacity: status === "completed" ? 0.8 : 1,
+                              }}
                             >
                               <div
                                 style={{ fontSize: "clamp(0.85rem, 1.8vw, 1rem)", color: "#2c3e50" }}
                                 className="text-truncate"
                                 title={meeting.subject}
                               >
-                                
+
                                 {meeting.subject}
                               </div>
 
@@ -785,7 +801,7 @@ const MeetingsDashboard = () => {
                               <div style={{ fontSize: "clamp(0.75rem, 1.7vw, 0.9rem)", color: "#555" }}>
                                 {formatTimeOnly(meeting.startTime)} - {formatTimeOnly(meeting.endTime)}
                               </div>
-                    
+
                               <div
                                 style={{
                                   fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)",
@@ -793,10 +809,10 @@ const MeetingsDashboard = () => {
                                     status === "completed"
                                       ? "#7f8c8d"
                                       : status === "upcoming"
-                                      ? "rgba(25, 0, 255, 1)"
-                                      : status === "Live"
-                                      ? "#ff0000ff"
-                                      : "",
+                                        ? "rgba(25, 0, 255, 1)"
+                                        : status === "Live"
+                                          ? "#ff0000ff"
+                                          : "",
                                   fontWeight: "bold",
                                   textAlign: "right",
                                   textTransform: "uppercase",
@@ -806,7 +822,7 @@ const MeetingsDashboard = () => {
                                   justifyContent: "flex-end",
                                 }}
                               >
-                               {status === "Live" && <LiveIndicator />} {status}
+                                {status === "Live" && <LiveIndicator />} {status}
                               </div>
                             </motion.div>
                           );
