@@ -206,7 +206,7 @@ const ParticlesBackground = () => {
         window.particlesJS("particles-js", {
           "particles": {
             "number": {
-              "value": 125,
+              "value": 75,
               "density": {
                 "enable": true,
                 "value_area": 800
@@ -259,7 +259,7 @@ const ParticlesBackground = () => {
             },
             "move": {
               "enable": true,
-              "speed": 6,
+              "speed": 2.5,
               "direction": "none",
               "random": false,
               "straight": false,
