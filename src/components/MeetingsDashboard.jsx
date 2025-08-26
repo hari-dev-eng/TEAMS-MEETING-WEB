@@ -587,16 +587,17 @@ const MeetingsDashboard = () => {
           .utilization-icon {
             color: orange;
           }
-          .card-body::-webkit-scrollbar {
-  width: 6px;
-}
-.card-body::-webkit-scrollbar-thumb {
-  background: rgba(100, 100, 100, 0.4);
-  border-radius: 4px;
-}
-.card-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 100, 100, 0.7);
-}
+
+//           .card-body::-webkit-scrollbar {
+//   width: 6px;
+// }
+// .card-body::-webkit-scrollbar-thumb {
+//   background: rgba(100, 100, 100, 0.4);
+//   border-radius: 4px;
+// }
+// .card-body::-webkit-scrollbar-thumb:hover {
+//   background: rgba(100, 100, 100, 0.7);
+// }
 
           .card-body-main .card-value {
             font-size: 32px;
@@ -745,14 +746,15 @@ const MeetingsDashboard = () => {
                   >
                     {floor}
                   </div>
-                  <div
+                  {/* <div
                     className="card-body p-2 p-md-3"
                     style={{
                       minHeight: "280px",
                       maxHeight: "400px",     // 🔹 set max height
                       overflowY: "auto"       // 🔹 enable vertical scrolling
                     }}
-                  >
+                  > */}
+                  <div className="card-body p-2 p-md-3" style={{ minHeight: "280px" }}>
                     <AnimatePresence>
                       {pagedMeetings[floor]?.length > 0 ? (
                         pagedMeetings[floor].map((meeting, idx) => {
