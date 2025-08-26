@@ -627,21 +627,8 @@ const MeetingsDashboard = () => {
           .scaling-container {
             width: 100%;
           }
-          
-          /* For extra-large screens (e.g. TVs, projectors) */
-          @media screen and (min-width: 1920px) {
-            .scaling-container {
-              transform: scale(0.85);
-              transform-origin: top center;
-              width: 100%;
-            }
-          }
-          
-          /* For very large screens (4K and above) */
-          @media screen and (min-width: 2500px) {
-            .scaling-container {
-              transform: scale(0.7);
-            }
+          html {
+            zoom: 0.75;s
           }
         `}
       </style>
