@@ -627,7 +627,7 @@ const MeetingsDashboard = () => {
             background-color: #fff8e6;
           }
             html {
-  zoom: 0.90; 
+  zoom: 0.75; 
 }
         `}
       </style>
