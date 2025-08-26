@@ -626,6 +626,9 @@ const MeetingsDashboard = () => {
           .card-utilization-color {
             background-color: #fff8e6;
           }
+            html {
+  zoom: 0.90; 
+}
         `}
       </style>
 
