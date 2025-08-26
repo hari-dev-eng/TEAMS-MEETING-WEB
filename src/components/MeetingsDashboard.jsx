@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImage from "../image.png";
+import backGroundImage from "../team.png";
 
 // These are custom icon components created from SVG to replace react-icons
 const CalendarIcon = (props) => (
@@ -313,6 +314,7 @@ const ParticlesBackground = () => {
           },
           "retina_detect": true
         });
+        
 
         // Initialize stats
         if (window.Stats) {
@@ -353,12 +355,17 @@ const ParticlesBackground = () => {
           width: '100%',
           height: '100%',
           zIndex: -1,
-          backgroundColor: '#f2dfe0'
+         // backgroundColor: '#f0353fff',
+          backgroundImage: `url(${backGroundImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
         }}
       ></div>
     </>
   );
 };
+
 
 /** ─────────────────────────────
  * Main component
@@ -488,7 +495,7 @@ const MeetingsDashboard = () => {
           } 
             .particles-js-canvas-el {
           /*background: linear-gradient(135deg, #fff8e6, #ffd1dc, #c8e7ff, #e6ffe6) !important;*/
-            background: linear-gradient(135deg, #ecebebff) !important;
+            //background: linear-gradient(135deg, #ecebebff) !important;
           }
           canvas{ 
             display: block; 
@@ -588,17 +595,6 @@ const MeetingsDashboard = () => {
             color: orange;
           }
 
-//           .card-body::-webkit-scrollbar {
-//   width: 6px;
-// }
-// .card-body::-webkit-scrollbar-thumb {
-//   background: rgba(100, 100, 100, 0.4);
-//   border-radius: 4px;
-// }
-// .card-body::-webkit-scrollbar-thumb:hover {
-//   background: rgba(100, 100, 100, 0.7);
-// }
-
           .card-body-main .card-value {
             font-size: 32px;
             font-weight: bold;
@@ -626,296 +622,322 @@ const MeetingsDashboard = () => {
           .card-utilization-color {
             background-color: #fff8e6;
           }
-            html {
-  zoom: 0.75; 
-}
+          
+          /* Responsive scaling for large screens */
+          .scaling-container {
+            width: 100%;
+          }
+          
+          /* For extra-large screens (e.g. TVs, projectors) */
+          @media screen and (min-width: 1920px) {
+            .scaling-container {
+              transform: scale(0.85);
+              transform-origin: top center;
+              width: 100%;
+            }
+          }
+          
+          /* For very large screens (4K and above) */
+          @media screen and (min-width: 2500px) {
+            .scaling-container {
+              transform: scale(0.7);
+            }
+          }
         `}
       </style>
 
-      <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: 'relative', zIndex: 1 }}>
-        {/* Header */}
-        <div
-          className="card h-100 shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0 mb-3 mb-md-4 p-2 p-md-3"
-          style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
-        >
-          <div className="d-flex align-items-center gap-2">
-            <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
-            <h2
-              className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bold"
-              style={{
-                background: "linear-gradient(90deg, #0074BD, #76B042)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Meetly Dashboard
-            </h2>
+      <div className="scaling-container">
+        <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: 'relative', zIndex: 1 }}>
+          {/* Header */}
+          <div
+            className="card h-100 shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0 mb-3 mb-md-4 p-2 p-md-3"
+            style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
+          >
+            <div className="d-flex align-items-center gap-2">
+              <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
+              <h2
+                className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bold"
+                style={{
+                  background: "linear-gradient(90deg, #0074BD, #76B042)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Meetly Dashboard
+              </h2>
+            </div>
+            <div className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bolder"   style={{
+                  background: "linear-gradient(90deg, #20498a, #20498a)",
+                  WebkitBackgroundClip: "text",
+                  //fontFamily:"poppins",
+                  WebkitTextFillColor: "transparent",
+                  display: "flex",
+                  justifyContent: "center", // horizontal center
+                  alignItems: "center",     // vertical center
+                  height: "100%"
+                }}
+            
+            ><h2 style={{ fontSize: "32px",fontFamily:"stylus bt", margin: 0,  /*fontWeight: "bold"*/ }}>
+                WE ADD VALUE TO YOUR VISION...
+              </h2></div>
+                
+            <div className="d-flex flex-column flex-sm-row align-items-start align-items-md-center gap-2">
+              <DatePickerComponent selectedDate={date} setSelectedDate={setDate} />
+              <button className="btn btn-primary" onClick={() => fetchMeetings(true)} disabled={loading}>
+                {loading && isManualRefresh ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Loading...
+                  </>
+                ) : (
+                  "Fetch Meetings"
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="d-flex flex-column flex-sm-row align-items-start align-items-md-center gap-2">
-            <DatePickerComponent selectedDate={date} setSelectedDate={setDate} />
-            <button className="btn btn-primary" onClick={() => fetchMeetings(true)} disabled={loading}>
-              {loading && isManualRefresh ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Loading...
-                </>
-              ) : (
-                "Fetch Meetings"
-              )}
-            </button>
+          {/* Display Date from Image */}
+          <div className="mb-3">
+            <h4 className="text-muted fw-bold" style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "1.2rem", color: "#000" }}>
+              {date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </h4>
           </div>
-        </div>
 
-        {/* Display Date from Image */}
-        <div className="mb-3">
-          <h4 className="text-muted fw-bold" style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "1.2rem", color: "#000" }}>
-            {date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </h4>
-        </div>
+          {/* Manual loading indicator only */}
+          {loading && isManualRefresh && <LoadingIndicator />}
 
-        {/* Manual loading indicator only */}
-        {loading && isManualRefresh && <LoadingIndicator />}
+          {/* Summary cards (Updated section) */}
+          <div className="card mb-4" style={{ borderRadius: "20px", backgroundColor: "rgba(233, 230, 230, 0.8)" }}>
+           
+            <div className="card-body">
+              <div className="dashboard-container">
+                {/* Today's Meetings Card */}
+                <div className="dashboard-card card-meetings-color">
+                  <div className="card-header-main">
+                    <p>Today's Meetings</p>
+                    <CalendarIcon className="card-icon" />
+                  </div>
+                  <div className="card-body-main">
+                    <p className="card-value">{meetings.length}</p>
+                    <p className="card-subtext">{stats.activeMeetings} currently active</p>
+                  </div>
+                </div>
 
-        {/* Summary cards (Updated section) */}
-        <div className="card mb-4" style={{ borderRadius: "20px", backgroundColor: "rgba(233, 230, 230, 0.8)" }}>
-          <div className="card-body">
-            <div className="dashboard-container">
-              {/* Today's Meetings Card */}
-              <div className="dashboard-card card-meetings-color">
-                <div className="card-header-main">
-                  <p>Today's Meetings</p>
-                  <CalendarIcon className="card-icon" />
+                {/* Total Attendees Card */}
+                <div className="dashboard-card card-attendees-color">
+                  <div className="card-header-main">
+                    <p>Total Attendees</p>
+                    <UsersIcon className="card-icon" />
+                  </div>
+                  <div className="card-body-main">
+                    <p className="card-value">{stats.totalAttendees}</p>
+                    <p className="card-subtext">Across all meetings</p>
+                  </div>
                 </div>
-                <div className="card-body-main">
-                  <p className="card-value">{meetings.length}</p>
-                  <p className="card-subtext">{stats.activeMeetings} currently active</p>
-                </div>
-              </div>
 
-              {/* Total Attendees Card */}
-              <div className="dashboard-card card-attendees-color">
-                <div className="card-header-main">
-                  <p>Total Attendees</p>
-                  <UsersIcon className="card-icon" />
+                {/* Avg Duration Card */}
+                <div className="dashboard-card card-duration-color">
+                  <div className="card-header-main">
+                    <p>Avg Duration</p>
+                    <ClockIcon className="card-icon" />
+                  </div>
+                  <div className="card-body-main">
+                    <p className="card-value">{stats.avgDuration}m</p>
+                    <p className="card-subtext">Per meeting</p>
+                  </div>
                 </div>
-                <div className="card-body-main">
-                  <p className="card-value">{stats.totalAttendees}</p>
-                  <p className="card-subtext">Across all meetings</p>
-                </div>
-              </div>
 
-              {/* Avg Duration Card */}
-              <div className="dashboard-card card-duration-color">
-                <div className="card-header-main">
-                  <p>Avg Duration</p>
-                  <ClockIcon className="card-icon" />
-                </div>
-                <div className="card-body-main">
-                  <p className="card-value">{stats.avgDuration}m</p>
-                  <p className="card-subtext">Per meeting</p>
-                </div>
-              </div>
-
-              {/* Room Utilization Card */}
-              <div className="dashboard-card card-utilization-color">
-                <div className="card-header-main">
-                  <p>Room Utilization</p>
-                  <TrendingUpIcon className="card-icon utilization-icon" />
-                </div>
-                <div className="card-body-main">
-                  <p className="card-value">{stats.roomUtilization}%</p>
-                  <p className="card-subtext">Today's usage</p>
+                {/* Room Utilization Card */}
+                <div className="dashboard-card card-utilization-color">
+                  <div className="card-header-main">
+                    <p>Room Utilization</p>
+                    <TrendingUpIcon className="card-icon utilization-icon" />
+                  </div>
+                  <div className="card-body-main">
+                    <p className="card-value">{stats.roomUtilization}%</p>
+                    <p className="card-subtext">Today's usage</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Grid */}
-        {!loading || !isManualRefresh ? (
-          <div className="row g-2 g-md-3 g-lg-4">
-            {floorHeaders.map((floor, colIdx) => (
-              <div key={colIdx} className="col-12 col-sm-6 col-xl-3">
-                <div className="card h-100 shadow-sm" style={{ borderRadius: "16px", background: "rgba(225, 225, 225, 0.8)" }}>
-                  <div
-                    className="card-header text-white text-center fw-bold py-2 py-md-3"
-                    style={{
-                      background: "linear-gradient(90deg,#65799b,#5e2563 60%)",
-                      borderTopLeftRadius: "16px",
-                      borderTopRightRadius: "16px",
-                      fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)",
-                    }}
-                  >
-                    {floor}
-                  </div>
-                  {/* <div
-                    className="card-body p-2 p-md-3"
-                    style={{
-                      minHeight: "280px",
-                      maxHeight: "400px",     // 🔹 set max height
-                      overflowY: "auto"       // 🔹 enable vertical scrolling
-                    }}
-                  > */}
-                  <div className="card-body p-2 p-md-3" style={{ minHeight: "280px" }}>
-                    <AnimatePresence>
-                      {pagedMeetings[floor]?.length > 0 ? (
-                        pagedMeetings[floor].map((meeting, idx) => {
-                          const status = getMeetingStatus(meeting.startTime, meeting.endTime);
-                          const attendeesCount = getAttendeesCount(meeting);
+          {/* Grid */}
+          {!loading || !isManualRefresh ? (
+            <div className="row g-2 g-md-3 g-lg-4">
+              {floorHeaders.map((floor, colIdx) => (
+                <div key={colIdx} className="col-12 col-sm-6 col-xl-3">
+                  <div className="card h-100 shadow-sm" style={{ borderRadius: "16px", background: "rgba(225, 225, 225, 0.8)" }}>
+                    <div
+                      className="card-header text-white text-center fw-bold py-2 py-md-3"
+                      style={{
+                        background: "linear-gradient(90deg,#65799b,#5e2563 60%)",
+                        borderTopLeftRadius: "16px",
+                        borderTopRightRadius: "16px",
+                        fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)",
+                      }}
+                    >
+                      {floor}
+                    </div>
+                    <div className="card-body p-2 p-md-3" style={{ minHeight: "280px" }}>
+                      <AnimatePresence>
+                        {pagedMeetings[floor]?.length > 0 ? (
+                          pagedMeetings[floor].map((meeting, idx) => {
+                            const status = getMeetingStatus(meeting.startTime, meeting.endTime);
+                            const attendeesCount = getAttendeesCount(meeting);
 
-                          return (
-                            <motion.div
-                              key={meeting.id || `${meeting.subject}-${idx}`}
-                              initial={{ opacity: 0, y: 60 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 60 }}
-                              transition={{ duration: 0.6, ease: "easeOut", delay: idx * 0.1 }}
-                              className="p-2 p-md-3 mb-2 mb-md-3 rounded shadow-sm"
-                              style={{
-                                background: statusGradients[status],
-                                borderLeft: `4px solid ${status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"
-                                  }`,
-                                minHeight: "80px",
-                                fontWeight: 700,
-                                opacity: status === "completed" ? 0.8 : 1,
-                              }}
-                            >
-                              <div
-                                style={{ fontSize: "clamp(0.85rem, 1.8vw, 1rem)", color: "#2c3e50" }}
-                                className="text-truncate"
-                                title={meeting.subject}
-                              >
-
-                                {meeting.subject}
-                              </div>
-
-                              <div className="d-flex justify-content-between align-items-center mt-1">
-                                <div
-                                  style={{ fontSize: "clamp(0.7rem, 1.6vw, 0.85rem)", color: "#444" }}
-                                  className="text-truncate"
-                                  title={meeting.organizer}
-                                >
-                                  👤 {meeting.organizer}
-                                </div>
-                                <div style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)", color: "#555" }}>
-                                  🙎🏻‍♂️ {attendeesCount}
-                                </div>
-                              </div>
-
-                              <div style={{ fontSize: "clamp(0.75rem, 1.7vw, 0.9rem)", color: "#555" }}>
-                                {formatTimeOnly(meeting.startTime)} - {formatTimeOnly(meeting.endTime)}
-                              </div>
-
-                              <div
+                            return (
+                              <motion.div
+                                key={meeting.id || `${meeting.subject}-${idx}`}
+                                initial={{ opacity: 0, y: 60 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 60 }}
+                                transition={{ duration: 0.6, ease: "easeOut", delay: idx * 0.1 }}
+                                className="p-2 p-md-3 mb-2 mb-md-3 rounded shadow-sm"
                                 style={{
-                                  fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)",
-                                  color:
-                                    status === "completed"
-                                      ? "#7f8c8d"
-                                      : status === "upcoming"
-                                        ? "rgba(25, 0, 255, 1)"
-                                        : status === "Live"
-                                          ? "#ff0000ff"
-                                          : "",
-                                  fontWeight: "bold",
-                                  textAlign: "right",
-                                  textTransform: "uppercase",
-                                  marginTop: "4px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "flex-end",
+                                  background: statusGradients[status],
+                                  borderLeft: `4px solid ${status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"
+                                    }`,
+                                  minHeight: "80px",
+                                  fontWeight: 700,
+                                  opacity: status === "completed" ? 0.8 : 1,
                                 }}
                               >
-                                {status === "Live" && <LiveIndicator />} {status}
-                              </div>
-                            </motion.div>
-                          );
-                        })
-                      ) : (
-                        <div
-                          className="text-center text-muted fw-semibold p-3"
-                          style={{
-                            //background: "rgba(255,255,255,0.8)",
-                            borderRadius: "12px",
-                            minHeight: "80px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "clamp(0.9rem, 2vw, 1rem)",
-                          }}
-                        >
-                          No meetings
-                        </div>
-                      )}
-                    </AnimatePresence>
+                                <div
+                                  style={{ fontSize: "clamp(0.85rem, 1.8vw, 1rem)", color: "#2c3e50" }}
+                                  className="text-truncate"
+                                  title={meeting.subject}
+                                >
+
+                                  {meeting.subject}
+                                </div>
+
+                                <div className="d-flex justify-content-between align-items-center mt-1">
+                                  <div
+                                    style={{ fontSize: "clamp(0.7rem, 1.6vw, 0.85rem)", color: "#444" }}
+                                    className="text-truncate"
+                                    title={meeting.organizer}
+                                  >
+                                    👤 {meeting.organizer}
+                                  </div>
+                                  <div style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)", color: "#555" }}>
+                                    🙎🏻‍♂️ {attendeesCount}
+                                  </div>
+                                </div>
+
+                                <div style={{ fontSize: "clamp(0.75rem, 1.7vw, 0.9rem)", color: "#555" }}>
+                                  {formatTimeOnly(meeting.startTime)} - {formatTimeOnly(meeting.endTime)}
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)",
+                                    color:
+                                      status === "completed"
+                                        ? "#7f8c8d"
+                                        : status === "upcoming"
+                                          ? "rgba(25, 0, 255, 1)"
+                                          : status === "Live"
+                                            ? "#ff0000ff"
+                                            : "",
+                                    fontWeight: "bold",
+                                    textAlign: "right",
+                                    textTransform: "uppercase",
+                                    marginTop: "4px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "flex-end",
+                                  }}
+                                >
+                                  {status === "Live" && <LiveIndicator />} {status}
+                                </div>
+                              </motion.div>
+                            );
+                          })
+                        ) : (
+                          <div
+                            className="text-center text-muted fw-semibold p-3"
+                            style={{
+                              borderRadius: "12px",
+                              minHeight: "80px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "clamp(0.9rem, 2vw, 1rem)",
+                            }}
+                          >
+                            No meetings
+                          </div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
+              ))}
+            </div>
+          ) : null}
 
-        {/* Pagination */}
-        {totalPages > 1 && !loading && (
-          <nav className="d-flex justify-content-center mt-3 mt-md-4">
-            <ul className="pagination pagination-sm">
-              <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-                <button className="page-link" onClick={() => setPage(page - 1)}>
-                  Previous
-                </button>
-              </li>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <li key={i} className={`page-item ${page === i + 1 ? "active" : ""}`}>
-                  <button className="page-link" onClick={() => setPage(i + 1)}>
-                    {i + 1}
+          {/* Pagination */}
+          {totalPages > 1 && !loading && (
+            <nav className="d-flex justify-content-center mt-3 mt-md-4">
+              <ul className="pagination pagination-sm">
+                <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setPage(page - 1)}>
+                    Previous
                   </button>
                 </li>
-              ))}
-              <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
-                <button className="page-link" onClick={() => setPage(page + 1)}>
-                  Next
-                </button>
-              </li>
-            </ul>
-          </nav>
-        )}
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <li key={i} className={`page-item ${page === i + 1 ? "active" : ""}`}>
+                    <button className="page-link" onClick={() => setPage(i + 1)}>
+                      {i + 1}
+                    </button>
+                  </li>
+                ))}
+                <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setPage(page + 1)}>
+                    Next
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          )}
 
-        {/* Error Modal */}
-        <div className={`modal ${showErrorModal ? "d-block" : ""}`} tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <h5 className="modal-title">Error</h5>
-                <button type="button" className="btn-close" onClick={() => setShowErrorModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <p className="mb-0" style={{ whiteSpace: "pre-wrap" }}>
-                  {errorMessage}
-                </p>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowErrorModal(false)}>
-                  Close
-                </button>
+          {/* Error Modal */}
+          <div className={`modal ${showErrorModal ? "d-block" : ""}`} tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header bg-danger text-white">
+                  <h5 className="modal-title">Error</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowErrorModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <p className="mb-0" style={{ whiteSpace: "pre-wrap" }}>
+                    {errorMessage}
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowErrorModal(false)}>
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Production Level Branding */}
-        <div
-          style={{
-            position: "fixed",
-            bottom: "1rem",
-            right: "1rem",
-            opacity: 0.7,
-            fontSize: "0.75rem",
-            color: "#6c757d",
-            zIndex: 100,
-          }}
-        >
-          Powered by R&D Conserve
+          {/* Production Level Branding */}
+          <div
+            style={{
+              position: "fixed",
+              bottom: "1rem",
+              right: "1rem",
+              opacity: 0.7,
+              fontSize: "0.75rem",
+              color: "#6c757d",
+              zIndex: 100,
+            }}
+          >
+            Powered by R&D Conserve
+          </div>
         </div>
       </div>
     </>
