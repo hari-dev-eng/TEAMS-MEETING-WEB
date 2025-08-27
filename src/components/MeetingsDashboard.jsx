@@ -698,9 +698,11 @@ const MeetingsDashboard = () => {
             </div>
           </div>
 
+
+          
           {/* Display Date from Image */}
           <div className="mb-3">
-            <h4 className="text-muted fw-bold" style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "1.2rem", color: "#000" }}>
+            <h4 className="text-muted fw-bold" style={{ fontFamily: "calibri", paddingLeft:"10px", fontSize: "32px", color: "#333" }}>
               {date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </h4>
           </div>
@@ -773,7 +775,7 @@ const MeetingsDashboard = () => {
                     <div
                       className="card-header text-white text-center fw-bold py-2 py-md-3"
                       style={{
-                        background: "linear-gradient(90deg,#65799b,#5e2563 60%)",
+                        background: "linear-gradient(90deg, #65799b, #5e2563 60%)",
                         borderTopLeftRadius: "16px",
                         borderTopRightRadius: "16px",
                         fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)",
