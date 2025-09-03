@@ -22,5 +22,5 @@ export const loginRequest = {
 };
 
 export const apiConfig = {
-  apiUrl: "https://localhost:5001" // backend API
+  apiUrl: "https://teamsbackendapi-production.up.railway.app" // backend API
 };
