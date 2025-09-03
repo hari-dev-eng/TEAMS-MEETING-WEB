@@ -56,9 +56,8 @@ const ClockIcon = (props) => (
 const PAGE_SIZE = 10;
 
 // API URL - hardcoded for browser compatibility
-const API_BASE_URL = "https://teamsbackendapi-production.up.railway.app";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
 
-// Ensure arrays serialize as repeated keys: userEmails=a&userEmails=b (ASP.NET-friendly)
 const api = axios.create({
   baseURL: API_BASE_URL,
   paramsSerializer: (params) => {

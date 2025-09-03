@@ -58,19 +58,20 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   
   const getAccessToken = useCallback(async () => {
-    try {
-      const response = await fetch("https://teamsbackendapi-production.up.railway.app/api/Bookings/GetAccessToken");
-      if (!response.ok) {
-        throw new Error(`Failed to get token: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.access_token;
-    } catch (error) {
-      console.error("Error getting access token:", error);
-      showAlertMessage("Failed to authenticate with Azure AD", "danger");
-      return null;
+  try {
+    const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
+    const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
+    if (!response.ok) {
+      throw new Error(`Failed to get token: ${response.status}`);
     }
-  }, [showAlertMessage]);
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error("Error getting access token:", error);
+    showAlertMessage("Failed to authenticate with Azure AD", "danger");
+    return null;
+  }
+}, [showAlertMessage]);
 
   // Function to check room availability
   const checkRoomAvailability = useCallback(async () => {
