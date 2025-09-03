@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import logoImage from "../image.png";
 import backGroundImage from "../team.png";
 import WebFont from "webfontloader";
+import BookingComponent from "./BookingComponent";
 
-// These are custom icon components created from SVG to replace react-icons
 const CalendarIcon = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -86,20 +86,54 @@ const statusGradients = {
  * Small helpers / components
  * ────────────────────────────*/
 const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
+  const [errorMessage, setErrorMessage] = useState("");
   const formattedDate = selectedDate.toISOString().split("T")[0];
+
+  const handleDateChange = (e) => {
+    const inputValue = e.target.value;
+    const newDate = new Date(inputValue);
+
+    // Check if it's a valid date
+    if (isNaN(newDate.getTime())) {
+      setErrorMessage("Please enter a valid date.");
+      return;
+    }
+
+    // Validate day-month mismatch (e.g., 2025-04-31)
+    const [year, month, day] = inputValue.split("-");
+    if (
+      newDate.getFullYear() !== Number(year) ||
+      newDate.getMonth() + 1 !== Number(month) ||
+      newDate.getDate() !== Number(day)
+    ) {
+      setErrorMessage("Invalid date. This month doesn’t have that many days.");
+      return;
+    }
+
+    setErrorMessage(""); // clear error
+    setSelectedDate(newDate);
+  };
+
   return (
-    <div className="d-flex align-items-center gap-2">
-      {label && <label className="d-none d-md-block">{label}:</label>}
-      <input
-        type="date"
-        value={formattedDate}
-        onChange={(e) => setSelectedDate(new Date(e.target.value))}
-        className="form-control"
-        style={{ minWidth: "140px" }}
-      />
+    <div className="d-flex flex-column gap-2">
+      <div className="d-flex align-items-center gap-2">
+        {label && <label className="d-none d-md-block">{label}:</label>}
+        <input
+          type="date"
+          value={formattedDate}
+          onChange={handleDateChange}
+          className={`form-control ${errorMessage ? "is-invalid" : ""}`}
+          style={{ minWidth: "140px" }}
+        />
+      </div>
+      {errorMessage && (
+        <div className="invalid-feedback d-block">{errorMessage}</div>
+      )}
     </div>
   );
 };
+
+
 
 const getMeetingStatus = (startTime, endTime) => {
   const now = new Date();
@@ -185,6 +219,7 @@ const LoadingIndicator = () => (
     <span>Loading meetings...</span>
   </div>
 );
+
 
 // Particles Component
 const ParticlesBackground = () => {
@@ -392,6 +427,26 @@ const MeetingsDashboard = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isManualRefresh, setIsManualRefresh] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+
+  // Function to handle schedule meeting
+  const handleScheduleMeeting = () => {
+  setShowBookingModal(true);
+};
+
+const handleSaveMeeting = async(meetingData) => {
+ try {
+    // After successful save, refresh the meetings
+    await fetchMeetings(false);
+    setShowBookingModal(false);
+  } catch (error) {
+    console.error("Error handling saved meeting:", error);
+  }
+};
+
+const handleCloseBookingModal = () => {
+  setShowBookingModal(false);
+};
 
   // Fetch meetings
   const fetchMeetings = useCallback(
@@ -643,8 +698,83 @@ const MeetingsDashboard = () => {
             width: 100%;
           }
           html {
-            zoom: 0.75;s
+            zoom: 0.75;
           }
+
+          /* Header button alignment */
+          .header-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 15px;
+          }
+          
+          .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+          }
+          
+          .header-center {
+            flex: 1;
+            text-align: center;
+            min-width: 200px;
+          }
+          
+          .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            justify-content: flex-end;
+          }
+          
+          @media (max-width: 992px) {
+            .header-container {
+              flex-direction: column;
+              align-items: stretch;
+            }
+            
+            .header-left, .header-center, .header-right {
+              justify-content: center;
+              text-align: center;
+            }
+            
+            .header-right {
+              flex-direction: column;
+            }
+          }
+            .btn-custom {
+            background-color: #0074bdff;
+            border: none;
+            color: white;
+            font-size:16px;
+            padding: 0.8rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+          }
+
+          .btn-custom:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+            .btn-custom-2{
+            background-color: #76b042ff;
+            border: none;
+            color: white;
+            font-size:16px;
+            padding: 0.8rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            }
+            .btn-custom-2:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+
         `}
       </style>
 
@@ -652,52 +782,71 @@ const MeetingsDashboard = () => {
         <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: 'relative', zIndex: 1 }}>
           {/* Header */}
           <div
-            className="card h-100 shadow-sm d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0 mb-3 mb-md-4 p-2 p-md-3"
+            className="card h-100 shadow-sm p-2 p-md-3 mb-3 mb-md-4"
             style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
           >
-            <div className="d-flex align-items-center gap-2">
-              <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
-              <h2
-                className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bold"
-                style={{
-                  background: "linear-gradient(90deg, #0074BD, #76B042)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                Meetly Dashboard
-              </h2>
-            </div>
-            <div className="fs-3 fs-md-2 mb-2 mb-md-0 fw-bolder"   style={{
-                  background: "linear-gradient(90deg, #20498a, #20498a)",
-                  WebkitBackgroundClip: "text",
-                  //fontFamily:"poppins",
-                  WebkitTextFillColor: "transparent",
-                  display: "flex",
-                  justifyContent: "center", // horizontal center
-                  alignItems: "center",     // vertical center
-                  height: "100%"
-                }}
-            
-            ><h2 style={{ fontSize: "32px",fontFamily:"stylus bt", margin: 0,  /*fontWeight: "bold"*/ }}>
-                WE ADD VALUE TO YOUR VISION...
-              </h2></div>
-                
-            <div className="d-flex flex-column flex-sm-row align-items-start align-items-md-center gap-2">
-              <DatePickerComponent selectedDate={date} setSelectedDate={setDate} />
-              <button className="btn btn-primary" onClick={() => fetchMeetings(true)} disabled={loading}>
-                {loading && isManualRefresh ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Loading...
-                  </>
-                ) : (
-                  "Fetch Meetings"
-                )}
-              </button>
+            <div className="header-container">
+              {/* Left section with logo and title */}
+              <div className="header-left">
+                <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
+                <h2
+                  className="fs-3 fs-md-2 mb-0 fw-bold"
+                  style={{
+                    background: "linear-gradient(90deg, #0074BD, #76B042)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Meetly Dashboard
+                </h2>
+              </div>
+
+              {/* Center section with slogan */}
+              <div className="header-center">
+                <h2 
+                  className="fs-4 fs-md-3 mb-0 fw-bolder"   
+                  style={{
+                    background: "linear-gradient(90deg, #20498a, #20498a)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    fontFamily: "stylus bt",
+                    margin: 0
+                  }}
+                >
+                  WE ADD VALUE TO YOUR VISION...
+                </h2>
+              </div>
+             
+                 {/* Right section with buttons */}
+              <div className="header-right">
+                <div className="d-flex align-items-center gap-2">
+                  <DatePickerComponent selectedDate={date} setSelectedDate={setDate} />
+                  <button 
+                    className="btn-custom" 
+                    onClick={() => fetchMeetings(true)} 
+                    disabled={loading}
+                  >
+                    {loading && isManualRefresh ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Loading...
+                      </>
+                    ) : (
+                      "Fetch Meetings"
+                    )}
+                  </button>
+                </div>
+                <div className="schedule-section">
+                  <button 
+                    className="btn-custom-2" style={{ fontFamily: "calibri", fontSize: "16px", color: "#ffffffff" }}
+                    onClick={handleScheduleMeeting} 
+                  >
+                    Schedule New Meeting
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-
 
           
           {/* Display Date from Image */}
@@ -885,7 +1034,7 @@ const MeetingsDashboard = () => {
           {totalPages > 1 && !loading && (
             <nav className="d-flex justify-content-center mt-3 mt-md-4">
               <ul className="pagination pagination-sm">
-                <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+                <li className={`page-item ${page === 1 ? "disabled": ""}`}>
                   <button className="page-link" onClick={() => setPage(page - 1)}>
                     Previous
                   </button>
@@ -944,6 +1093,14 @@ const MeetingsDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Render Booking Component Modal when showBookingModal is true */}
+      {showBookingModal && (
+        <BookingComponent 
+          onClose={handleCloseBookingModal} 
+          onSave={handleSaveMeeting} 
+        />
+      )}
     </>
   );
 };
