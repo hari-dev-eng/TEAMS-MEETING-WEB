@@ -56,7 +56,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
 
-  // Function to get access token using client credentials flow
+  
   const getAccessToken = useCallback(async () => {
     try {
       const response = await fetch("https://teamsbackendapi-production.up.railway.app/api/Bookings/GetAccessToken");
