@@ -59,7 +59,7 @@ const BookingComponent = ({ onClose, onSave }) => {
   // Function to get access token using client credentials flow
   const getAccessToken = useCallback(async () => {
     try {
-      const response = await fetch("https://localhost:7141/api/Bookings/GetAccessToken");
+      const response = await fetch("https://teamsbackendapi-production.up.railway.app/api/Bookings/GetAccessToken");
       if (!response.ok) {
         throw new Error(`Failed to get token: ${response.status}`);
       }
