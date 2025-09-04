@@ -533,7 +533,7 @@ const BookingComponent = ({ onClose, onSave }) => {
             <form onSubmit={handleSubmit}>
               {/* User Email with login button */}
               <div className="mb-4 position-relative">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Your Email <span className="text-danger">*</span></label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large" }}>Organizer <span className="text-danger">*</span></label>
                 {account ? (
                   <div className="d-flex align-items-center">
                     <input
@@ -594,7 +594,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Event title */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Add a title <span className="text-danger">*</span></label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large"  }}>Subject <span className="text-danger">*</span></label>
                 <input
                   type="text"
                   className="form-control"
@@ -615,7 +615,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Additional attendees with suggestions and "chip" display */}
               <div className="mb-4 position-relative">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Additional attendees</label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large"  }}>Attendees</label>
                 <div style={{
                   display: "flex",
                   flexWrap: "wrap",
@@ -693,7 +693,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Date and time */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Date & Time <span className="text-danger">*</span></label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large"  }}>Date & Time <span className="text-danger">*</span></label>
                 <div className="d-flex flex-wrap align-items-center gap-2">
                   <input
                     type="date"
@@ -790,8 +790,8 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Room selection */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>
-                  Select a room <span className="text-danger">*</span>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large" }}>
+                  Location <span className="text-danger">*</span>
                 </label>
                 <select
                   className="form-select"
@@ -844,7 +844,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Response options */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Response options</label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large"  }}>Response options</label>
                 <div className="d-flex flex-wrap gap-2">
                   <select
                     className="form-select"
@@ -893,7 +893,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Description */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Description</label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568",fontsize: "x-large"  }}>Description</label>
                 <textarea
                   className="form-control"
                   rows="3"
