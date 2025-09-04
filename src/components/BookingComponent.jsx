@@ -203,12 +203,15 @@ const BookingComponent = ({ onClose, onSave }) => {
   }, [accounts, isWorkSchoolAccount, showAlertMessage]);
 
   useEffect(() => {
+    const currentDebounceTimeout = debounceTimeoutRef.current;
+    const currentAvailabilityTimeout = availabilityTimeoutRef.current;
+    
     return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+      if (currentDebounceTimeout) {
+        clearTimeout(currentDebounceTimeout);
       }
-      if (availabilityTimeoutRef.current) {
-        clearTimeout(availabilityTimeoutRef.current);
+      if (currentAvailabilityTimeout) {
+        clearTimeout(currentAvailabilityTimeout);
       }
     };
   }, []);
@@ -479,21 +482,6 @@ const BookingComponent = ({ onClose, onSave }) => {
       );
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Function to get availability badge
-  const getAvailabilityBadge = (roomEmail) => {
-    const status = roomAvailability[roomEmail];
-
-    if (status === "available") {
-      return <span className="badge bg-success">Available</span>;
-    } else if (status === "busy") {
-      return <span className="badge bg-danger">Busy</span>;
-    } else if (status === "unknown") {
-      return <span className="badge bg-warning">Unknown</span>;
-    } else {
-      return <span className="badge bg-secondary">Checking...</span>;
     }
   };
 
