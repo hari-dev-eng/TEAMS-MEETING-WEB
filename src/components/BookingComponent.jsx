@@ -1033,6 +1033,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                   value={eventData.location}
                   onChange={handleRoomSelect}
                   required
+                  disabled={!account}
                   style={{
                     borderRadius: "8px",
                     padding: "0.75rem",
@@ -1101,6 +1102,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                     className="form-control"
                     placeholder="Search for attendees by name or email"
                     name="attendees"
+                    disabled={!account}
                     value={attendeeSearchTerm}
                     onChange={handleChange}
                     style={{
@@ -1152,6 +1154,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                   className="form-select"
                   name="category"
                   value={eventData.category}
+                  disabled={!account}
                   onChange={handleChange}
                   style={{
                     borderRadius: "8px",
@@ -1173,6 +1176,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                   className="form-select"
                   name="reminder"
                   value={eventData.reminder}
+                  disabled={!account}
                   onChange={handleChange}
                   style={{
                     borderRadius: "8px",
