@@ -354,30 +354,27 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   // API call function
   const makeApiCall = async (requestBody) => {
-    const API_URL = "https://localhost:7141/api/Bookings";
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Add Authorization header if you’re passing MSAL token
+        Authorization: `Bearer ${requestBody.accessToken}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    try {
-      setIsLoading(true);
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}`);
     }
-  };
+
+    return await response.json();
+  } catch (err) {
+    console.error("API Error:", err);
+    throw err;
+  }
+};
 
   //single handle for signin and signout
   const handleAuthAction = () => {
