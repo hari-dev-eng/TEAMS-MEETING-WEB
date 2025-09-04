@@ -10,6 +10,9 @@ const rooms = [
   { name: "Conference meeting room", email: "contconference@conservesolution.com" },
 ];
 
+// Define API_BASE_URL at the top level
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
+
 const BookingComponent = ({ onClose, onSave }) => {
   const { instance: msalInstance, accounts } = useMsal();
   const [account, setAccount] = useState(null);
@@ -56,22 +59,20 @@ const BookingComponent = ({ onClose, onSave }) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
 
-  
   const getAccessToken = useCallback(async () => {
-  try {
-    const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
-    const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
-    if (!response.ok) {
-      throw new Error(`Failed to get token: ${response.status}`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
+      if (!response.ok) {
+        throw new Error(`Failed to get token: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.access_token || data.accessToken;
+    } catch (error) {
+      console.error("Error getting access token:", error);
+      showAlertMessage("Failed to authenticate with Azure AD", "danger");
+      return null;
     }
-    const data = await response.json();
-    return data.access_token;
-  } catch (error) {
-    console.error("Error getting access token:", error);
-    showAlertMessage("Failed to authenticate with Azure AD", "danger");
-    return null;
-  }
-}, [showAlertMessage]);
+  }, [showAlertMessage]);
 
   // Function to check room availability
   const checkRoomAvailability = useCallback(async () => {
@@ -111,13 +112,11 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
   }, [eventData.startDate, eventData.startTime, eventData.endTime, getAccessToken]);
 
-
   useEffect(() => {
     if (eventData.startDate && eventData.startTime && eventData.endTime) {
       checkRoomAvailability();
     }
   }, [eventData.startDate, eventData.startTime, eventData.endTime, checkRoomAvailability]);
-
 
   // Function to fetch users from Azure AD
   const fetchUsers = useCallback(async (searchTerm = "", isAttendeeField = false) => {
@@ -286,7 +285,6 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
   };
 
-
   const handleRoomSelect = (e) => {
     const selectedRoomName = e.target.value;
     const selectedRoom = rooms.find(room => room.name === selectedRoomName);
@@ -354,27 +352,33 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   // API call function
   const makeApiCall = async (requestBody) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Add Authorization header if you’re passing MSAL token
-        Authorization: `Bearer ${requestBody.accessToken}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    try {
+      // Get access token for the API call
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error("No access token available");
+      }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+      const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error ${response.status}: ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw err;
     }
-
-    return await response.json();
-  } catch (err) {
-    console.error("API Error:", err);
-    throw err;
-  }
-};
+  };
 
   //single handle for signin and signout
   const handleAuthAction = () => {
@@ -387,28 +391,51 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    if (!eventData.title.trim()) return showAlertMessage("Event title is required", "danger");
-    if (!eventData.startDate) return showAlertMessage("Start date is required", "danger");
-    if (!eventData.userEmail) return showAlertMessage("User email is required", "danger");
-    if (!eventData.roomEmail) return showAlertMessage("Please select a room", "danger");
+    if (!eventData.title.trim()) {
+      showAlertMessage("Event title is required", "danger");
+      setIsLoading(false);
+      return;
+    }
+    if (!eventData.startDate) {
+      showAlertMessage("Start date is required", "danger");
+      setIsLoading(false);
+      return;
+    }
+    if (!eventData.userEmail) {
+      showAlertMessage("User email is required", "danger");
+      setIsLoading(false);
+      return;
+    }
+    if (!eventData.roomEmail) {
+      showAlertMessage("Please select a room", "danger");
+      setIsLoading(false);
+      return;
+    }
 
     // Check if selected room is available
     const selectedRoomStatus = roomAvailability[eventData.roomEmail];
     if (selectedRoomStatus === "busy") {
-      return showAlertMessage("The selected room is not available at the chosen time. Please select a different time or room.", "danger");
+      showAlertMessage("The selected room is not available at the chosen time. Please select a different time or room.", "danger");
+      setIsLoading(false);
+      return;
     }
 
     const emailDomainRegex = /^[a-zA-Z0-9._%+-]+@conservesolution\.com$/;
     if (!emailDomainRegex.test(eventData.userEmail)) {
-      return showAlertMessage("Please use a valid @conservesolution.com email address.", "danger");
+      showAlertMessage("Please use a valid @conservesolution.com email address.", "danger");
+      setIsLoading(false);
+      return;
     }
 
     const attendeeEmails = attendeeList.map(a => a.mail);
     const invalidAttendees = attendeeEmails.filter(a => !emailDomainRegex.test(a));
 
     if (invalidAttendees.length > 0) {
-      return showAlertMessage(`These attendee emails are invalid: ${invalidAttendees.join(", ")}`, "danger");
+      showAlertMessage(`These attendee emails are invalid: ${invalidAttendees.join(", ")}`, "danger");
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -429,6 +456,7 @@ const BookingComponent = ({ onClose, onSave }) => {
         IsAllDay: eventData.isAllDay,
         IsRecurring: eventData.isRecurring,
       };
+      
       try {
         const apiResponse = await makeApiCall(requestBody);
         showAlertMessage(
@@ -436,9 +464,7 @@ const BookingComponent = ({ onClose, onSave }) => {
           "success"
         );
         onSave({ ...eventData, apiResponse });
-
-      }
-      catch (apiError) {
+      } catch (apiError) {
         console.error("API Error:", apiError);
         showAlertMessage(
           apiError.message || "Failed to schedule the event due to a server error. Please try again.",
@@ -451,6 +477,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         "An unexpected error occurred while scheduling the event. Please check your inputs and try again.",
         "danger"
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
