@@ -168,12 +168,7 @@ const LiveIndicator = () => (
     }}
   />
 );
-const formatDuration = (minutes) => {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-};
+
 
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
@@ -201,22 +196,15 @@ const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
     totalUsedMinutes += duration;
   }
 
-  const avgDurationMins = meetings.length > 0 ? totalDuration / meetings.length : 0;
-  const avgDuration = formatDuration(avgDurationMins);
+  const avgDuration = meetings.length > 0 ? Math.round(totalDuration / meetings.length) : 0;
 
   // Total possible minutes = floors × hours per floor × 60
   const totalPossibleMinutes = floors * hoursPerFloor * 60;
 
-  const utilizationPercent =
+  const roomUtilization =
     totalPossibleMinutes > 0
       ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100))
       : 0;
-
-  const roomUtilization = {
-    percent: utilizationPercent,
-    used: formatDuration(totalUsedMinutes),
-    total: formatDuration(totalPossibleMinutes),
-  };
 
   return {
     activeMeetings: activeCount,
