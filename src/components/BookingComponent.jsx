@@ -57,42 +57,42 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
   };
 
   // Calculate default end date (3 months from start)
-// Corrected code
-useEffect(() => {
-  if (eventData.startDate && recurrenceData.endOption === 'date') {
-    const startDate = new Date(eventData.startDate);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 3);
-    
-    const formattedDate = endDate.toISOString().split('T')[0];
-    if (!recurrenceData.endDate) {
-      setRecurrenceData(prev => ({
-        ...prev,
-        endDate: formattedDate
-      }));
+  // Corrected code
+  useEffect(() => {
+    if (eventData.startDate && recurrenceData.endOption === 'date') {
+      const startDate = new Date(eventData.startDate);
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + 3);
+
+      const formattedDate = endDate.toISOString().split('T')[0];
+      if (!recurrenceData.endDate) {
+        setRecurrenceData(prev => ({
+          ...prev,
+          endDate: formattedDate
+        }));
+      }
     }
-  }
-}, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); // <-- Added dependency
+  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); // <-- Added dependency
 
   // Auto-adjust end time when start time changes
- // Corrected code inside RecurringEventModal
-useEffect(() => {
-  if (eventData.startTime && !eventData.endTime && !eventData.isAllDay) {
-    const startTime = new Date(`2000-01-01T${eventData.startTime}`);
-    startTime.setMinutes(startTime.getMinutes() + 30);
+  // Corrected code inside RecurringEventModal
+  useEffect(() => {
+    if (eventData.startTime && !eventData.endTime && !eventData.isAllDay) {
+      const startTime = new Date(`2000-01-01T${eventData.startTime}`);
+      startTime.setMinutes(startTime.getMinutes() + 30);
 
-    const hours = startTime.getHours().toString().padStart(2, '0');
-    const minutes = startTime.getMinutes().toString().padStart(2, '0');
-    const newEndTime = `${hours}:${minutes}`;
+      const hours = startTime.getHours().toString().padStart(2, '0');
+      const minutes = startTime.getMinutes().toString().padStart(2, '0');
+      const newEndTime = `${hours}:${minutes}`;
 
-    handleChange({
-      target: {
-        name: 'endTime',
-        value: newEndTime
-      }
-    });
-  }
-}, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); // <-- Added dependencies
+      handleChange({
+        target: {
+          name: 'endTime',
+          value: newEndTime
+        }
+      });
+    }
+  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); // <-- Added dependencies
 
   if (!show) return null;
 
@@ -588,33 +588,53 @@ const BookingComponent = ({ onClose, onSave }) => {
     }));
   };
 
-  const handleChange = useCallback((e) => {
-    const { name, value, type, checked } = e.target;
-    if (name === "reminder") {
-      setEventData(prev => ({
-        ...prev,
-        [name]: parseInt(value, 10) // Convert string to integer
-      }));
-    } else if (name === "attendees") {
-      setAttendeeSearchTerm(value);
-      debouncedUserSearch(value, true);
-    } else if (name === "description") {
-      setEventData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    } else if (name === "recurrence") {
-      setEventData(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    } else {
-      setEventData(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
-    }
-  }, [setEventData, setAttendeeSearchTerm, debouncedUserSearch]);
+  const handleChange = useCallback(
+    (e) => {
+      const { name, value, type, checked } = e.target;
+
+      if (name === "reminder") {
+        setEventData((prev) => ({
+          ...prev,
+          [name]: parseInt(value, 10), // Convert string to integer
+        }));
+      } else if (name === "attendees") {
+        setAttendeeSearchTerm(value);
+        debouncedUserSearch(value, true);
+      } else if (name === "description") {
+        setEventData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      } else if (name === "recurrence") {
+        setEventData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      } else if (name === "startTime") {
+        // Auto-update endTime +30 mins
+        const [hours, minutes] = value.split(":").map(Number);
+        const startDate = new Date();
+        startDate.setHours(hours, minutes);
+
+        const endDate = new Date(startDate.getTime() + 30 * 60000);
+        const endHours = String(endDate.getHours()).padStart(2, "0");
+        const endMinutes = String(endDate.getMinutes()).padStart(2, "0");
+
+        setEventData((prev) => ({
+          ...prev,
+          startTime: value,
+          endTime: `${endHours}:${endMinutes}`,
+        }));
+      } else {
+        setEventData((prev) => ({
+          ...prev,
+          [name]: type === "checkbox" ? checked : value,
+        }));
+      }
+    },
+    [setEventData, setAttendeeSearchTerm, debouncedUserSearch]
+  );
+
 
   const selectUser = (user, isAttendeeField = false) => {
     if (isAttendeeField) {
@@ -886,302 +906,344 @@ const BookingComponent = ({ onClose, onSave }) => {
                   </div>
                 )}
               </div>
-              
+
               {/* Make recurring & all day checkboxes */}
               <div className="mb-4">
-                  <div className="form-check">
-                      <input
-                          className="form-check-input"
-                          type="checkbox"
-                          name="isRecurring"
-                          checked={eventData.isRecurring}
-                          onChange={(e) => {
-                              handleChange(e);
-                              if (e.target.checked) {
-                                  setShowRecurrenceModal(true);
-                              }
-                          }}
-                          id="recurringCheck"
-                          disabled={!account}
-                          style={{ width: "1.1em", height: "1.1em", marginTop: "0.2em" }}
-                      />
-                      <label className="form-check-label" htmlFor="recurringCheck" style={{ color: "#4a5568" }}>
-                          Make recurring
-                      </label>
-                  </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    name="isRecurring"
+                    checked={eventData.isRecurring}
+                    onChange={(e) => {
+                      handleChange(e);
+                      if (e.target.checked) {
+                        setShowRecurrenceModal(true);
+                      }
+                    }}
+                    id="recurringCheck"
+                    disabled={!account}
+                    style={{ width: "1.1em", height: "1.1em", marginTop: "0.2em" }}
+                  />
+                  <label className="form-check-label" htmlFor="recurringCheck" style={{ color: "#4a5568" }}>
+                    Make recurring
+                  </label>
+                </div>
 
-                  <div className="form-check">
-                      <input
-                          className="form-check-input"
-                          type="checkbox"
-                          name="isAllDay"
-                          checked={eventData.isAllDay}
-                          onChange={handleChange}
-                          id="allDayCheck"
-                          disabled={!account}
-                          style={{
-                              width: "1.1em",
-                              height: "1.1em",
-                              marginTop: "0.2em"
-                          }}
-                      />
-                      <label className="form-check-label" htmlFor="allDayCheck" style={{ color: "#4a5568" }}>
-                          All day
-                      </label>
-                  </div>
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    name="isAllDay"
+                    checked={eventData.isAllDay}
+                    onChange={handleChange}
+                    id="allDayCheck"
+                    disabled={!account}
+                    style={{
+                      width: "1.1em",
+                      height: "1.1em",
+                      marginTop: "0.2em"
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="allDayCheck" style={{ color: "#4a5568" }}>
+                    All day
+                  </label>
+                </div>
               </div>
 
               {/* Date and Time inputs */}
-              <div className="d-flex flex-wrap align-items-center gap-2 mb-4">
+              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap" }}>
+                {/* Date */}
+                <div style={{ flex: "" }}>
                   <input
-                      type="date"
-                      className="form-control"
-                      style={{
-                          width: "140px",
-                          borderRadius: "8px",
-                          padding: "0.8rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                      name="startDate"
-                      value={eventData.startDate}
-                      onChange={handleChange}
-                      required
-                      disabled={!account}
-                      min={new Date().toISOString().split('T')[0]} // Prevent past dates
+                    type="date"
+                    className="form-control"
+                    name="startDate"
+                    value={eventData.startDate}
+                    onChange={handleChange}
+                    required
+                    disabled={!account}
+                    min={new Date().toISOString().split("T")[0]}
                   />
+                </div>
+
+                {/* Start Time */}
+                <div style={{ flex: "0.5" }}>
                   <input
-                      type="time"
-                      className="form-control"
-                      style={{
-                          width: "100px",
-                          borderRadius: "8px",
-                          padding: "0.5rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                      name="startTime"
-                      value={eventData.startTime}
-                      onChange={handleChange}
-                      disabled={eventData.isAllDay || !account}
+                    type="time"
+                    className="form-control"
+                    name="startTime"
+                    value={eventData.startTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
                   />
-                  <span style={{ color: "#718096" }}>to</span>
+                </div>
+
+                {/* "to" */}
+                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
+
+                {/* End Time */}
+                <div style={{ flex: "0.5" }}>
                   <input
-                      type="time"
-                      className="form-control"
-                      style={{
-                          width: "100px",
-                          borderRadius: "8px",
-                          padding: "0.5rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                      name="endTime"
-                      value={eventData.endTime}
-                      onChange={handleChange}
-                      disabled={eventData.isAllDay || !account}
+                    type="time"
+                    className="form-control"
+                    name="endTime"
+                    value={eventData.endTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
                   />
+                </div>
               </div>
+
+
 
               {/* Subject Input */}
               <div className="mb-4">
-                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Subject <span className="text-danger">*</span></label>
-                  <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Teams meeting"
-                      name="title"
-                      value={eventData.title}
-                      onChange={handleChange}
-                      required
-                      style={{
-                          borderRadius: "8px",
-                          padding: "0.75rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                          transition: "all 0.2s ease"
-                      }}
-                  />
+                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Subject <span className="text-danger">*</span></label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Teams meeting"
+                  name="title"
+                  value={eventData.title}
+                  onChange={handleChange}
+                  required
+                  style={{
+                    borderRadius: "8px",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e0",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+                    transition: "all 0.2s ease"
+                  }}
+                />
               </div>
 
               {/* Room Selection */}
               <div className="mb-4">
-                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Room <span className="text-danger">*</span></label>
-                  <select
-                      className="form-select"
-                      name="location"
-                      value={eventData.location}
-                      onChange={handleRoomSelect}
-                      required
-                      style={{
-                          borderRadius: "8px",
-                          padding: "0.75rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                  >
-                      <option value="">Select a room</option>
-                      {rooms.map((room) => (
-                          <option key={room.email} value={room.name}>{room.name}</option>
-                      ))}
-                  </select>
-                  {isCheckingAvailability ? (
-                      <div className="text-info mt-2">Checking room availability...</div>
-                  ) : (
-                      eventData.roomEmail && (
-                          <div className={`mt-2 ${roomAvailability[eventData.roomEmail] === "available" ? "text-success" : "text-danger"}`}>
-                              {roomAvailability[eventData.roomEmail] === "available" ? (
-                                  <>✅ This room is available.</>
-                              ) : roomAvailability[eventData.roomEmail] === "busy" ? (
-                                  <>❌ This room is busy. Please select another time or room.</>
-                              ) : (
-                                  "Status unknown. Please check your time."
-                              )}
-                          </div>
-                      )
-                  )}
+                <label
+                  className="form-label fw-bold"
+                  style={{ color: "#4a5568", fontSize: "24px" }}
+                >
+                  Location <span className="text-danger">*</span>
+                </label>
+
+                <select
+                  className="form-select"
+                  name="location"
+                  value={eventData.location}
+                  onChange={handleRoomSelect}
+                  required
+                  style={{
+                    borderRadius: "8px",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e0",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <option value="">Select a room</option>
+                  {rooms.map((room) => {
+                    const status = roomAvailability[room.email];
+                    let color = "black";
+                    let indicator = "";
+
+                    if (status === "available") {
+                      color = "green";
+                      indicator = "✅ ";
+                    } else if (status === "busy") {
+                      color = "red";
+                      indicator = "❌ ";
+                    } else {
+                      color = "gray";
+                      indicator = "⌛ ";
+                    }
+
+                    return (
+                      <option
+                        key={room.email}
+                        value={room.name}
+                        style={{ color }}
+                      >
+                        {indicator} {room.name}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                {isCheckingAvailability ? (
+                  <div className="text-info mt-2">Checking room availability...</div>
+                ) : (
+                  eventData.roomEmail && (
+                    <div
+                      className={`mt-2 ${roomAvailability[eventData.roomEmail] === "available"
+                        ? "text-success"
+                        : "text-danger"
+                        }`}
+                    >
+                      {roomAvailability[eventData.roomEmail] === "available" ? (
+                        <>✅ This room is available.</>
+                      ) : roomAvailability[eventData.roomEmail] === "busy" ? (
+                        <>❌ This room is busy. Please select another time or room.</>
+                      ) : (
+                        "Status unknown. Please check your time."
+                      )}
+                    </div>
+                  )
+                )}
+
               </div>
 
               {/* Attendees Input */}
               <div className="mb-4">
-                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Attendees</label>
-                  <div className="attendee-input-container position-relative">
-                      <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Search for attendees by name or email"
-                          name="attendees"
-                          value={attendeeSearchTerm}
-                          onChange={handleChange}
-                          style={{
-                              borderRadius: "8px",
-                              padding: "0.75rem",
-                              border: "1px solid #cbd5e0",
-                              boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Attendees</label>
+                <div className="attendee-input-container position-relative">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search for attendees by name or email"
+                    name="attendees"
+                    value={attendeeSearchTerm}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: "8px",
+                      padding: "0.75rem",
+                      border: "1px solid #cbd5e0",
+                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                    }}
+                  />
+                  {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3" role="status"></div>}
+                  {attendeeSuggestions.length > 0 && (
+                    <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
+                      {attendeeSuggestions.map(user => (
+                        <li
+                          key={user.id}
+                          className="list-group-item list-group-item-action"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            selectUser(user, true);
                           }}
-                      />
-                      {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3" role="status"></div>}
-                      {attendeeSuggestions.length > 0 && (
-                          <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
-                              {attendeeSuggestions.map(user => (
-                                  <li
-                                      key={user.id}
-                                      className="list-group-item list-group-item-action"
-                                      onClick={(e) => {
-                                          e.stopPropagation();
-                                          selectUser(user, true);
-                                      }}
-                                      style={{ cursor: "pointer" }}
-                                  >
-                                      {user.displayName} ({user.mail})
-                                  </li>
-                              ))}
-                          </ul>
-                      )}
-                  </div>
-                  <div className="mt-2 d-flex flex-wrap gap-2">
-                      {attendeeList.map(attendee => (
-                          <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}>
-                              {attendee.displayName}
-                              <button
-                                  type="button"
-                                  className="btn-close btn-close-white ms-2"
-                                  onClick={() => removeAttendee(attendee.mail)}
-                                  aria-label="Remove"
-                                  style={{ filter: "brightness(0) invert(1)" }}
-                              ></button>
-                          </span>
+                          style={{ cursor: "pointer" }}
+                        >
+                          {user.displayName} ({user.mail})
+                        </li>
                       ))}
-                  </div>
+                    </ul>
+                  )}
+                </div>
+                <div className="mt-2 d-flex flex-wrap gap-2">
+                  {attendeeList.map(attendee => (
+                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}>
+                      {attendee.displayName}
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        onClick={() => removeAttendee(attendee.mail)}
+                        aria-label="Remove"
+                        style={{ filter: "brightness(0) invert(1)" }}
+                      ></button>
+                    </span>
+                  ))}
+                </div>
               </div>
 
               {/* Category */}
               <div className="mb-4">
-                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Category</label>
-                  <select
-                      className="form-select"
-                      name="category"
-                      value={eventData.category}
-                      onChange={handleChange}
-                      style={{
-                          borderRadius: "8px",
-                          padding: "0.75rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                  >
-                      <option value="Busy">Busy</option>
-                      <option value="Free">Free</option>
-                      <option value="Tentative">Tentative</option>
-                  </select>
+                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Category</label>
+                <select
+                  className="form-select"
+                  name="category"
+                  value={eventData.category}
+                  onChange={handleChange}
+                  style={{
+                    borderRadius: "8px",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e0",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                  }}
+                >
+                  <option value="Busy">Busy</option>
+                  <option value="Free">Free</option>
+                  <option value="Tentative">Tentative</option>
+                </select>
               </div>
 
               {/* Reminder */}
               <div className="mb-4">
-                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Reminder</label>
-                  <select
-                      className="form-select"
-                      name="reminder"
-                      value={eventData.reminder}
-                      onChange={handleChange}
-                      style={{
-                          borderRadius: "8px",
-                          padding: "0.75rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                      }}
-                  >
-                      <option value="0">None</option>
-                      <option value="5">5 minutes before</option>
-                      <option value="10">10 minutes before</option>
-                      <option value="15">15 minutes before</option>
-                      <option value="30">30 minutes before</option>
-                      <option value="60">1 hour before</option>
-                  </select>
+                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Reminder</label>
+                <select
+                  className="form-select"
+                  name="reminder"
+                  value={eventData.reminder}
+                  onChange={handleChange}
+                  style={{
+                    borderRadius: "8px",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e0",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                  }}
+                >
+                  <option value="0">None</option>
+                  <option value="5">5 minutes before</option>
+                  <option value="10">10 minutes before</option>
+                  <option value="15">15 minutes before</option>
+                  <option value="30">30 minutes before</option>
+                  <option value="60">1 hour before</option>
+                </select>
               </div>
 
               {/* Description */}
               <div className="mb-4">
-                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Description</label>
-                  <textarea
-                      className="form-control"
-                      placeholder="Add a description..."
-                      name="description"
-                      value={eventData.description}
-                      onChange={handleChange}
-                      style={{
-                          borderRadius: "8px",
-                          padding: "0.75rem",
-                          border: "1px solid #cbd5e0",
-                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                          minHeight: "100px"
-                      }}
-                  ></textarea>
+                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Description</label>
+                <textarea
+                  className="form-control"
+                  placeholder="Add a description..."
+                  name="description"
+                  value={eventData.description}
+                  onChange={handleChange}
+                  style={{
+                    borderRadius: "8px",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e0",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+                    minHeight: "100px"
+                  }}
+                ></textarea>
               </div>
 
               {/* Footer Buttons */}
               <div className="modal-footer" style={{ borderTop: "none", padding: "1.5rem 0 0" }}>
-                  <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={isLoading || !account} style={{ backgroundColor: "#3182CE", borderColor: "#3182CE" }}>
-                      {isLoading ? (
-                          <>
-                              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                              Scheduling...
-                          </>
-                      ) : "Schedule Event"}
-                  </button>
-              </div>
+    <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
+        Cancel
+    </button>
+    <button 
+        type="submit" 
+        className="btn btn-primary" 
+        disabled={isLoading || !account} 
+        style={{ 
+            backgroundColor: "transparent",
+            backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
+            borderColor: "#3182CE",
+            color: "white" // Ensure the text is visible
+        }}
+    >
+        {isLoading ? (
+            <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Scheduling...
+            </>
+        ) : "Schedule Event"} 
+    </button>
+</div>
             </form>
           </div>
         </div>
       </div>
       {/* Recurrence Modal */}
       <RecurringEventModal
-          show={showRecurrenceModal}
-          onClose={() => setShowRecurrenceModal(false)}
-          eventData={eventData}
-          handleChange={handleChange}
-          account={account}
+        show={showRecurrenceModal}
+        onClose={() => setShowRecurrenceModal(false)}
+        eventData={eventData}
+        handleChange={handleChange}
+        account={account}
       />
     </div>
   );
