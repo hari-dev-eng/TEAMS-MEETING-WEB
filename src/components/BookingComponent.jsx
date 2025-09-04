@@ -11,8 +11,295 @@ const rooms = [
 ];
 
 // Define API_BASE_URL at the top level
-const API_BASE_URL ="https://teamsbackendapi-production.up.railway.app";
+const API_BASE_URL = "https://teamsbackendapi-production.up.railway.app";
 
+// --- RecurringEventModal Component ---
+const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }) => {
+  const [recurrenceData, setRecurrenceData] = useState({
+    frequency: 'weekly',
+    interval: 1,
+    endOption: 'never',
+    endDate: '',
+    occurrences: 10
+  });
+
+  // Initialize modal with existing event data
+  useEffect(() => {
+    if (eventData.recurrence) {
+      setRecurrenceData({
+        frequency: eventData.recurrence.frequency || 'weekly',
+        interval: eventData.recurrence.interval || 1,
+        endOption: eventData.recurrence.endOption || 'never',
+        endDate: eventData.recurrence.endDate || '',
+        occurrences: eventData.recurrence.occurrences || 10
+      });
+    }
+  }, [eventData, show]);
+
+  // Handle recurrence option changes
+  const handleRecurrenceChange = (e) => {
+    const { name, value } = e.target;
+    setRecurrenceData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Save recurrence settings
+  const handleSaveRecurrence = () => {
+    handleChange({
+      target: {
+        name: 'recurrence',
+        value: recurrenceData
+      }
+    });
+    onClose();
+  };
+
+  // Calculate default end date (3 months from start)
+// Corrected code
+useEffect(() => {
+  if (eventData.startDate && recurrenceData.endOption === 'date') {
+    const startDate = new Date(eventData.startDate);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 3);
+    
+    const formattedDate = endDate.toISOString().split('T')[0];
+    if (!recurrenceData.endDate) {
+      setRecurrenceData(prev => ({
+        ...prev,
+        endDate: formattedDate
+      }));
+    }
+  }
+}, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); // <-- Added dependency
+
+  // Auto-adjust end time when start time changes
+ // Corrected code inside RecurringEventModal
+useEffect(() => {
+  if (eventData.startTime && !eventData.endTime && !eventData.isAllDay) {
+    const startTime = new Date(`2000-01-01T${eventData.startTime}`);
+    startTime.setMinutes(startTime.getMinutes() + 30);
+
+    const hours = startTime.getHours().toString().padStart(2, '0');
+    const minutes = startTime.getMinutes().toString().padStart(2, '0');
+    const newEndTime = `${hours}:${minutes}`;
+
+    handleChange({
+      target: {
+        name: 'endTime',
+        value: newEndTime
+      }
+    });
+  }
+}, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); // <-- Added dependencies
+
+  if (!show) return null;
+
+  return (
+    <div className="modal-backdrop" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <div className="modal-content" style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '20px',
+        width: '400px',
+        maxWidth: '90vw',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+      }}>
+        <h3 style={{ marginTop: 0, color: '#2D3748' }}>Repeat</h3>
+
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ marginRight: '10px', color: '#4A5568' }}>Start</span>
+            <span style={{ color: '#2D3748', fontWeight: '500' }}>
+              {eventData.startDate ? new Date(eventData.startDate).toLocaleDateString() : 'Select date'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+            <label style={{ marginRight: '10px', color: '#4A5568', minWidth: '80px' }}>Repeat every</label>
+            <input
+              type="number"
+              min="1"
+              max="30"
+              className="form-control"
+              style={{
+                width: '60px',
+                marginRight: '10px',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                border: '1px solid #CBD5E0'
+              }}
+              name="interval"
+              value={recurrenceData.interval}
+              onChange={handleRecurrenceChange}
+            />
+            <select
+              className="form-control"
+              style={{
+                borderRadius: '4px',
+                padding: '4px 8px',
+                border: '1px solid #CBD5E0'
+              }}
+              name="frequency"
+              value={recurrenceData.frequency}
+              onChange={handleRecurrenceChange}
+            >
+              <option value="daily">day(s)</option>
+              <option value="weekly">week(s)</option>
+              <option value="monthly">month(s)</option>
+              <option value="yearly">year(s)</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ marginBottom: '8px', color: '#4A5568' }}>Occurs on</div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, index) => (
+                <div
+                  key={day}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: recurrenceData.frequency === 'weekly' && index === 4 ? '#3182CE' : 'transparent',
+                    color: recurrenceData.frequency === 'weekly' && index === 4 ? 'white' : '#4A5568',
+                    border: '1px solid #CBD5E0',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ marginBottom: '8px', color: '#4A5568' }}>Ends</div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <input
+                  type="radio"
+                  id="endNever"
+                  name="endOption"
+                  value="never"
+                  checked={recurrenceData.endOption === 'never'}
+                  onChange={handleRecurrenceChange}
+                  style={{ marginRight: '8px' }}
+                />
+                <label htmlFor="endNever" style={{ color: '#4A5568' }}>Never</label>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <input
+                  type="radio"
+                  id="endDate"
+                  name="endOption"
+                  value="date"
+                  checked={recurrenceData.endOption === 'date'}
+                  onChange={handleRecurrenceChange}
+                  style={{ marginRight: '8px' }}
+                />
+                <label htmlFor="endDate" style={{ color: '#4A5568', marginRight: '8px' }}>On</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  style={{
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    border: '1px solid #CBD5E0',
+                    width: '140px'
+                  }}
+                  name="endDate"
+                  value={recurrenceData.endDate}
+                  onChange={handleRecurrenceChange}
+                  min={eventData.startDate}
+                  disabled={recurrenceData.endOption !== 'date'}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="radio"
+                  id="endAfter"
+                  name="endOption"
+                  value="after"
+                  checked={recurrenceData.endOption === 'after'}
+                  onChange={handleRecurrenceChange}
+                  style={{ marginRight: '8px' }}
+                />
+                <label htmlFor="endAfter" style={{ color: '#4A5568', marginRight: '8px' }}>After</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  className="form-control"
+                  style={{
+                    width: '60px',
+                    marginRight: '8px',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    border: '1px solid #CBD5E0'
+                  }}
+                  name="occurrences"
+                  value={recurrenceData.occurrences}
+                  onChange={handleRecurrenceChange}
+                  disabled={recurrenceData.endOption !== 'after'}
+                />
+                <span style={{ color: '#4A5568' }}>occurrences</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: '1px solid #CBD5E0',
+              backgroundColor: 'white',
+              color: '#4A5568',
+              cursor: 'pointer'
+            }}
+          >
+            Discard
+          </button>
+          <button
+            onClick={handleSaveRecurrence}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: 'none',
+              backgroundColor: '#3182CE',
+              color: 'white',
+              cursor: 'pointer'
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- BookingComponent Component ---
 const BookingComponent = ({ onClose, onSave }) => {
   const { instance: msalInstance, accounts } = useMsal();
   const [account, setAccount] = useState(null);
@@ -28,9 +315,11 @@ const BookingComponent = ({ onClose, onSave }) => {
     userEmail: "",
     category: "Busy",
     reminder: "15",
-    description: ""
+    description: "",
+    recurrence: null
   });
 
+  const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("danger");
@@ -205,7 +494,7 @@ const BookingComponent = ({ onClose, onSave }) => {
   useEffect(() => {
     const currentDebounceTimeout = debounceTimeoutRef.current;
     const currentAvailabilityTimeout = availabilityTimeoutRef.current;
-    
+
     return () => {
       if (currentDebounceTimeout) {
         clearTimeout(currentDebounceTimeout);
@@ -299,12 +588,12 @@ const BookingComponent = ({ onClose, onSave }) => {
     }));
   };
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     if (name === "reminder") {
       setEventData(prev => ({
         ...prev,
-        [name]: parseInt(value,10) // Convert string to integer
+        [name]: parseInt(value, 10) // Convert string to integer
       }));
     } else if (name === "attendees") {
       setAttendeeSearchTerm(value);
@@ -314,13 +603,18 @@ const BookingComponent = ({ onClose, onSave }) => {
         ...prev,
         [name]: value
       }));
+    } else if (name === "recurrence") {
+      setEventData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
     } else {
       setEventData(prev => ({
         ...prev,
         [name]: type === 'checkbox' ? checked : value
       }));
     }
-  };
+  }, [setEventData, setAttendeeSearchTerm, debouncedUserSearch]);
 
   const selectUser = (user, isAttendeeField = false) => {
     if (isAttendeeField) {
@@ -458,8 +752,9 @@ const BookingComponent = ({ onClose, onSave }) => {
         Reminder: eventData.reminder,
         IsAllDay: eventData.isAllDay,
         IsRecurring: eventData.isRecurring,
+        recurrence: eventData.isRecurring ? eventData.recurrence : null,
       };
-      
+
       try {
         const apiResponse = await makeApiCall(requestBody);
         showAlertMessage(
@@ -533,7 +828,7 @@ const BookingComponent = ({ onClose, onSave }) => {
             <form onSubmit={handleSubmit}>
               {/* User Email with login button */}
               <div className="mb-4 position-relative">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>Organizer <span className="text-danger">*</span></label>
+                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Organizer <span className="text-danger">*</span></label>
                 {account ? (
                   <div className="d-flex align-items-center">
                     <input
@@ -546,11 +841,11 @@ const BookingComponent = ({ onClose, onSave }) => {
                         padding: "0.75rem",
                         border: "1px solid #cbd5e0",
                         boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                        backgroundColor: "#f8f9fa",
+                        backgroundColor: "#e9ecef",
+                        color: "#6c757d",
                         marginRight: "10px"
                       }}
                     />
-
                     <button type="button"
                       onClick={handleAuthAction}
                       className={`btn btn-sm ${account ? "btn-outline-danger" : "btn-success"}`}
@@ -591,386 +886,303 @@ const BookingComponent = ({ onClose, onSave }) => {
                   </div>
                 )}
               </div>
-
-              {/* Event title */}
+              
+              {/* Make recurring & all day checkboxes */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>Subject <span className="text-danger">*</span></label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Teams meeting"
-                  name="title"
-                  value={eventData.title}
-                  onChange={handleChange}
-                  required
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    transition: "all 0.2s ease"
-                  }}
-                />
-              </div>
-
-              {/* Additional attendees with suggestions and "chip" display */}
-              <div className="mb-4 position-relative">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>Attendees</label>
-                <div style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                  padding: "0.75rem",
-                  border: "1px solid #cbd5e0",
-                  borderRadius: "8px",
-                  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                  background: "white"
-                }}>
-                  {attendeeList.map((attendee) => (
-                    <span key={attendee.mail} className="badge bg-primary d-flex align-items-center fs 12" style={{ padding: "0.5em 0.8em", fontSize: '14px', borderRadius: "16px", fontWeight: "400" }}>
-                      {attendee.displayName}
-                      <button type="button" className="btn-close btn-close-white ms-2" onClick={() => removeAttendee(attendee.mail)} style={{ fontSize: "0.6rem" }}></button>
-                    </span>
-                  ))}
-                  <input
-                    type="text"
-                    className="form-control flex-grow-1"
-                    placeholder="Start typing to search users..."
-                    name="attendees"
-                    value={attendeeSearchTerm}
-                    onChange={handleChange}
-                    onClick={(e) => e.stopPropagation()}
-                    disabled={!account} // Disable if not signed in
-                    style={{
-                      border: "none",
-                      boxShadow: "none",
-                      background: "transparent",
-                      padding: "0",
-                      flex: "1",
-                      minWidth: "150px"
-                    }}
-                  />
-                </div>
-                {attendeeSuggestions.length > 0 && (
-                  <div className="position-absolute w-100" style={{ zIndex: 10, maxHeight: "200px", overflowY: "auto" }}>
-                    <div className="list-group" style={{ borderRadius: "8px", border: "1px solid #cbd5e0", marginTop: "2px" }}>
-                      {attendeeSuggestions.map(user => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          className="list-group-item list-group-item-action"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectUser(user, true);
+                  <div className="form-check">
+                      <input
+                          className="form-check-input"
+                          type="checkbox"
+                          name="isRecurring"
+                          checked={eventData.isRecurring}
+                          onChange={(e) => {
+                              handleChange(e);
+                              if (e.target.checked) {
+                                  setShowRecurrenceModal(true);
+                              }
                           }}
-                          style={{ fontSize: "0.9rem", padding: "0.5rem 0.75rem" }}
-                        >
-                          <div className="fw-bold">{user.displayName}</div>
-                          <div className="text-muted">{user.mail}</div>
-                        </button>
-                      ))}
-                    </div>
+                          id="recurringCheck"
+                          disabled={!account}
+                          style={{ width: "1.1em", height: "1.1em", marginTop: "0.2em" }}
+                      />
+                      <label className="form-check-label" htmlFor="recurringCheck" style={{ color: "#4a5568" }}>
+                          Make recurring
+                      </label>
                   </div>
-                )}
-                {isFetchingUsers && (
-                  <div className="position-absolute" style={{ right: "10px", top: "40px" }}>
-                    <div className="spinner-border spinner-border-sm" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
+
+                  <div className="form-check">
+                      <input
+                          className="form-check-input"
+                          type="checkbox"
+                          name="isAllDay"
+                          checked={eventData.isAllDay}
+                          onChange={handleChange}
+                          id="allDayCheck"
+                          disabled={!account}
+                          style={{
+                              width: "1.1em",
+                              height: "1.1em",
+                              marginTop: "0.2em"
+                          }}
+                      />
+                      <label className="form-check-label" htmlFor="allDayCheck" style={{ color: "#4a5568" }}>
+                          All day
+                      </label>
                   </div>
-                )}
-                {!account && (
-                  <>
-                    <div className="form-text text-muted mt-2">
-                      Only @conservesolution.com accounts are allowed
-                    </div>
-                    <div className="form-text text-muted mt-1">
-                      If you encounter issues, please try refreshing the page or contact support.
-                    </div>
-                  </>
-                )}
               </div>
 
-              {/* Date and time */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>Date & Time <span className="text-danger">*</span></label>
-                <div className="d-flex flex-wrap align-items-center gap-2">
+              {/* Date and Time inputs */}
+              <div className="d-flex flex-wrap align-items-center gap-2 mb-4">
                   <input
-                    type="date"
-                    className="form-control"
-                    style={{
-                      width: "140px",
-                      borderRadius: "8px",
-                      padding: "0.5rem",
-                      border: "1px solid #cbd5e0",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                    }}
-                    name="startDate"
-                    value={eventData.startDate}
-                    onChange={handleChange}
-                    required
-                    disabled={!account} // Disable if not signed in
+                      type="date"
+                      className="form-control"
+                      style={{
+                          width: "140px",
+                          borderRadius: "8px",
+                          padding: "0.8rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      }}
+                      name="startDate"
+                      value={eventData.startDate}
+                      onChange={handleChange}
+                      required
+                      disabled={!account}
+                      min={new Date().toISOString().split('T')[0]} // Prevent past dates
                   />
                   <input
-                    type="time"
-                    className="form-control"
-                    style={{
-                      width: "100px",
-                      borderRadius: "8px",
-                      padding: "0.5rem",
-                      border: "1px solid #cbd5e0",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                    }}
-                    name="startTime"
-                    value={eventData.startTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account} // Disable if not signed in
+                      type="time"
+                      className="form-control"
+                      style={{
+                          width: "100px",
+                          borderRadius: "8px",
+                          padding: "0.5rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      }}
+                      name="startTime"
+                      value={eventData.startTime}
+                      onChange={handleChange}
+                      disabled={eventData.isAllDay || !account}
                   />
                   <span style={{ color: "#718096" }}>to</span>
                   <input
-                    type="time"
-                    className="form-control"
-                    style={{
-                      width: "100px",
-                      borderRadius: "8px",
-                      padding: "0.5rem",
-                      border: "1px solid #cbd5e0",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                    }}
-                    name="endTime"
-                    value={eventData.endTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account} // Disable if not signed in
+                      type="time"
+                      className="form-control"
+                      style={{
+                          width: "100px",
+                          borderRadius: "8px",
+                          padding: "0.5rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      }}
+                      name="endTime"
+                      value={eventData.endTime}
+                      onChange={handleChange}
+                      disabled={eventData.isAllDay || !account}
                   />
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      name="isRecurring"
-                      checked={eventData.isRecurring}
-                      onChange={handleChange}
-                      id="recurringCheck"
-                      disabled={!account} // Disable if not signed in
-                      style={{
-                        width: "1.1em",
-                        height: "1.1em",
-                        marginTop: "0.2em"
-                      }}
-                    />
-                    <label className="form-check-label" htmlFor="recurringCheck" style={{ color: "#4a5568" }}>
-                      Make recurring
-                    </label>
-                  </div>
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      name="isAllDay"
-                      checked={eventData.isAllDay}
-                      onChange={handleChange}
-                      id="allDayCheck"
-                      disabled={!account} // Disable if not signed in
-                      style={{
-                        width: "1.1em",
-                        height: "1.1em",
-                        marginTop: "0.2em"
-                      }}
-                    />
-                    <label className="form-check-label" htmlFor="allDayCheck" style={{ color: "#4a5568" }}>
-                      All day
-                    </label>
-                  </div>
-                </div>
-                {isCheckingAvailability && (
-                  <div className="mt-2 text-muted">
-                    <small>Checking room availability...</small>
-                  </div>
-                )}
               </div>
 
-              {/* Room selection */}
+              {/* Subject Input */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>
-                  Location <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  value={eventData.location}
-                  onChange={handleRoomSelect}
-                  required
-                  disabled={!account || isCheckingAvailability}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    background: "white"
-                  }}
-                >
-                  <option value="">Select a room</option>
-                  {rooms.map(room => {
-                    const status = roomAvailability[room.email] || "checking";
-
-                    let statusText = "";
-                    let statusColor = "";
-                    if (status === "available") {
-                      statusText = "Available";
-                      statusColor = "🟢"; 
-                    } else if (status === "busy") {
-                      statusText = "Busy";
-                      statusColor = "🔴"; 
-                    } else if (status === "unknown") {
-                      statusText = "Unknown";
-                      statusColor = "⚪"; 
-                    } else {
-                      statusText = "Checking...";
-                      statusColor = "🔄"; 
-                    }
-
-                    return (
-                      <option key={room.email} value={room.name}>
-                        {statusColor} {room.name} – {statusText}
-                      </option>
-                    );
-                  })}
-
-                </select>
-                <div className="mt-2">
-                  <small className="text-muted">
-                    Availability is based on the selected date and time
-                  </small>
-                </div>
+                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Subject <span className="text-danger">*</span></label>
+                  <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Teams meeting"
+                      name="title"
+                      value={eventData.title}
+                      onChange={handleChange}
+                      required
+                      style={{
+                          borderRadius: "8px",
+                          padding: "0.75rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+                          transition: "all 0.2s ease"
+                      }}
+                  />
               </div>
 
-              {/* Response options */}
+              {/* Room Selection */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>Response options</label>
-                <div className="d-flex flex-wrap gap-2">
+                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Room <span className="text-danger">*</span></label>
                   <select
-                    className="form-select"
-                    style={{
-                      width: "120px",
-                      borderRadius: "8px",
-                      padding: "0.5rem",
-                      border: "1px solid #cbd5e0",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                      background: "white"
-                    }}
-                    name="category"
-                    value={eventData.category}
-                    onChange={handleChange}
-                    disabled={!account} // Disable if not signed in
+                      className="form-select"
+                      name="location"
+                      value={eventData.location}
+                      onChange={handleRoomSelect}
+                      required
+                      style={{
+                          borderRadius: "8px",
+                          padding: "0.75rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      }}
                   >
-                    <option value="Busy">Busy</option>
-                    <option value="Free">Free</option>
-                    <option value="Tentative">Tentative</option>
-                    <option value="Out Of Office">Out of office</option>
+                      <option value="">Select a room</option>
+                      {rooms.map((room) => (
+                          <option key={room.email} value={room.name}>{room.name}</option>
+                      ))}
                   </select>
+                  {isCheckingAvailability ? (
+                      <div className="text-info mt-2">Checking room availability...</div>
+                  ) : (
+                      eventData.roomEmail && (
+                          <div className={`mt-2 ${roomAvailability[eventData.roomEmail] === "available" ? "text-success" : "text-danger"}`}>
+                              {roomAvailability[eventData.roomEmail] === "available" ? (
+                                  <>✅ This room is available.</>
+                              ) : roomAvailability[eventData.roomEmail] === "busy" ? (
+                                  <>❌ This room is busy. Please select another time or room.</>
+                              ) : (
+                                  "Status unknown. Please check your time."
+                              )}
+                          </div>
+                      )
+                  )}
+              </div>
+
+              {/* Attendees Input */}
+              <div className="mb-4">
+                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Attendees</label>
+                  <div className="attendee-input-container position-relative">
+                      <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Search for attendees by name or email"
+                          name="attendees"
+                          value={attendeeSearchTerm}
+                          onChange={handleChange}
+                          style={{
+                              borderRadius: "8px",
+                              padding: "0.75rem",
+                              border: "1px solid #cbd5e0",
+                              boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                          }}
+                      />
+                      {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3" role="status"></div>}
+                      {attendeeSuggestions.length > 0 && (
+                          <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
+                              {attendeeSuggestions.map(user => (
+                                  <li
+                                      key={user.id}
+                                      className="list-group-item list-group-item-action"
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          selectUser(user, true);
+                                      }}
+                                      style={{ cursor: "pointer" }}
+                                  >
+                                      {user.displayName} ({user.mail})
+                                  </li>
+                              ))}
+                          </ul>
+                      )}
+                  </div>
+                  <div className="mt-2 d-flex flex-wrap gap-2">
+                      {attendeeList.map(attendee => (
+                          <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}>
+                              {attendee.displayName}
+                              <button
+                                  type="button"
+                                  className="btn-close btn-close-white ms-2"
+                                  onClick={() => removeAttendee(attendee.mail)}
+                                  aria-label="Remove"
+                                  style={{ filter: "brightness(0) invert(1)" }}
+                              ></button>
+                          </span>
+                      ))}
+                  </div>
+              </div>
+
+              {/* Category */}
+              <div className="mb-4">
+                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Category</label>
                   <select
-                    className="form-select"
-                    style={{
-                      width: "160px",
-                      borderRadius: "8px",
-                      padding: "0.5rem",
-                      border: "1px solid #cbd5e0",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                      background: "white"
-                    }}
-                    name="reminder"
-                    value={eventData.reminder}
-                    onChange={handleChange}
-                    disabled={!account}
+                      className="form-select"
+                      name="category"
+                      value={eventData.category}
+                      onChange={handleChange}
+                      style={{
+                          borderRadius: "8px",
+                          padding: "0.75rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      }}
                   >
-                    <option value="0">None</option>
-                    <option value="5">5 minutes before</option>
-                    <option value="10">10 minutes before</option>
-                    <option value="15">15 minutes before</option>
-                    <option value="30">30 minutes before</option>
-                    <option value="60">1 hour before</option>
+                      <option value="Busy">Busy</option>
+                      <option value="Free">Free</option>
+                      <option value="Tentative">Tentative</option>
                   </select>
-                </div>
+              </div>
+
+              {/* Reminder */}
+              <div className="mb-4">
+                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Reminder</label>
+                  <select
+                      className="form-select"
+                      name="reminder"
+                      value={eventData.reminder}
+                      onChange={handleChange}
+                      style={{
+                          borderRadius: "8px",
+                          padding: "0.75rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      }}
+                  >
+                      <option value="0">None</option>
+                      <option value="5">5 minutes before</option>
+                      <option value="10">10 minutes before</option>
+                      <option value="15">15 minutes before</option>
+                      <option value="30">30 minutes before</option>
+                      <option value="60">1 hour before</option>
+                  </select>
               </div>
 
               {/* Description */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568",fontSize:"24px" }}>Description</label>
-                <textarea
-                  className="form-control"
-                  rows="3"
-                  placeholder="Type / to insert files and more"
-                  name="description"
-                  value={eventData.description}
-                  onChange={handleChange}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    transition: "all 0.2s ease"
-                  }}
-                  disabled={!account} // Disable if not signed in
-                ></textarea>
+                  <label className="form-label fw-bold" style={{ color: "#4a5568" }}>Description</label>
+                  <textarea
+                      className="form-control"
+                      placeholder="Add a description..."
+                      name="description"
+                      value={eventData.description}
+                      onChange={handleChange}
+                      style={{
+                          borderRadius: "8px",
+                          padding: "0.75rem",
+                          border: "1px solid #cbd5e0",
+                          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+                          minHeight: "100px"
+                      }}
+                  ></textarea>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="modal-footer" style={{ borderTop: "none", padding: "1.5rem 0 0" }}>
+                  <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={isLoading || !account} style={{ backgroundColor: "#3182CE", borderColor: "#3182CE" }}>
+                      {isLoading ? (
+                          <>
+                              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                              Scheduling...
+                          </>
+                      ) : "Schedule Event"}
+                  </button>
               </div>
             </form>
           </div>
-          <div className="modal-footer" style={{
-            borderTop: "1px solid #e2e8f0",
-            padding: "1.2rem 1.5rem"
-          }}>
-            <button
-              type="button"
-              className="btn"
-              onClick={onClose}
-              disabled={isLoading}
-              style={{
-                background: "linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%)",
-                color: "#4a5568",
-                border: "none",
-                borderRadius: "8px",
-                padding: "0.6rem 1.2rem",
-                fontWeight: "500",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                opacity: isLoading ? 0.6 : 1
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn text-white"
-              onClick={handleSubmit}
-              disabled={isLoading || !account} // Disable if not signed in
-              style={{
-                background: isLoading || !account
-                  ? "linear-gradient(135deg, #a0aec0 0%, #718096 100%)"
-                  : "linear-gradient(90deg, #0074bdff, rgb(118, 176, 66))",
-                border: "none",
-                borderRadius: "8px",
-                padding: "0.6rem 1.2rem",
-                fontWeight: "500",
-                boxShadow: "0 4px 6px rgba(102, 126, 234, 0.4)",
-                position: "relative"
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm"
-                    role="status"
-                    aria-hidden="true"
-                    style={{
-                      marginRight: "8px"
-                    }}
-                  ></span>
-                  Scheduling...
-                </>
-              ) : (
-                account ? "Schedule" : "Please Sign In"
-              )}
-            </button>
-          </div>
         </div>
       </div>
+      {/* Recurrence Modal */}
+      <RecurringEventModal
+          show={showRecurrenceModal}
+          onClose={() => setShowRecurrenceModal(false)}
+          eventData={eventData}
+          handleChange={handleChange}
+          account={account}
+      />
     </div>
   );
 };
