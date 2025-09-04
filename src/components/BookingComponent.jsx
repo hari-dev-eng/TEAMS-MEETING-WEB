@@ -11,7 +11,7 @@ const rooms = [
 ];
 
 // Define API_BASE_URL at the top level
-const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
+const API_BASE_URL ="https://teamsbackendapi-production.up.railway.app";
 
 const BookingComponent = ({ onClose, onSave }) => {
   const { instance: msalInstance, accounts } = useMsal();
@@ -27,7 +27,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     roomEmail: "",
     userEmail: "",
     category: "Busy",
-    reminder: "15 minutes before",
+    reminder: "15",
     description: ""
   });
 
@@ -304,7 +304,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     if (name === "reminder") {
       setEventData(prev => ({
         ...prev,
-        [name]: parseInt(value) // Convert string to integer
+        [name]: parseInt(value,10) // Convert string to integer
       }));
     } else if (name === "attendees") {
       setAttendeeSearchTerm(value);
