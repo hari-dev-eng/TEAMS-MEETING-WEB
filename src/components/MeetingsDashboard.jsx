@@ -168,42 +168,58 @@ const LiveIndicator = () => (
     }}
   />
 );
+const formatDuration = (minutes) => {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+};
 
-const calculateStats = (meetings) => {
+const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
 
-  const activeMeetings = meetings.filter((m) => {
+  let activeCount = 0;
+  let totalAttendees = 0;
+  let totalDuration = 0; // in minutes
+  let totalUsedMinutes = 0;
+
+  for (const m of meetings) {
     const start = new Date(m.startTime);
     const end = new Date(m.endTime);
-    return now >= start && now <= end;
-  });
 
-  const totalAttendees = meetings.reduce((sum, m) => sum + getAttendeesCount(m), 0);
+    // Active meeting check
+    if (now >= start && now <= end) {
+      activeCount++;
+    }
 
-  const avgDuration =
-    meetings.length > 0
-      ? Math.round(
-        meetings.reduce((sum, m) => {
-          const start = new Date(m.startTime);
-          const end = new Date(m.endTime);
-          return sum + (end - start) / (1000 * 60);
-        }, 0) / meetings.length
-      )
-      : 0;
+    // Attendees
+    totalAttendees += getAttendeesCount(m);
 
-  const totalPossibleMinutes = 8 * 60; // Assuming an 8-hour workday
-  const totalUsedMinutes = meetings.reduce((sum, m) => {
-    const start = new Date(m.startTime);
-    const end = new Date(m.endTime);
-    return sum + (end - start) / (1000 * 60);
-  }, 0);
-  const roomUtilization =
+    // Duration
+    const duration = (end - start) / (1000 * 60); // in minutes
+    totalDuration += duration;
+    totalUsedMinutes += duration;
+  }
+
+  const avgDurationMins = meetings.length > 0 ? totalDuration / meetings.length : 0;
+  const avgDuration = formatDuration(avgDurationMins);
+
+  // Total possible minutes = floors × hours per floor × 60
+  const totalPossibleMinutes = floors * hoursPerFloor * 60;
+
+  const utilizationPercent =
     totalPossibleMinutes > 0
       ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100))
       : 0;
 
+  const roomUtilization = {
+    percent: utilizationPercent,
+    used: formatDuration(totalUsedMinutes),
+    total: formatDuration(totalPossibleMinutes),
+  };
+
   return {
-    activeMeetings: activeMeetings.length,
+    activeMeetings: activeCount,
     totalAttendees,
     avgDuration,
     roomUtilization,
