@@ -4,10 +4,10 @@ import { useMsal } from "@azure/msal-react";
 
 // Predefined rooms with emails
 const rooms = [
-  { name: "Ground floor meeting room", email: "gfmeeting@conservesolution.com" },
-  { name: "First floor meeting room", email: "ffmeeting@conservesolution.com" },
-  { name: "Third floor meeting room", email: "sfmeeting@conservesolution.com" },
-  { name: "Conference meeting room", email: "contconference@conservesolution.com" },
+  { name: "Ground Floor Meeting Room", email: "gfmeeting@conservesolution.com" },
+  { name: "1st Floor Meeting Room", email: "ffmeeting@conservesolution.com" },
+  { name: "3rd Floor Meeting Room", email: "sfmeeting@conservesolution.com" },
+  { name: "Conference Room", email: "contconference@conservesolution.com" },
 ];
 
 // Define API_BASE_URL at the top level
