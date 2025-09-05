@@ -1086,9 +1086,9 @@ const handleCloseBookingModal = () => {
               position: "fixed",
               bottom: "1rem",
               right: "1rem",
-              opacity: 0.7,
-              fontSize: "0.75rem",
-              color: "#6c757d",
+              opacity: 0.9,
+              fontSize: "0.85rem",
+              color: "#ffffff",
               zIndex: 100,
             }}
           >
