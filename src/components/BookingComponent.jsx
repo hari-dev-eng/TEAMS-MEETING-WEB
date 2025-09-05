@@ -16,8 +16,9 @@ const API_BASE_URL = "https://teamsbackendapi-production.up.railway.app";
 // --- RecurringEventModal Component ---
 const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }) => {
   const [recurrenceData, setRecurrenceData] = useState({
-    frequency: 'weekly',
+    frequency: 'daily',
     interval: 1,
+    selectedDays: [],
     endOption: 'never',
     endDate: '',
     occurrences: 10
@@ -44,6 +45,17 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       [name]: value
     }));
   };
+const toggleDay = (index) => {
+  setRecurrenceData((prev) => {
+    const alreadySelected = prev.selectedDays.includes(index);
+    return {
+      ...prev,
+      selectedDays: alreadySelected
+        ? prev.selectedDays.filter((d) => d !== index)
+        : [...prev.selectedDays, index]
+    };
+  });
+};
 
   // Save recurrence settings
   const handleSaveRecurrence = () => {
@@ -169,6 +181,7 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, index) => (
                 <div
                   key={day}
+                  onClick={() => toggleDay(index)}
                   style={{
                     width: '30px',
                     height: '30px',
@@ -176,8 +189,8 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: recurrenceData.frequency === 'weekly' && index === 4 ? '#3182CE' : 'transparent',
-                    color: recurrenceData.frequency === 'weekly' && index === 4 ? 'white' : '#4A5568',
+                    backgroundColor: recurrenceData.selectedDays.includes(index) ? '#3182CE' : 'transparent',
+                    color: recurrenceData.selectedDays.includes(index) ? 'white' : '#4A5568',
                     border: '1px solid #CBD5E0',
                     cursor: 'pointer',
                     fontSize: '12px',
