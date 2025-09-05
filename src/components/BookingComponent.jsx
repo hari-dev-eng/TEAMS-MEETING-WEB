@@ -15,9 +15,8 @@ const API_BASE_URL = "https://teamsbackendapi-production.up.railway.app";
 // --- RecurringEventModal Component ---
 const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }) => {
   // Stable arrays for hooks/linter
-const WEEKDAY_CODES  = React.useMemo(() => Object.freeze(["SU","MO","TU","WE","TH","FR","SA"]), []);
-const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F","S"]), []);
-
+  const WEEKDAY_CODES = React.useMemo(() => Object.freeze(["SU", "MO", "TU", "WE", "TH", "FR", "SA"]), []);
+  const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
   const startDateObj = useMemo(
     () => (eventData.startDate ? new Date(`${eventData.startDate}T00:00:00`) : null),
@@ -31,30 +30,30 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     endOption: "never",
     endDate: "",
     occurrences: 10,
-    byWeekdays: startDateObj ? [WEEKDAY_CODES[startWeekdayIndex]] : [] // NEW
+    byWeekdays: startDateObj ? [WEEKDAY_CODES[startWeekdayIndex]] : []
   });
 
   // Initialize modal with existing event data
   useEffect(() => {
-  if (eventData.recurrence) {
-    setRecurrenceData((prev) => ({
-      frequency:   eventData.recurrence.frequency   || "weekly",
-      interval:    eventData.recurrence.interval    ?? 1,
-      endOption:   eventData.recurrence.endOption   || "never",
-      endDate:     eventData.recurrence.endDate     || "",
-      occurrences: eventData.recurrence.occurrences ?? 10,
-      byWeekdays:  eventData.recurrence.byWeekdays  || prev.byWeekdays || []
-    }));
-  } else {
-    // default weekly to start weekday
-    if (startDateObj) {
-      setRecurrenceData((p) => ({
-        ...p,
-        byWeekdays: [WEEKDAY_CODES[startWeekdayIndex]]
+    if (eventData.recurrence) {
+      setRecurrenceData((prev) => ({
+        frequency: eventData.recurrence.frequency || "weekly",
+        interval: eventData.recurrence.interval ?? 1,
+        endOption: eventData.recurrence.endOption || "never",
+        endDate: eventData.recurrence.endDate || "",
+        occurrences: eventData.recurrence.occurrences ?? 10,
+        byWeekdays: eventData.recurrence.byWeekdays || prev.byWeekdays || []
       }));
+    } else {
+      // default weekly to start weekday
+      if (startDateObj) {
+        setRecurrenceData((p) => ({
+          ...p,
+          byWeekdays: [WEEKDAY_CODES[startWeekdayIndex]]
+        }));
+      }
     }
-  }
-}, [eventData, show, startDateObj, startWeekdayIndex, WEEKDAY_CODES]);
+  }, [eventData, show, startDateObj, startWeekdayIndex, WEEKDAY_CODES]);
 
   // Handle recurrence option changes
   const handleRecurrenceChange = (e) => {
@@ -82,7 +81,7 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     });
   };
 
-  // NEW: toggle weekday for Weekly
+  // Toggle weekday for Weekly
   const toggleWeekday = (idx) => {
     if (recurrenceData.frequency !== "weekly") return;
     const code = WEEKDAY_CODES[idx];
@@ -90,7 +89,7 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
       const set = new Set(prev.byWeekdays || []);
       if (set.has(code)) set.delete(code); else set.add(code);
       if (set.size === 0) set.add(WEEKDAY_CODES[startWeekdayIndex]); // never empty
-      return { ...prev, byWeekdays: Array.from(set).sort((a,b)=>WEEKDAY_CODES.indexOf(a)-WEEKDAY_CODES.indexOf(b)) };
+      return { ...prev, byWeekdays: Array.from(set).sort((a, b) => WEEKDAY_CODES.indexOf(a) - WEEKDAY_CODES.indexOf(b)) };
     });
   };
 
@@ -118,7 +117,7 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     }
   }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]);
 
-  // NEW: RRULE builder
+  // Build RRULE (optional — for display only)
   const rrule = useMemo(() => {
     if (!eventData.startDate) return "";
     const parts = [];
@@ -135,17 +134,17 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     }
     if (recurrenceData.frequency === "yearly") {
       const d = new Date(`${eventData.startDate}T00:00:00`);
-      parts.push(`BYMONTH=${d.getMonth()+1}`);
+      parts.push(`BYMONTH=${d.getMonth() + 1}`);
       parts.push(`BYMONTHDAY=${d.getDate()}`);
     }
     if (recurrenceData.endOption === "date" && recurrenceData.endDate) {
       const until = new Date(`${recurrenceData.endDate}T23:59:59Z`);
       const y = until.getUTCFullYear();
-      const m = String(until.getUTCMonth()+1).padStart(2,"0");
-      const d = String(until.getUTCDate()).padStart(2,"0");
-      const hh = String(until.getUTCHours()).padStart(2,"0");
-      const mm = String(until.getUTCMinutes()).padStart(2,"0");
-      const ss = String(until.getUTCSeconds()).padStart(2,"0");
+      const m = String(until.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(until.getUTCDate()).padStart(2, "0");
+      const hh = String(until.getUTCHours()).padStart(2, "0");
+      const mm = String(until.getUTCMinutes()).padStart(2, "0");
+      const ss = String(until.getUTCSeconds()).padStart(2, "0");
       parts.push(`UNTIL=${y}${m}${d}T${hh}${mm}${ss}Z`);
     } else if (recurrenceData.endOption === "after" && recurrenceData.occurrences) {
       parts.push(`COUNT=${recurrenceData.occurrences}`);
@@ -153,7 +152,7 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     return parts.join(";");
   }, [eventData.startDate, recurrenceData]);
 
-  // NEW: Teams-like summary string
+  // Teams-like summary string (optional — for display)
   const summary = useMemo(() => {
     if (!eventData.startDate) return "";
     const d = new Date(`${eventData.startDate}T00:00:00`);
@@ -166,13 +165,14 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     } else if (recurrenceData.frequency === "weekly") {
       const names = (recurrenceData.byWeekdays || []).map(code => {
         const i = WEEKDAY_CODES.indexOf(code);
-        return new Date(2000,0,i+2).toLocaleDateString(undefined,{ weekday:"long" });
+        // Get weekday name from index (0=Sun..6=Sat)
+        return new Date(2023, 0, 1 + i).toLocaleDateString(undefined, { weekday: "long" });
       });
       const list = names.length <= 1 ? names[0] :
         (names.length === 2 ? `${names[0]} and ${names[1]}` :
-          `${names.slice(0,-1).join(", ")} and ${names.slice(-1)}`);
+          `${names.slice(0, -1).join(", ")} and ${names.slice(-1)}`);
       when = interval === 1 ? `every ${list}` : `every ${interval} weeks on ${list}`;
-      if (interval === 1 && (recurrenceData.byWeekdays||[]).length === 1) {
+      if (interval === 1 && (recurrenceData.byWeekdays || []).length === 1) {
         when = `every ${longDay}`;
       }
     } else if (recurrenceData.frequency === "monthly") {
@@ -191,16 +191,46 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
     return `Occurs ${when}${endText}.`;
   }, [eventData.startDate, recurrenceData, WEEKDAY_CODES]);
 
+  // Helper: convert weekly codes to bitmask (0=Su..6=Sa)
+  const toDaysMask = (codesArr) =>
+    (codesArr || []).reduce((mask, code) => {
+      const idx = WEEKDAY_CODES.indexOf(code);
+      return idx >= 0 ? mask | (1 << idx) : mask;
+    }, 0);
+
+  // Build RecurrencePattern object expected by backend
+  const buildRecurrencePattern = () => {
+    const { frequency, interval, endOption, endDate, occurrences, byWeekdays } = recurrenceData;
+    const dayOfMonth = startDateObj ? startDateObj.getDate() : undefined;
+    const month = startDateObj ? startDateObj.getMonth() + 1 : undefined;
+    const daysMask = toDaysMask(byWeekdays);
+
+    const range =
+      endOption === "never"
+        ? { Type: "noEnd" }
+        : endOption === "date"
+          ? { Type: "endDate", EndDate: new Date(`${endDate}T00:00:00`) }
+          : { Type: "numbered", NumberOfOccurrences: Math.max(1, occurrences || 1) };
+
+    return {
+      PatternType: frequency,           // "daily" | "weekly" | "monthly" | "yearly"
+      Interval: Math.max(1, interval || 1),
+      DayOfMonth: dayOfMonth,
+      Month: month,
+      DaysOfWeek: daysMask,
+      Range: range
+    };
+  };
+
   // Save recurrence settings
   const handleSaveRecurrence = () => {
+    const rp = buildRecurrencePattern();
+    // Write BOTH (RecurrencePattern used by backend; recurrence kept for UI/debug)
+    handleChange({ target: { name: 'RecurrencePattern', value: rp } });
     handleChange({
       target: {
         name: 'recurrence',
-        value: {
-          ...recurrenceData,
-          rrule,                 // NEW
-          summaryText: summary   // NEW
-        }
+        value: { ...recurrenceData, rrule, summaryText: summary }
       }
     });
     onClose();
@@ -235,18 +265,34 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
-            <label style={{ marginRight: '10px', color: '#4A5568', minWidth: '80px' }}>Repeat every</label>
+            <label style={{ marginRight: '10px', color: '#4A5568', minWidth: '80px' }}>
+              Repeat every
+            </label>
+
             <input
-              type="number" min="1" max="30"
+              type="number"
+              min="1"
+              max="30"
               className="form-control"
-              style={{ width: '60px', marginRight: '10px', borderRadius: '4px', padding: '4px 8px', border: '1px solid #CBD5E0' }}
+              style={{
+                width: '60px',
+                marginRight: '10px',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                border: '1px solid #CBD5E0'
+              }}
               name="interval"
               value={recurrenceData.interval}
               onChange={handleRecurrenceChange}
             />
+
             <select
               className="form-control"
-              style={{ borderRadius: '4px', padding: '4px 8px', border: '1px solid #CBD5E0' }}
+              style={{
+                borderRadius: '4px',
+                padding: '4px 8px',
+                border: '1px solid #CBD5E0'
+              }}
               name="frequency"
               value={recurrenceData.frequency}
               onChange={handleRecurrenceChange}
@@ -257,6 +303,7 @@ const WEEKDAY_LABELS = React.useMemo(() => Object.freeze(["S","M","T","W","T","F
               <option value="yearly">year</option>
             </select>
           </div>
+
 
           {/* Occurs on (Weekly) */}
           <div style={{ marginBottom: '15px', opacity: recurrenceData.frequency === 'weekly' ? 1 : 0.5 }}>
@@ -393,7 +440,8 @@ const BookingComponent = ({ onClose, onSave }) => {
     category: "Busy",
     reminder: "15",
     description: "",
-    recurrence: null
+    recurrence: null,          // kept for UI summary (rrule/summaryText)
+    RecurrencePattern: null    // <-- used by backend
   });
 
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
@@ -436,7 +484,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
   }, [showAlertMessage]);
 
-  // CHANGED: availability respects All-day (00:00→next day 00:00)
+  // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
     if (!eventData.startDate) return;
 
@@ -629,7 +677,7 @@ const BookingComponent = ({ onClose, onSave }) => {
         debouncedUserSearch(value, true);
       } else if (name === "description") {
         setEventData((prev) => ({ ...prev, [name]: value }));
-      } else if (name === "recurrence") {
+      } else if (name === "recurrence" || name === "RecurrencePattern") {
         setEventData((prev) => ({ ...prev, [name]: value }));
       } else if (name === "startTime") {
         // Auto +30 mins
@@ -722,7 +770,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
 
     try {
-      // CHANGED: build Start/End based on All day
+      // Build Start/End based on All day
       let startIso, endIso;
       if (eventData.isAllDay) {
         const start = new Date(`${eventData.startDate}T00:00:00`);
@@ -738,8 +786,8 @@ const BookingComponent = ({ onClose, onSave }) => {
       const requestBody = {
         Title: eventData.title,
         Description: eventData.description || eventData.title,
-        StartTime: startIso,                  // CHANGED
-        EndTime: endIso,                      // CHANGED
+        StartTime: startIso,
+        EndTime: endIso,
         Location: eventData.location,
         UserEmail: eventData.userEmail,
         RoomEmail: eventData.roomEmail,
@@ -748,7 +796,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         Reminder: eventData.reminder,
         IsAllDay: eventData.isAllDay,
         IsRecurring: eventData.isRecurring,
-        recurrence: eventData.isRecurring ? eventData.recurrence : null, // contains rrule + summaryText now
+        // ⬇️ send the DTO that the backend expects
+        RecurrencePattern: eventData.isRecurring ? eventData.RecurrencePattern : null
       };
 
       try {
@@ -911,7 +960,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                     <div className={`mt-2 ${roomAvailability[eventData.roomEmail] === "available" ? "text-success" : "text-danger"}`}>
                       {roomAvailability[eventData.roomEmail] === "available" ? "✅ This room is available."
                         : roomAvailability[eventData.roomEmail] === "busy" ? "❌ This room is busy. Please select another time or room."
-                        : "Status unknown. Please check your time."}
+                          : "Status unknown. Please check your time."}
                     </div>
                   )
                 )}
@@ -931,7 +980,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                         <li key={user.id} className="list-group-item list-group-item-action"
                           onClick={(e) => { e.stopPropagation(); selectUser(user, true); }}
                           style={{ cursor: "pointer" }}>
-                          {user.displayName} 
+                          {user.displayName}
                         </li>
                       ))}
                     </ul>
