@@ -688,8 +688,10 @@ const BookingComponent = ({ onClose, onSave }) => {
       if (!token) {
         throw new Error("No access token available");
       }
-
-      const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
+      const apiUrl = `${API_BASE_URL}/Bookings`;
+      console.log("Calling API URL:", apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -697,6 +699,7 @@ const BookingComponent = ({ onClose, onSave }) => {
         },
         body: JSON.stringify(requestBody),
       });
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
