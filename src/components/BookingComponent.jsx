@@ -72,7 +72,7 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
         }));
       }
     }
-  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); // <-- Added dependency
+  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); 
 
   // Auto-adjust end time when start time changes
   // Corrected code inside RecurringEventModal
@@ -92,7 +92,7 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
         }
       });
     }
-  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); // <-- Added dependencies
+  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); 
 
   if (!show) return null;
 
@@ -908,7 +908,51 @@ const BookingComponent = ({ onClose, onSave }) => {
               </div>
 
               {/* Make recurring & all day checkboxes */}
-              <div className="mb-4">
+              
+
+              {/* Date and Time inputs */}
+              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap", maxwidth: "fit-content" }}>
+                {/* Date */}
+                <div style={{ flex: "" }}>
+                  <input
+                    type="date"
+                    className="form-control"
+                    name="startDate"
+                    value={eventData.startDate}
+                    onChange={handleChange}
+                    required
+                    disabled={!account}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+
+                {/* Start Time */}
+                <div style={{ flex: "0.5" }}>
+                  <input
+                    type="time"
+                    className="form-control"
+                    name="startTime"
+                    value={eventData.startTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
+                  />
+                </div>
+
+                {/* "to" */}
+                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
+
+                {/* End Time */}
+                <div style={{ flex: "0.5" }}>
+                  <input
+                    type="time"
+                    className="form-control"
+                    name="endTime"
+                    value={eventData.endTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
+                  />
+                </div>
+                <div className="mb-4">
                 <div className="form-check">
                   <input
                     className="form-check-input"
@@ -950,49 +994,6 @@ const BookingComponent = ({ onClose, onSave }) => {
                   </label>
                 </div>
               </div>
-
-              {/* Date and Time inputs */}
-              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap" }}>
-                {/* Date */}
-                <div style={{ flex: "" }}>
-                  <input
-                    type="date"
-                    className="form-control"
-                    name="startDate"
-                    value={eventData.startDate}
-                    onChange={handleChange}
-                    required
-                    disabled={!account}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-
-                {/* Start Time */}
-                <div style={{ flex: "0.5" }}>
-                  <input
-                    type="time"
-                    className="form-control"
-                    name="startTime"
-                    value={eventData.startTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account}
-                  />
-                </div>
-
-                {/* "to" */}
-                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
-
-                {/* End Time */}
-                <div style={{ flex: "0.5" }}>
-                  <input
-                    type="time"
-                    className="form-control"
-                    name="endTime"
-                    value={eventData.endTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account}
-                  />
-                </div>
               </div>
 
 
