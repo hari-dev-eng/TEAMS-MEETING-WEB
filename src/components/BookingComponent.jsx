@@ -688,7 +688,7 @@ const BookingComponent = ({ onClose, onSave }) => {
       if (!token) {
         throw new Error("No access token available");
       }
-      const apiUrl = `${API_BASE_URL}/Bookings`;
+     const apiUrl = `${process.env.REACT_APP_API_URL}/Bookings`;
       console.log("Calling API URL:", apiUrl);
       
       const response = await fetch(apiUrl, {
