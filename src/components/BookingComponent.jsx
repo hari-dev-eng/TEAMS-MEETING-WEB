@@ -931,7 +931,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                         <li key={user.id} className="list-group-item list-group-item-action"
                           onClick={(e) => { e.stopPropagation(); selectUser(user, true); }}
                           style={{ cursor: "pointer" }}>
-                          {user.displayName} ({user.mail})
+                          {user.displayName} 
                         </li>
                       ))}
                     </ul>
@@ -939,7 +939,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                 </div>
                 <div className="mt-2 d-flex flex-wrap gap-2">
                   {attendeeList.map(attendee => (
-                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}>
+                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "1.2em", padding: "0.8em 0.85em", backgroundColor: "#0074bdff" }}>
                       {attendee.displayName}
                       <button type="button" className="btn-close btn-close-white ms-2" onClick={() => removeAttendee(attendee.mail)} aria-label="Remove" style={{ filter: "brightness(0) invert(1)" }}></button>
                     </span>
