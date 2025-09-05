@@ -16,9 +16,8 @@ const API_BASE_URL = "https://teamsbackendapi-production.up.railway.app";
 // --- RecurringEventModal Component ---
 const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }) => {
   const [recurrenceData, setRecurrenceData] = useState({
-    frequency: 'daily',
+    frequency: 'weekly',
     interval: 1,
-    selectedDays: [],
     endOption: 'never',
     endDate: '',
     occurrences: 10
@@ -45,17 +44,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       [name]: value
     }));
   };
-const toggleDay = (index) => {
-  setRecurrenceData((prev) => {
-    const alreadySelected = prev.selectedDays.includes(index);
-    return {
-      ...prev,
-      selectedDays: alreadySelected
-        ? prev.selectedDays.filter((d) => d !== index)
-        : [...prev.selectedDays, index]
-    };
-  });
-};
 
   // Save recurrence settings
   const handleSaveRecurrence = () => {
@@ -84,7 +72,7 @@ const toggleDay = (index) => {
         }));
       }
     }
-  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); 
+  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); // <-- Added dependency
 
   // Auto-adjust end time when start time changes
   // Corrected code inside RecurringEventModal
@@ -104,7 +92,7 @@ const toggleDay = (index) => {
         }
       });
     }
-  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); 
+  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); // <-- Added dependencies
 
   if (!show) return null;
 
@@ -181,7 +169,6 @@ const toggleDay = (index) => {
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, index) => (
                 <div
                   key={day}
-                  onClick={() => toggleDay(index)}
                   style={{
                     width: '30px',
                     height: '30px',
@@ -189,8 +176,8 @@ const toggleDay = (index) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: recurrenceData.selectedDays.includes(index) ? '#3182CE' : 'transparent',
-                    color: recurrenceData.selectedDays.includes(index) ? 'white' : '#4A5568',
+                    backgroundColor: recurrenceData.frequency === 'weekly' && index === 4 ? '#3182CE' : 'transparent',
+                    color: recurrenceData.frequency === 'weekly' && index === 4 ? 'white' : '#4A5568',
                     border: '1px solid #CBD5E0',
                     cursor: 'pointer',
                     fontSize: '12px',
@@ -688,10 +675,8 @@ const BookingComponent = ({ onClose, onSave }) => {
       if (!token) {
         throw new Error("No access token available");
       }
-     const apiUrl = `${process.env.REACT_APP_API_URL}/Bookings`;
-      console.log("Calling API URL:", apiUrl);
-      
-      const response = await fetch(apiUrl, {
+
+      const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -699,7 +684,6 @@ const BookingComponent = ({ onClose, onSave }) => {
         },
         body: JSON.stringify(requestBody),
       });
-      console.log("Response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -746,33 +730,6 @@ const BookingComponent = ({ onClose, onSave }) => {
       setIsLoading(false);
       return;
     }
-     let dataToSend = { ...eventData };
-
-  // All-day adjustment → midnight to midnight
-  if (dataToSend.isAllDay) {
-    dataToSend.startTime = `${dataToSend.startDate}T00:00:00`;
-    dataToSend.endTime = `${dataToSend.endDate}T00:00:00`;
-  } else {
-    dataToSend.startTime = `${dataToSend.startDate}T${dataToSend.startTime}`;
-    dataToSend.endTime = `${dataToSend.endDate}T${dataToSend.endTime}`;
-  }
-
-  // Recurring validation → force user to configure pattern/range
-  if (dataToSend.isRecurring && !dataToSend.recurrence) {
-    setShowRecurrenceModal(true);
-    showAlertMessage("Please configure recurrence details", "warning");
-    setIsLoading(false);
-    return;
-  }
-  try {
-    await axios.post("/api/bookings", dataToSend);
-    showAlertMessage("Event created successfully", "success");
-  } catch (err) {
-    console.error(err);
-    showAlertMessage("Failed to create event", "danger");
-  } finally {
-    setIsLoading(false);
-  }
 
     // Check if selected room is available
     const selectedRoomStatus = roomAvailability[eventData.roomEmail];
@@ -951,51 +908,7 @@ const BookingComponent = ({ onClose, onSave }) => {
               </div>
 
               {/* Make recurring & all day checkboxes */}
-              
-
-              {/* Date and Time inputs */}
-              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap", maxwidth: "fit-content" }}>
-                {/* Date */}
-                <div style={{ flex: "" }}>
-                  <input
-                    type="date"
-                    className="form-control"
-                    name="startDate"
-                    value={eventData.startDate}
-                    onChange={handleChange}
-                    required
-                    disabled={!account}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-
-                {/* Start Time */}
-                <div style={{ flex: "0.5" }}>
-                  <input
-                    type="time"
-                    className="form-control"
-                    name="startTime"
-                    value={eventData.startTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account}
-                  />
-                </div>
-
-                {/* "to" */}
-                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
-
-                {/* End Time */}
-                <div style={{ flex: "0.5" }}>
-                  <input
-                    type="time"
-                    className="form-control"
-                    name="endTime"
-                    value={eventData.endTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account}
-                  />
-                </div>
-                <div className="mb-4">
+              <div className="mb-4">
                 <div className="form-check">
                   <input
                     className="form-check-input"
@@ -1037,6 +950,49 @@ const BookingComponent = ({ onClose, onSave }) => {
                   </label>
                 </div>
               </div>
+
+              {/* Date and Time inputs */}
+              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap" }}>
+                {/* Date */}
+                <div style={{ flex: "" }}>
+                  <input
+                    type="date"
+                    className="form-control"
+                    name="startDate"
+                    value={eventData.startDate}
+                    onChange={handleChange}
+                    required
+                    disabled={!account}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+
+                {/* Start Time */}
+                <div style={{ flex: "0.5" }}>
+                  <input
+                    type="time"
+                    className="form-control"
+                    name="startTime"
+                    value={eventData.startTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
+                  />
+                </div>
+
+                {/* "to" */}
+                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
+
+                {/* End Time */}
+                <div style={{ flex: "0.5" }}>
+                  <input
+                    type="time"
+                    className="form-control"
+                    name="endTime"
+                    value={eventData.endTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
+                  />
+                </div>
               </div>
 
 
@@ -1144,7 +1100,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Search for attendees by username"
+                    placeholder="Search for attendees by name or email"
                     name="attendees"
                     disabled={!account}
                     value={attendeeSearchTerm}
