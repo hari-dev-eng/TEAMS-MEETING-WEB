@@ -730,6 +730,33 @@ const BookingComponent = ({ onClose, onSave }) => {
       setIsLoading(false);
       return;
     }
+     let dataToSend = { ...eventData };
+
+  // All-day adjustment → midnight to midnight
+  if (dataToSend.isAllDay) {
+    dataToSend.startTime = `${dataToSend.startDate}T00:00:00`;
+    dataToSend.endTime = `${dataToSend.endDate}T00:00:00`;
+  } else {
+    dataToSend.startTime = `${dataToSend.startDate}T${dataToSend.startTime}`;
+    dataToSend.endTime = `${dataToSend.endDate}T${dataToSend.endTime}`;
+  }
+
+  // Recurring validation → force user to configure pattern/range
+  if (dataToSend.isRecurring && !dataToSend.recurrence) {
+    setShowRecurrenceModal(true);
+    showAlertMessage("Please configure recurrence details", "warning");
+    setIsLoading(false);
+    return;
+  }
+  try {
+    await axios.post("/api/bookings", dataToSend);
+    showAlertMessage("Event created successfully", "success");
+  } catch (err) {
+    console.error(err);
+    showAlertMessage("Failed to create event", "danger");
+  } finally {
+    setIsLoading(false);
+  }
 
     // Check if selected room is available
     const selectedRoomStatus = roomAvailability[eventData.roomEmail];
@@ -1101,7 +1128,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Search for attendees by name or email"
+                    placeholder="Search for attendees by username"
                     name="attendees"
                     disabled={!account}
                     value={attendeeSearchTerm}
