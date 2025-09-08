@@ -17,14 +17,7 @@ function App() {
 }
 
 function Header({ onScheduleClick }) {
-  return (
-    <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <h2 style={{ margin: 0 }}>Meetings</h2>
-      <button className="btn btn-primary" onClick={onScheduleClick}>
-        Schedule
-      </button>
-    </header>
-  );
+  return null;
 }
 
 export default App;
