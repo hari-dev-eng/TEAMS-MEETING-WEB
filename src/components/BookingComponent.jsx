@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
 import { useMsal } from "@azure/msal-react";
-import { makeApiCall } from "../api";
-import { app, authentication } from "@microsoft/teams-js";
-import { getUserAssertion } from "../auth/useDualAuth";
+
 // Predefined rooms with emails
 const rooms = [
   { name: "Ground Floor Meeting Room", email: "gfmeeting@conservesolution.com" },
@@ -475,44 +473,18 @@ const BookingComponent = ({ onClose, onSave }) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
 
- useEffect(() => {
-    if (account) return; // already signed in (e.g., via MSAL on website)
-    (async () => {
-      try {
-        await app.initialize();
-        await app.getContext(); // throws if not inside Teams
-        const idToken = await authentication.getAuthToken();
-        const payload = JSON.parse(atob(idToken.split(".")[1]));
-        const userEmail = (payload.preferred_username || payload.upn || "").toLowerCase();
-        if (userEmail && isWorkSchoolAccount(userEmail)) {
-          setAccount({ name: payload.name, username: userEmail }); // lightweight account object for UI
-          setEventData(prev => ({ ...prev, userEmail }));
-          setIsValidEmail(true);
-        }
-      } catch {
-        // not in Teams (or SSO not configured) — ignore; MSAL handles website sign-in
-      }
-    })();
-  }, [account, isWorkSchoolAccount, setEventData]);
-
-  const getGraphToken = useCallback(async () => {
-   try {
-     // 1) get a user assertion (Teams SSO ID token in Teams, or Web API token on website)
-     const { token } = await getUserAssertion();
-     // 2) exchange it on the server for a Graph delegated token (OBO)
-     const res = await fetch(`${API_BASE_URL}/api/auth/teams-sso`, {
-       method: "POST",
-       headers: { Authorization: `Bearer ${token}` }
-     });
-     if (!res.ok) throw new Error(`SSO exchange failed: ${res.status}`);
-     const data = await res.json();
-     return data.graphAccessToken;
-   } catch (error) {
-     console.error("Error getting Graph token:", error);
-     showAlertMessage("Failed to authenticate with Microsoft 365", "danger");
-     return null;
-   }
- }, [showAlertMessage]);
+  const getAccessToken = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
+      if (!response.ok) throw new Error(`Failed to get token: ${response.status}`);
+      const data = await response.json();
+      return data.access_token || data.accessToken;
+    } catch (error) {
+      console.error("Error getting access token:", error);
+      showAlertMessage("Failed to authenticate with Azure AD", "danger");
+      return null;
+    }
+  }, [showAlertMessage]);
 
   // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
@@ -520,7 +492,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
     setIsCheckingAvailability(true);
     try {
-      const token = await getGraphToken();
+      const token = await getAccessToken();
       if (!token) return;
 
       let startDateTime, endDateTime;
@@ -556,7 +528,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     } finally {
       setIsCheckingAvailability(false);
     }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getGraphToken]);
+  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken]);
 
   useEffect(() => {
     if (eventData.startDate && (eventData.isAllDay || (eventData.startTime && eventData.endTime))) {
@@ -571,7 +543,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
     setIsFetchingUsers(true);
     try {
-      const token = await getGraphToken();
+      const token = await getAccessToken();
       if (!token) return;
 
       const encodedSearchTerm = encodeURIComponent(searchTerm);
@@ -599,7 +571,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     } finally {
       setIsFetchingUsers(false);
     }
-  }, [getGraphToken, attendeeList, showAlertMessage]);
+  }, [getAccessToken, attendeeList, showAlertMessage]);
 
   const debouncedUserSearch = useCallback((searchTerm, isAttendeeField) => {
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
@@ -642,39 +614,23 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   const login = async () => {
     try {
-       try {
-       await app.initialize();
-       await app.getContext(); // throws if not in Teams
-       const idToken = await authentication.getAuthToken();
-       const payload = JSON.parse(atob(idToken.split(".")[1]));
-       const userEmail = (payload.preferred_username || payload.upn || "").toLowerCase();
+      const loginRequest = { scopes: ["User.Read", "Calendars.ReadWrite"], prompt: "select_account" };
+      const loginResponse = await msalInstance.loginPopup(loginRequest);
+      if (!loginResponse.account) {
+        showAlertMessage("Login failed. No account information returned.", "danger");
+        return;
+      }
+      const activeAccount = loginResponse.account;
+      const userEmail = activeAccount.username ||
+        activeAccount.userName ||
+        (activeAccount.idTokenClaims && activeAccount.idTokenClaims.email) ||
+        (activeAccount.idTokenClaims && activeAccount.idTokenClaims.preferred_username);
 
-       if (!userEmail || !isWorkSchoolAccount(userEmail)) {
-         throw new Error("Not a conserve domain");
-       }
-       setAccount({ name: payload.name, username: userEmail }); // pseudo account for UI
-       setEventData(prev => ({ ...prev, userEmail }));
-       setIsValidEmail(true);
-       showAlertMessage(`Welcome ${payload.name || userEmail}`, "success");
-       return;
-     } catch { /* not in Teams, fall through to MSAL */ }
-
-     // 2) Fallback: website MSAL popup
-     const loginRequest = { scopes: ["User.Read", "Calendars.ReadWrite"], prompt: "select_account" };
-     const loginResponse = await msalInstance.loginPopup(loginRequest);
-     if (!loginResponse.account) throw new Error("No account returned from MSAL");
-     const activeAccount = loginResponse.account;
-     const userEmail =
-       activeAccount.username ||
-       activeAccount.userName ||
-       (activeAccount.idTokenClaims && activeAccount.idTokenClaims.email) ||
-       (activeAccount.idTokenClaims && activeAccount.idTokenClaims.preferred_username);
-
-            if (!userEmail || !isWorkSchoolAccount(userEmail)) {
-              showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
-              setIsValidEmail(false);
-              msalInstance.logoutPopup();
-              return;
+      if (!userEmail || !isWorkSchoolAccount(userEmail)) {
+        showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
+        setIsValidEmail(false);
+        msalInstance.logoutPopup();
+        return;
       }
 
       msalInstance.setActiveAccount(activeAccount);
@@ -761,25 +717,25 @@ const BookingComponent = ({ onClose, onSave }) => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // const makeApiCall = async (requestBody) => {
-  //   try {
-  //     const token = await getAccessToken();
-  //     if (!token) throw new Error("No access token available");
-  //     const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  //       body: JSON.stringify(requestBody),
-  //     });
-  //     if (!response.ok) {
-  //       const errorText = await response.text();
-  //       throw new Error(`HTTP error ${response.status}: ${errorText}`);
-  //     }
-  //     return await response.json();
-  //   } catch (err) {
-  //     console.error("API Error:", err);
-  //     throw err;
-  //   }
-  // };
+  const makeApiCall = async (requestBody) => {
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No access token available");
+      const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(requestBody),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error ${response.status}: ${errorText}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      throw err;
+    }
+  };
 
   const handleAuthAction = () => {
     if (account) logout(); else login();
