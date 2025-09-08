@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@azure/msal-browser": "^4.21.1",
+    "@azure/msal-browser": "^4.22.0",
     "@azure/msal-react": "^3.0.19",
+    "@microsoft/teams-js": "^2.44.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
