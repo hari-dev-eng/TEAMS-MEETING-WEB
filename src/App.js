@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import BookingComponent from "./components/BookingComponent";
 import MeetingsDashboard from "./components/MeetingsDashboard";
 
 function App() {
-  const [view, setView] = useState("dashboard"); 
+  const [view, setView] = useState("dashboard");
 
   return (
     <div style={{ padding: 20 }}>
@@ -18,8 +17,14 @@ function App() {
 }
 
 function Header({ onScheduleClick }) {
-  const { instance } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
+  return (
+    <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <h2 style={{ margin: 0 }}>Meetings</h2>
+      <button className="btn btn-primary" onClick={onScheduleClick}>
+        Schedule
+      </button>
+    </header>
+  );
 }
 
 export default App;
