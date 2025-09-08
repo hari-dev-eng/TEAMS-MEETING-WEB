@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
 import { useMsal } from "@azure/msal-react";
+import * as microsoftTeams from "@microsoft/teams-js";
+
+// Helper: Detect if running inside Teams iFrame
+function isRunningInTeams() {
+  try {
+    return window.self !== window.top && window.parent && window.parent !== window;
+  } catch {
+    return false;
+  }
+}
 
 // Predefined rooms with emails
 const rooms = [
@@ -14,16 +24,10 @@ const API_BASE_URL = "https://teamsbackendapi-production.up.railway.app";
 
 // --- RecurringEventModal Component ---
 const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }) => {
-  // Stable arrays for hooks/linter
-  const WEEKDAY_CODES = React.useMemo(() => Object.freeze(["SU", "MO", "TU", "WE", "TH", "FR", "SA"]), []);
+  const WEEKDAY_CODES = useMemo(() => Object.freeze(["SU", "MO", "TU", "WE", "TH", "FR", "SA"]), []);
   const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-  const startDateObj = useMemo(
-    () => (eventData.startDate ? new Date(`${eventData.startDate}T00:00:00`) : null),
-    [eventData.startDate]
-  );
+  const startDateObj = useMemo(() => (eventData.startDate ? new Date(`${eventData.startDate}T00:00:00`) : null), [eventData.startDate]);
   const startWeekdayIndex = startDateObj ? startDateObj.getDay() : 0;
-
   const [recurrenceData, setRecurrenceData] = useState({
     frequency: "weekly",
     interval: 1,
@@ -32,8 +36,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
     occurrences: 10,
     byWeekdays: startDateObj ? [WEEKDAY_CODES[startWeekdayIndex]] : []
   });
-
-  // Initialize modal with existing event data
   useEffect(() => {
     if (eventData.recurrence) {
       setRecurrenceData((prev) => ({
@@ -45,7 +47,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
         byWeekdays: eventData.recurrence.byWeekdays || prev.byWeekdays || []
       }));
     } else {
-      // default weekly to start weekday
       if (startDateObj) {
         setRecurrenceData((p) => ({
           ...p,
@@ -54,8 +55,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       }
     }
   }, [eventData, show, startDateObj, startWeekdayIndex, WEEKDAY_CODES]);
-
-  // Handle recurrence option changes
   const handleRecurrenceChange = (e) => {
     const { name, value } = e.target;
     setRecurrenceData(prev => {
@@ -80,20 +79,16 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       return { ...prev, [name]: value };
     });
   };
-
-  // Toggle weekday for Weekly
   const toggleWeekday = (idx) => {
     if (recurrenceData.frequency !== "weekly") return;
     const code = WEEKDAY_CODES[idx];
     setRecurrenceData((prev) => {
       const set = new Set(prev.byWeekdays || []);
       if (set.has(code)) set.delete(code); else set.add(code);
-      if (set.size === 0) set.add(WEEKDAY_CODES[startWeekdayIndex]); // never empty
+      if (set.size === 0) set.add(WEEKDAY_CODES[startWeekdayIndex]);
       return { ...prev, byWeekdays: Array.from(set).sort((a, b) => WEEKDAY_CODES.indexOf(a) - WEEKDAY_CODES.indexOf(b)) };
     });
   };
-
-  // Default end date (+3 months) when "On" is selected
   useEffect(() => {
     if (eventData.startDate && recurrenceData.endOption === 'date') {
       const startDate = new Date(eventData.startDate);
@@ -105,8 +100,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       }
     }
   }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]);
-
-  // Auto-adjust end time when start time changes (non All-day)
   useEffect(() => {
     if (eventData.startTime && !eventData.endTime && !eventData.isAllDay) {
       const startTime = new Date(`2000-01-01T${eventData.startTime}`);
@@ -116,15 +109,12 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       handleChange({ target: { name: 'endTime', value: `${hours}:${minutes}` } });
     }
   }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]);
-
-  // Build RRULE (optional — for display only)
   const rrule = useMemo(() => {
     if (!eventData.startDate) return "";
     const parts = [];
-    const FREQ = recurrenceData.frequency.toUpperCase(); // DAILY/WEEKLY/MONTHLY/YEARLY
+    const FREQ = recurrenceData.frequency.toUpperCase();
     parts.push(`FREQ=${FREQ}`);
     parts.push(`INTERVAL=${recurrenceData.interval || 1}`);
-
     if (recurrenceData.frequency === "weekly" && recurrenceData.byWeekdays?.length) {
       parts.push(`BYDAY=${recurrenceData.byWeekdays.join(",")}`);
     }
@@ -151,13 +141,10 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
     }
     return parts.join(";");
   }, [eventData.startDate, recurrenceData]);
-
-  // Teams-like summary string (optional — for display)
   const summary = useMemo(() => {
     if (!eventData.startDate) return "";
     const d = new Date(`${eventData.startDate}T00:00:00`);
     const interval = recurrenceData.interval || 1;
-
     const longDay = d.toLocaleDateString(undefined, { weekday: "long" });
     let when = "";
     if (recurrenceData.frequency === "daily") {
@@ -165,7 +152,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
     } else if (recurrenceData.frequency === "weekly") {
       const names = (recurrenceData.byWeekdays || []).map(code => {
         const i = WEEKDAY_CODES.indexOf(code);
-        // Get weekday name from index (0=Sun..6=Sat)
         return new Date(2023, 0, 1 + i).toLocaleDateString(undefined, { weekday: "long" });
       });
       const list = names.length <= 1 ? names[0] :
@@ -181,7 +167,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       const md = d.toLocaleDateString(undefined, { month: "long", day: "numeric" });
       when = interval === 1 ? `every year on ${md}` : `every ${interval} years on ${md}`;
     }
-
     let endText = "";
     if (recurrenceData.endOption === "date" && recurrenceData.endDate) {
       endText = ` until ${new Date(`${recurrenceData.endDate}T00:00:00`).toLocaleDateString()}`;
@@ -190,30 +175,24 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
     }
     return `Occurs ${when}${endText}.`;
   }, [eventData.startDate, recurrenceData, WEEKDAY_CODES]);
-
-  // Helper: convert weekly codes to bitmask (0=Su..6=Sa)
   const toDaysMask = (codesArr) =>
     (codesArr || []).reduce((mask, code) => {
       const idx = WEEKDAY_CODES.indexOf(code);
       return idx >= 0 ? mask | (1 << idx) : mask;
     }, 0);
-
-  // Build RecurrencePattern object expected by backend
   const buildRecurrencePattern = () => {
     const { frequency, interval, endOption, endDate, occurrences, byWeekdays } = recurrenceData;
     const dayOfMonth = startDateObj ? startDateObj.getDate() : undefined;
     const month = startDateObj ? startDateObj.getMonth() + 1 : undefined;
     const daysMask = toDaysMask(byWeekdays);
-
     const range =
       endOption === "never"
         ? { Type: "noEnd" }
         : endOption === "date"
           ? { Type: "endDate", EndDate: new Date(`${endDate}T00:00:00`) }
           : { Type: "numbered", NumberOfOccurrences: Math.max(1, occurrences || 1) };
-
     return {
-      PatternType: frequency,           // "daily" | "weekly" | "monthly" | "yearly"
+      PatternType: frequency,
       Interval: Math.max(1, interval || 1),
       DayOfMonth: dayOfMonth,
       Month: month,
@@ -221,11 +200,8 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       Range: range
     };
   };
-
-  // Save recurrence settings
   const handleSaveRecurrence = () => {
     const rp = buildRecurrencePattern();
-    // Write BOTH (RecurrencePattern used by backend; recurrence kept for UI/debug)
     handleChange({ target: { name: 'RecurrencePattern', value: rp } });
     handleChange({
       target: {
@@ -235,29 +211,18 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
     });
     onClose();
   };
-
   if (!show) return null;
-
   return (
     <div className="modal-backdrop" style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex', justifyContent: 'center', alignItems: 'center',
-      zIndex: 1000,
-      width: "auto",
-    height: "auto",
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex',
+      justifyContent: 'center', alignItems: 'center', zIndex: 1000, width: "auto", height: "auto"
     }}>
       <div className="modal-content" style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '20px',
-        width: '420px',
-        maxWidth: '90vw',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+        backgroundColor: 'white', borderRadius: '8px', padding: '20px', width: '420px',
+        maxWidth: '90vw', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
       }}>
         <h3 style={{ marginTop: 0, color: '#2D3748' }}>Repeat</h3>
-
         <div style={{ marginBottom: '15px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ marginRight: '10px', color: '#4A5568' }}>Start</span>
@@ -265,49 +230,20 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
               {eventData.startDate ? new Date(eventData.startDate).toLocaleDateString() : 'Select date'}
             </span>
           </div>
-
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
-            <label style={{ marginRight: '10px', color: '#4A5568', minWidth: '80px' }}>
-              Repeat every
-            </label>
-
-            <input
-              type="number"
-              min="1"
-              max="30"
-              className="form-control"
-              style={{
-                width: '60px',
-                marginRight: '10px',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                border: '1px solid #CBD5E0'
-              }}
-              name="interval"
-              value={recurrenceData.interval}
-              onChange={handleRecurrenceChange}
-            />
-
-            <select
-              className="form-control"
-              style={{
-                borderRadius: '4px',
-                padding: '4px 8px',
-                border: '1px solid #CBD5E0'
-              }}
-              name="frequency"
-              value={recurrenceData.frequency}
-              onChange={handleRecurrenceChange}
-            >
+            <label style={{ marginRight: '10px', color: '#4A5568', minWidth: '80px' }}>Repeat every</label>
+            <input type="number" min="1" max="30" className="form-control"
+              style={{ width: '60px', marginRight: '10px', borderRadius: '4px', padding: '4px 8px', border: '1px solid #CBD5E0' }}
+              name="interval" value={recurrenceData.interval} onChange={handleRecurrenceChange} />
+            <select className="form-control"
+              style={{ borderRadius: '4px', padding: '4px 8px', border: '1px solid #CBD5E0' }}
+              name="frequency" value={recurrenceData.frequency} onChange={handleRecurrenceChange}>
               <option value="daily">day</option>
               <option value="weekly">week</option>
               <option value="monthly">month</option>
               <option value="yearly">year</option>
             </select>
           </div>
-
-
-          {/* Occurs on (Weekly) */}
           <div style={{ marginBottom: '15px', opacity: recurrenceData.frequency === 'weekly' ? 1 : 0.5 }}>
             <div style={{ marginBottom: '8px', color: '#4A5568' }}>Occurs on</div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -315,10 +251,7 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
                 const active = recurrenceData.frequency === 'weekly' &&
                   (recurrenceData.byWeekdays || []).includes(WEEKDAY_CODES[index]);
                 return (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => toggleWeekday(index)}
+                  <button key={label} type="button" onClick={() => toggleWeekday(index)}
                     disabled={recurrenceData.frequency !== 'weekly'}
                     style={{
                       width: 32, height: 32, borderRadius: '50%',
@@ -336,8 +269,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
               })}
             </div>
           </div>
-
-          {/* Ends */}
           <div style={{ marginBottom: '15px' }}>
             <div style={{ marginBottom: '8px', color: '#4A5568' }}>Ends</div>
             <div>
@@ -347,31 +278,23 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
                   onChange={handleRecurrenceChange} />
                 <span style={{ color: '#4A5568' }}>Never</span>
               </label>
-
               <label style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: 8 }}>
                 <input type="radio" id="endDate" name="endOption" value="date"
                   checked={recurrenceData.endOption === 'date'}
                   onChange={handleRecurrenceChange} />
                 <span style={{ color: '#4A5568' }}>On</span>
-                <input
-                  type="date"
-                  className="form-control"
+                <input type="date" className="form-control"
                   style={{ borderRadius: '4px', padding: '4px 8px', border: '1px solid #CBD5E0', width: '160px' }}
-                  name="endDate"
-                  value={recurrenceData.endDate}
-                  onChange={handleRecurrenceChange}
+                  name="endDate" value={recurrenceData.endDate} onChange={handleRecurrenceChange}
                   min={eventData.startDate}
-                  disabled={recurrenceData.endOption !== 'date'}
-                />
+                  disabled={recurrenceData.endOption !== 'date'} />
               </label>
-
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="radio" id="endAfter" name="endOption" value="after"
                   checked={recurrenceData.endOption === 'after'}
                   onChange={handleRecurrenceChange} />
                 <span style={{ color: '#4A5568' }}>After</span>
-                <input
-                  type="number" min="1" max="100"
+                <input type="number" min="1" max="100"
                   className="form-control"
                   style={{ width: '60px', borderRadius: '4px', padding: '4px 8px', border: '1px solid #CBD5E0' }}
                   name="occurrences"
@@ -383,42 +306,29 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
               </label>
             </div>
           </div>
-
-          {/* Summary */}
           {summary && (
             <div style={{ color: '#4A5568', fontSize: 13, marginTop: 6 }}>
               {summary}
             </div>
           )}
         </div>
-
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: '1px solid #CBD5E0',
-              backgroundColor: 'white',
-              color: '#4A5568',
-              cursor: 'pointer'
-            }}
-          >
-            Discard
-          </button>
-          <button
-            onClick={handleSaveRecurrence}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              backgroundColor: '#3182CE',
-              color: 'white',
-              cursor: 'pointer'
-            }}
-          >
-            Save
-          </button>
+          <button onClick={onClose} style={{
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: '1px solid #CBD5E0',
+            backgroundColor: 'white',
+            color: '#4A5568',
+            cursor: 'pointer'
+          }}>Discard</button>
+          <button onClick={handleSaveRecurrence} style={{
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: 'none',
+            backgroundColor: '#3182CE',
+            color: 'white',
+            cursor: 'pointer'
+          }}>Save</button>
         </div>
       </div>
     </div>
@@ -428,6 +338,8 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
 // --- BookingComponent Component ---
 const BookingComponent = ({ onClose, onSave }) => {
   const { instance: msalInstance, accounts } = useMsal();
+ const [isTeams] = useState(isRunningInTeams());
+  const [teamsContext, setTeamsContext] = useState(null);
   const [account, setAccount] = useState(null);
   const [eventData, setEventData] = useState({
     title: "",
@@ -442,10 +354,9 @@ const BookingComponent = ({ onClose, onSave }) => {
     category: "Busy",
     reminder: "15",
     description: "",
-    recurrence: null,          // kept for UI summary (rrule/summaryText)
-    RecurrencePattern: null    // <-- used by backend
+    recurrence: null,
+    RecurrencePattern: null
   });
-
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -456,9 +367,8 @@ const BookingComponent = ({ onClose, onSave }) => {
   const [attendeeSearchTerm, setAttendeeSearchTerm] = useState("");
   const [attendeeList, setAttendeeList] = useState([]);
   const [isValidEmail, setIsValidEmail] = useState(true);
-  const [roomAvailability, setRoomAvailability] = useState({});
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-
+const [roomAvailability] = useState({});
+  const [isCheckingAvailability] = useState(false);
   const debounceTimeoutRef = useRef(null);
   const availabilityTimeoutRef = useRef(null);
 
@@ -473,122 +383,57 @@ const BookingComponent = ({ onClose, onSave }) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
 
+  // --- SSO: Teams SSO if in Teams tab, MSAL SSO otherwise ---
   const getAccessToken = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
-      if (!response.ok) throw new Error(`Failed to get token: ${response.status}`);
-      const data = await response.json();
-      return data.access_token || data.accessToken;
-    } catch (error) {
-      console.error("Error getting access token:", error);
-      showAlertMessage("Failed to authenticate with Azure AD", "danger");
-      return null;
-    }
-  }, [showAlertMessage]);
-
-  // availability respects All-day (00:00→next day 00:00)
-  const checkRoomAvailability = useCallback(async () => {
-    if (!eventData.startDate) return;
-
-    setIsCheckingAvailability(true);
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
-
-      let startDateTime, endDateTime;
-      if (eventData.isAllDay) {
-        const start = new Date(`${eventData.startDate}T00:00:00`);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        startDateTime = start.toISOString();
-        endDateTime = end.toISOString();
-      } else if (eventData.startTime && eventData.endTime) {
-        startDateTime = new Date(`${eventData.startDate}T${eventData.startTime}`).toISOString();
-        endDateTime = new Date(`${eventData.startDate}T${eventData.endTime}`).toISOString();
-      } else {
-        return;
-      }
-
-      const availabilityResults = {};
-      for (const room of rooms) {
-        try {
-          const response = await axios.get(
-            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          availabilityResults[room.email] = response.data.value.length > 0 ? "busy" : "available";
-        } catch (err) {
-          availabilityResults[room.email] = "unknown";
-          console.error(`Error fetching ${room.email}:`, err);
-        }
-      }
-      setRoomAvailability(availabilityResults);
-    } catch (error) {
-      console.error("Failed to fetch availability:", error);
-    } finally {
-      setIsCheckingAvailability(false);
-    }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken]);
-
-  useEffect(() => {
-    if (eventData.startDate && (eventData.isAllDay || (eventData.startTime && eventData.endTime))) {
-      checkRoomAvailability();
-    }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, checkRoomAvailability]);
-
-  const fetchUsers = useCallback(async (searchTerm = "", isAttendeeField = false) => {
-    if (!searchTerm || searchTerm.length < 2) {
-      if (isAttendeeField) setAttendeeSuggestions([]);
-      return;
-    }
-    setIsFetchingUsers(true);
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
-
-      const encodedSearchTerm = encodeURIComponent(searchTerm);
-      const filter = `startswith(mail,'${encodedSearchTerm}') or startswith(displayName,'${encodedSearchTerm}')`;
-      const url = `https://graph.microsoft.com/v1.0/users?$filter=${filter}&$select=id,displayName,mail,userPrincipalName`;
-
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    if (isTeams) {
+      return new Promise((resolve, reject) => {
+        microsoftTeams.app.initialize().then(() => {
+          microsoftTeams.authentication.getAuthToken({
+            successCallback: (token) => {
+              resolve(token);
+            },
+            failureCallback: (err) => {
+              console.error("Teams SSO error:", err);
+              reject(err);
+            },
+            resources: ["https://graph.microsoft.com"],
+          });
+        }).catch((err) => {
+          console.error("Teams SDK init error:", err);
+          reject(err);
+        });
       });
-
-      const users = response.data.value || [];
-      if (isAttendeeField) {
-        const newSuggestions = users.filter(user =>
-          !attendeeList.some(attendee => attendee.mail === user.mail)
-        );
-        setAttendeeSuggestions(newSuggestions);
+    } else {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
+        if (!response.ok) throw new Error(`Failed to get token: ${response.status}`);
+        const data = await response.json();
+        return data.access_token || data.accessToken;
+      } catch (error) {
+        console.error("Web SSO error:", error);
+        return null;
       }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-      }
-      showAlertMessage("Failed to fetch users from directory", "danger");
-    } finally {
-      setIsFetchingUsers(false);
     }
-  }, [getAccessToken, attendeeList, showAlertMessage]);
+  }, [isTeams]);
 
-  const debouncedUserSearch = useCallback((searchTerm, isAttendeeField) => {
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    debounceTimeoutRef.current = setTimeout(() => {
-      fetchUsers(searchTerm, isAttendeeField);
-    }, 300);
-  }, [fetchUsers]);
-
-  // MSAL
   useEffect(() => {
-    if (accounts.length > 0) {
+    if (isTeams) {
+      microsoftTeams.app.initialize().then(() => {
+        microsoftTeams.app.getContext().then((context) => {
+          setTeamsContext(context);
+        });
+      });
+    }
+  }, [isTeams]);
+
+  // --- MSAL Auth (web) ---
+  useEffect(() => {
+    if (!isTeams && accounts.length > 0) {
       const activeAccount = accounts[0];
       const userEmail = activeAccount.username ||
         activeAccount.userName ||
         (activeAccount.idTokenClaims && activeAccount.idTokenClaims.email) ||
         (activeAccount.idTokenClaims && activeAccount.idTokenClaims.preferred_username);
-
       if (userEmail && isWorkSchoolAccount(userEmail)) {
         setAccount(activeAccount);
         setEventData(prev => ({ ...prev, userEmail }));
@@ -597,11 +442,27 @@ const BookingComponent = ({ onClose, onSave }) => {
         showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
         setIsValidEmail(false);
       }
-    } else {
+    } else if (!isTeams) {
       setAccount(null);
       setIsValidEmail(true);
     }
-  }, [accounts, isWorkSchoolAccount, showAlertMessage]);
+  }, [accounts, isTeams, isWorkSchoolAccount, showAlertMessage]);
+
+  // --- Teams Auth (in Teams) ---
+  useEffect(() => {
+    if (isTeams && teamsContext?.user) {
+      const userEmail = teamsContext.user.userPrincipalName || teamsContext.user.email || "";
+      if (userEmail && isWorkSchoolAccount(userEmail)) {
+        setAccount({ name: teamsContext.user.displayName || "Teams User", username: userEmail });
+        setEventData(prev => ({ ...prev, userEmail }));
+        setIsValidEmail(true);
+      } else {
+        setAccount(null);
+        setIsValidEmail(false);
+        showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
+      }
+    }
+  }, [isTeams, teamsContext, isWorkSchoolAccount, showAlertMessage]);
 
   useEffect(() => {
     const currentDebounceTimeout = debounceTimeoutRef.current;
@@ -625,14 +486,12 @@ const BookingComponent = ({ onClose, onSave }) => {
         activeAccount.userName ||
         (activeAccount.idTokenClaims && activeAccount.idTokenClaims.email) ||
         (activeAccount.idTokenClaims && activeAccount.idTokenClaims.preferred_username);
-
       if (!userEmail || !isWorkSchoolAccount(userEmail)) {
         showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
         setIsValidEmail(false);
         msalInstance.logoutPopup();
         return;
       }
-
       msalInstance.setActiveAccount(activeAccount);
       setAccount(activeAccount);
       setEventData(prev => ({ ...prev, userEmail }));
@@ -667,6 +526,45 @@ const BookingComponent = ({ onClose, onSave }) => {
       roomEmail: selectedRoom ? selectedRoom.email : ""
     }));
   };
+const fetchUsers = useCallback(
+  async (searchTerm = "", isAttendeeField = false) => {
+    setIsFetchingUsers(true);
+    setAttendeeSuggestions([]);
+    if (!searchTerm.trim()) {
+      setIsFetchingUsers(false);
+      return;
+    }
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error("No access token available");
+      const response = await axios.get(
+        `${API_BASE_URL}/api/Bookings/SearchUsers`,
+        {
+          params: { query: searchTerm },
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      const users = response.data || [];
+      setAttendeeSuggestions(users);
+    } catch (err) {
+      setAttendeeSuggestions([]);
+      if (searchTerm.trim()) showAlertMessage("User search failed.", "danger");
+    } finally {
+      setIsFetchingUsers(false);
+    }
+  },
+  [getAccessToken, showAlertMessage]
+);
+
+  const debouncedUserSearch = useCallback(
+  (searchTerm, isAttendeeField) => {
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchUsers(searchTerm, isAttendeeField);
+    }, 300);
+  },
+  [fetchUsers]
+);
 
   const handleChange = useCallback(
     (e) => {
@@ -710,6 +608,9 @@ const BookingComponent = ({ onClose, onSave }) => {
   const removeAttendee = (email) => {
     setAttendeeList(prev => prev.filter(attendee => attendee.mail !== email));
   };
+
+
+
 
   useEffect(() => {
     const handleClickOutside = () => setAttendeeSuggestions([]);
