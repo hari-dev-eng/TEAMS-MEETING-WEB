@@ -57,7 +57,6 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
   };
 
   // Calculate default end date (3 months from start)
-  // Corrected code
   useEffect(() => {
     if (eventData.startDate && recurrenceData.endOption === 'date') {
       const startDate = new Date(eventData.startDate);
@@ -72,10 +71,9 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
         }));
       }
     }
-  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]); // <-- Added dependency
+  }, [eventData.startDate, recurrenceData.endOption, recurrenceData.endDate]);
 
   // Auto-adjust end time when start time changes
-  // Corrected code inside RecurringEventModal
   useEffect(() => {
     if (eventData.startTime && !eventData.endTime && !eventData.isAllDay) {
       const startTime = new Date(`2000-01-01T${eventData.startTime}`);
@@ -92,7 +90,7 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
         }
       });
     }
-  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]); // <-- Added dependencies
+  }, [eventData.startTime, eventData.isAllDay, eventData.endTime, handleChange]);
 
   if (!show) return null;
 
@@ -103,11 +101,13 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', 
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 1000
+      zIndex: 1000,
+      width:"Auto",
+      height:"Auto"
     }}>
       <div className="modal-content" style={{
         backgroundColor: 'white',
@@ -303,6 +303,8 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
 const BookingComponent = ({ onClose, onSave }) => {
   const { instance: msalInstance, accounts } = useMsal();
   const [account, setAccount] = useState(null);
+  const [ssoToken, setSsoToken] = useState(null);
+  const [isInTeams, setIsInTeams] = useState(false);
   const [eventData, setEventData] = useState({
     title: "",
     startDate: new Date().toISOString().split('T')[0],
@@ -335,6 +337,51 @@ const BookingComponent = ({ onClose, onSave }) => {
   const debounceTimeoutRef = useRef(null);
   const availabilityTimeoutRef = useRef(null);
 
+  // Check if running in Teams
+  useEffect(() => {
+    const checkIfInTeams = () => {
+      try {
+        return (
+          window.parent !== window.self ||
+          window.name === "embedded-page-container" ||
+          (window.location.ancestorOrigins && 
+           window.location.ancestorOrigins[0] &&
+           window.location.ancestorOrigins[0].includes("teams.microsoft.com"))
+        );
+      } catch (e) {
+        return false;
+      }
+    };
+
+    setIsInTeams(checkIfInTeams());
+  }, []);
+
+  // Get SSO token if in Teams
+  useEffect(() => {
+    const getSSOToken = async () => {
+      if (!isInTeams) return;
+      
+      try {
+        // This would typically use the Teams SDK to get the SSO token
+        // For demonstration, we'll simulate this process
+        const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSsoToken(data.token);
+        }
+      } catch (error) {
+        console.error("Failed to get SSO token:", error);
+      }
+    };
+
+    if (isInTeams) {
+      getSSOToken();
+    }
+  }, [isInTeams]);
+
   // Show alert message function
   const showAlertMessage = useCallback((message, type) => {
     setAlertMessage(message);
@@ -350,6 +397,29 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   const getAccessToken = useCallback(async () => {
     try {
+      // If in Teams and we have an SSO token, use it
+      if (isInTeams && ssoToken) {
+        return ssoToken;
+      }
+      
+      // Otherwise, use MSAL to get token
+      if (account) {
+        const silentRequest = {
+          scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
+          account: account
+        };
+        
+        try {
+          const response = await msalInstance.acquireTokenSilent(silentRequest);
+          return response.accessToken;
+        } catch (silentError) {
+          console.log("Silent token acquisition failed, using popup", silentError);
+          const response = await msalInstance.acquireTokenPopup(silentRequest);
+          return response.accessToken;
+        }
+      }
+      
+      // Fallback to backend token endpoint
       const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
       if (!response.ok) {
         throw new Error(`Failed to get token: ${response.status}`);
@@ -361,7 +431,7 @@ const BookingComponent = ({ onClose, onSave }) => {
       showAlertMessage("Failed to authenticate with Azure AD", "danger");
       return null;
     }
-  }, [showAlertMessage]);
+  }, [account, isInTeams, msalInstance, ssoToken, showAlertMessage]);
 
   // Function to check room availability
   const checkRoomAvailability = useCallback(async () => {
@@ -508,7 +578,7 @@ const BookingComponent = ({ onClose, onSave }) => {
   const login = async () => {
     try {
       const loginRequest = {
-        scopes: ["User.Read", "Calendars.ReadWrite"],
+        scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
         prompt: "select_account"
       };
 
@@ -563,7 +633,7 @@ const BookingComponent = ({ onClose, onSave }) => {
   const logout = async () => {
     try {
       await msalInstance.logoutPopup({
-        mainWindowRedirectUri: "/", // you can change this to "/login" or homepage
+        mainWindowRedirectUri: "/",
       });
       setAccount(null);
       setEventData(prev => ({
@@ -595,7 +665,7 @@ const BookingComponent = ({ onClose, onSave }) => {
       if (name === "reminder") {
         setEventData((prev) => ({
           ...prev,
-          [name]: parseInt(value, 10), // Convert string to integer
+          [name]: parseInt(value, 10),
         }));
       } else if (name === "attendees") {
         setAttendeeSearchTerm(value);
@@ -634,7 +704,6 @@ const BookingComponent = ({ onClose, onSave }) => {
     },
     [setEventData, setAttendeeSearchTerm, debouncedUserSearch]
   );
-
 
   const selectUser = (user, isAttendeeField = false) => {
     if (isAttendeeField) {
@@ -995,8 +1064,6 @@ const BookingComponent = ({ onClose, onSave }) => {
                 </div>
               </div>
 
-
-
               {/* Subject Input */}
               <div className="mb-4">
                 <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Subject <span className="text-danger">*</span></label>
@@ -1215,28 +1282,28 @@ const BookingComponent = ({ onClose, onSave }) => {
 
               {/* Footer Buttons */}
               <div className="modal-footer" style={{ borderTop: "none", padding: "1.5rem 0 0" }}>
-    <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
-        Cancel
-    </button>
-    <button 
-        type="submit" 
-        className="btn btn-primary" 
-        disabled={isLoading || !account} 
-        style={{ 
-            backgroundColor: "transparent",
-            backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
-            borderColor: "#3182CE",
-            color: "white" // Ensure the text is visible
-        }}
-    >
-        {isLoading ? (
-            <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Scheduling...
-            </>
-        ) : "Schedule Event"} 
-    </button>
-</div>
+                <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={isLoading || !account} 
+                  style={{ 
+                    backgroundColor: "transparent",
+                    backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
+                    borderColor: "#3182CE",
+                    color: "white"
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Scheduling...
+                    </>
+                  ) : "Schedule Event"} 
+                </button>
+              </div>
             </form>
           </div>
         </div>
