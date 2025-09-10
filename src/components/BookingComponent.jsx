@@ -101,15 +101,15 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 1000,
-      width:"Auto",
-      height:"Auto"
+      width: "Auto",
+      height: "Auto"
     }}>
-      <div className="modal-content" style={{
+      <div className="modal-content-make-reccuring" style={{
         backgroundColor: 'white',
         borderRadius: '8px',
         padding: '20px',
@@ -344,9 +344,9 @@ const BookingComponent = ({ onClose, onSave }) => {
         return (
           window.parent !== window.self ||
           window.name === "embedded-page-container" ||
-          (window.location.ancestorOrigins && 
-           window.location.ancestorOrigins[0] &&
-           window.location.ancestorOrigins[0].includes("teams.microsoft.com"))
+          (window.location.ancestorOrigins &&
+            window.location.ancestorOrigins[0] &&
+            window.location.ancestorOrigins[0].includes("teams.microsoft.com"))
         );
       } catch (e) {
         return false;
@@ -360,14 +360,14 @@ const BookingComponent = ({ onClose, onSave }) => {
   useEffect(() => {
     const getSSOToken = async () => {
       if (!isInTeams) return;
-      
+
       try {
         // This would typically use the Teams SDK to get the SSO token
         // For demonstration, we'll simulate this process
         const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
           credentials: 'include'
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setSsoToken(data.token);
@@ -401,14 +401,14 @@ const BookingComponent = ({ onClose, onSave }) => {
       if (isInTeams && ssoToken) {
         return ssoToken;
       }
-      
+
       // Otherwise, use MSAL to get token
       if (account) {
         const silentRequest = {
           scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
           account: account
         };
-        
+
         try {
           const response = await msalInstance.acquireTokenSilent(silentRequest);
           return response.accessToken;
@@ -418,7 +418,7 @@ const BookingComponent = ({ onClose, onSave }) => {
           return response.accessToken;
         }
       }
-      
+
       // Fallback to backend token endpoint
       const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
       if (!response.ok) {
@@ -877,11 +877,10 @@ const BookingComponent = ({ onClose, onSave }) => {
     }}>
       <div className="modal-dialog modal-lg">
         <div className="modal-content" style={{
-          borderRadius: "12px",
           border: "none",
           boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
           overflow: "hidden",
-          background: "linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)"
+          background: "transparent"
         }}>
           {/* Alert Box */}
           {showAlert && (
@@ -912,399 +911,428 @@ const BookingComponent = ({ onClose, onSave }) => {
               style={{ filter: "brightness(0) invert(1)" }}
             ></button>
           </div>
-
-          <div className="modal-body" style={{ padding: "1.5rem" }}>
-            <form onSubmit={handleSubmit}>
-              {/* User Email with login button */}
-              <div className="mb-4 position-relative">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Organizer <span className="text-danger">*</span></label>
-                {account ? (
-                  <div className="d-flex align-items-center">
-                    <input
-                      type="email"
-                      className="form-control"
-                      value={eventData.userEmail}
-                      readOnly
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem",
-                        border: "1px solid #cbd5e0",
-                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                        backgroundColor: "#e9ecef",
-                        color: "#6c757d",
-                        marginRight: "10px"
-                      }}
-                    />
-                    <button type="button"
-                      onClick={handleAuthAction}
-                      className={`btn btn-sm ${account ? "btn-outline-danger" : "btn-success"}`}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.6rem 1.2rem",
-                        fontWeight: "500"
-                      }}
-                    >
-                      {account ? "Remove" : "Sign In with Microsoft"}
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={login}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem 1.5rem",
-                        fontWeight: "500"
-                      }}
-                    >
-                      Sign In with Microsoft
-                    </button>
-                    <div className="form-text text-muted mt-2">
-                      Only Conserve Solution domain will be allowed
-                    </div>
-                    <div className="form-text text-muted mt-1">
-                      If you encounter issues, please try refreshing the page or contact R&D Conserve.
-                    </div>
-                  </div>
-                )}
-                {!isValidEmail && (
-                  <div className="text-danger mt-2">
-                    Please sign in with a valid @conservesolution.com account
-                  </div>
-                )}
-              </div>
-
-              {/* Make recurring & all day checkboxes */}
-              <div className="mb-4">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    name="isRecurring"
-                    checked={eventData.isRecurring}
-                    onChange={(e) => {
-                      handleChange(e);
-                      if (e.target.checked) {
-                        setShowRecurrenceModal(true);
-                      }
-                    }}
-                    id="recurringCheck"
-                    disabled={!account}
-                    style={{ width: "1.1em", height: "1.1em", marginTop: "0.2em" }}
-                  />
-                  <label className="form-check-label" htmlFor="recurringCheck" style={{ color: "#4a5568" }}>
-                    Make recurring
+          <div
+            className="modal-content"
+            style={{
+              background: "rgba(255, 255, 255, 0.15)", // semi-transparent white
+              boxShadow: "0 10px 30px rgba(0,0,0,0.16)",
+              borderRadius: 0,
+              border: "1.5px solid rgba(255,255,255,0.22)",
+              backdropFilter: "blur(13px) saturate(140%)",
+              WebkitBackdropFilter: "blur(13px) saturate(140%)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              className="modal-body"
+              style={{
+                padding: "1.25rem 1.25rem 15px",
+              }}
+            >
+              <form onSubmit={handleSubmit}>
+                {/* ORGANIZER */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Organizer <span className="text-danger">*</span>
                   </label>
-                </div>
-
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    name="isAllDay"
-                    checked={eventData.isAllDay}
-                    onChange={handleChange}
-                    id="allDayCheck"
-                    disabled={!account}
-                    style={{
-                      width: "1.1em",
-                      height: "1.1em",
-                      marginTop: "0.2em"
-                    }}
-                  />
-                  <label className="form-check-label" htmlFor="allDayCheck" style={{ color: "#4a5568" }}>
-                    All day
-                  </label>
-                </div>
-              </div>
-
-              {/* Date and Time inputs */}
-              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap" }}>
-                {/* Date */}
-                <div style={{ flex: "" }}>
-                  <input
-                    type="date"
-                    className="form-control"
-                    name="startDate"
-                    value={eventData.startDate}
-                    onChange={handleChange}
-                    required
-                    disabled={!account}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-
-                {/* Start Time */}
-                <div style={{ flex: "0.5" }}>
-                  <input
-                    type="time"
-                    className="form-control"
-                    name="startTime"
-                    value={eventData.startTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account}
-                  />
-                </div>
-
-                {/* "to" */}
-                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
-
-                {/* End Time */}
-                <div style={{ flex: "0.5" }}>
-                  <input
-                    type="time"
-                    className="form-control"
-                    name="endTime"
-                    value={eventData.endTime}
-                    onChange={handleChange}
-                    disabled={eventData.isAllDay || !account}
-                  />
-                </div>
-              </div>
-
-              {/* Subject Input */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Subject <span className="text-danger">*</span></label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Teams meeting"
-                  name="title"
-                  value={eventData.title}
-                  onChange={handleChange}
-                  required
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    transition: "all 0.2s ease"
-                  }}
-                />
-              </div>
-
-              {/* Room Selection */}
-              <div className="mb-4">
-                <label
-                  className="form-label fw-bold"
-                  style={{ color: "#4a5568", fontSize: "24px" }}
-                >
-                  Location <span className="text-danger">*</span>
-                </label>
-
-                <select
-                  className="form-select"
-                  name="location"
-                  value={eventData.location}
-                  onChange={handleRoomSelect}
-                  required
-                  disabled={!account}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <option value="">Select a room</option>
-                  {rooms.map((room) => {
-                    const status = roomAvailability[room.email];
-                    let color = "black";
-                    let indicator = "";
-
-                    if (status === "available") {
-                      color = "green";
-                      indicator = "✅ ";
-                    } else if (status === "busy") {
-                      color = "red";
-                      indicator = "❌ ";
-                    } else {
-                      color = "gray";
-                      indicator = "⌛ ";
-                    }
-
-                    return (
-                      <option
-                        key={room.email}
-                        value={room.name}
-                        style={{ color }}
+                  {account ? (
+                    <div className="d-flex align-items-center gap-2">
+                      <input
+                        type="email"
+                        className="form-control"
+                        value={eventData.userEmail}
+                        readOnly
+                        style={{
+                          borderRadius: 8,
+                          padding: "0.55rem 0.85rem",
+                          //background: "#e9ecef",
+                          color: "#6c757d",
+                          fontSize: "15px",
+                          border: "1px solid #e0e6ed",
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAuthAction}
+                        className="btn btn-sm btn-outline-danger"
+                        style={{ borderRadius: 7, padding: "0.5rem 1rem", fontWeight: 500, minWidth: 80 }}
                       >
-                        {indicator} {room.name}
-                      </option>
-                    );
-                  })}
-                </select>
-
-                {isCheckingAvailability ? (
-                  <div className="text-info mt-2">Checking room availability...</div>
-                ) : (
-                  eventData.roomEmail && (
-                    <div
-                      className={`mt-2 ${roomAvailability[eventData.roomEmail] === "available"
-                        ? "text-success"
-                        : "text-danger"
-                        }`}
-                    >
-                      {roomAvailability[eventData.roomEmail] === "available" ? (
-                        <>✅ This room is available.</>
-                      ) : roomAvailability[eventData.roomEmail] === "busy" ? (
-                        <>❌ This room is busy. Please select another time or room.</>
-                      ) : (
-                        "Status unknown. Please check your time."
-                      )}
+                        Remove
+                      </button>
                     </div>
-                  )
-                )}
+                  ) : (
+                    <div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={login}
+                        style={{
+                          borderRadius: 17,
+                          padding: "0.5rem 1.5rem",
+                          fontWeight: 500,
+                          fontSize: "16px"
+                        }}
+                      >
+                        Sign In with Microsoft
+                      </button>
+                      <div
+                          className="form-text mt-2"
+                          style={{ fontSize: 15, marginBottom: 0, color: "whitesmoke" }}
+                        >
+                          Only <strong>Conserve Solution</strong> domain will be allowed.
+                        </div>
 
-              </div>
+                        <div
+                          className="form-text"
+                          style={{ fontSize: 15, color: "whitesmoke" }}
+                        >
+                          If you encounter issues, please try refreshing or contact{" "}
+                          <strong>R&amp;D Conserve</strong>.
+                        </div>
 
-              {/* Attendees Input */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Attendees</label>
-                <div className="attendee-input-container position-relative">
+                    </div>
+                  )}
+                  {!isValidEmail && (
+                    <div className="text-danger mt-1" style={{ fontSize: 14 }}>
+                      Please sign in with a valid @conservesolution.com account
+                    </div>
+                  )}
+                </div>
+
+                {/* SUBJECT */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Subject <span className="text-danger">*</span>
+                  </label>
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Search for attendees by name or email"
-                    name="attendees"
-                    disabled={!account}
-                    value={attendeeSearchTerm}
+                    placeholder="Teams meeting"
+                    name="title"
+                    value={eventData.title}
                     onChange={handleChange}
+                    required
                     style={{
-                      borderRadius: "8px",
-                      padding: "0.75rem",
-                      border: "1px solid #cbd5e0",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
+                      borderRadius: 8,
+                      padding: "0.55rem 0.85rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
                     }}
                   />
-                  {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3" role="status"></div>}
-                  {attendeeSuggestions.length > 0 && (
-                    <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
-                      {attendeeSuggestions.map(user => (
-                        <li
-                          key={user.id}
-                          className="list-group-item list-group-item-action"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectUser(user, true);
+                </div>
+
+                {/* ATTENDEES */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Attendees
+                  </label>
+                  <div className="attendee-input-container position-relative">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search for attendees by name or email"
+                      name="attendees"
+                      disabled={!account}
+                      value={attendeeSearchTerm}
+                      onChange={handleChange}
+                      style={{
+                        borderRadius: 8,
+                        padding: "0.55rem 0.85rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed"
+                      }}
+                    />
+                    {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3"></div>}
+                    {attendeeSuggestions.length > 0 && (
+                      <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
+                        {attendeeSuggestions.map(user => (
+                          <li
+                            key={user.id}
+                            className="list-group-item list-group-item-action"
+                            onClick={e => {
+                              e.stopPropagation();
+                              selectUser(user, true);
+                            }}
+                            style={{ cursor: "pointer", fontSize: 15 }}
+                          >
+                            {user.displayName} ({user.mail})
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="mt-2 d-flex flex-wrap gap-2">
+                    {attendeeList.map(attendee => (
+                      <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}>
+                        {attendee.displayName}
+                        <button
+                          type="button"
+                          className="btn-close btn-close-white ms-2"
+                          onClick={() => removeAttendee(attendee.mail)}
+                          aria-label="Remove"
+                          style={{ filter: "brightness(0) invert(1)" }}
+                        ></button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DATE & TIME */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Date <span className="text-danger">*</span>
+                  </label>
+                  <div className="d-flex align-items-center gap-3 flex-wrap" style={{ minHeight: 45, rowGap: 6 }}>
+                    <input
+                      type="date"
+                      className="form-control"
+                      name="startDate"
+                      value={eventData.startDate}
+                      onChange={handleChange}
+                      required
+                      disabled={!account}
+                      min={new Date().toISOString().split("T")[0]}
+                      style={{
+                        borderRadius: 7,
+                        padding: "0.45rem 0.7rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed",
+                        width: 160
+                      }}
+                    />
+                    <input
+                      type="time"
+                      className="form-control"
+                      name="startTime"
+                      value={eventData.startTime}
+                      onChange={handleChange}
+                      disabled={eventData.isAllDay || !account}
+                      style={{
+                        borderRadius: 7,
+                        padding: "0.45rem 0.7rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed",
+                        width: 110
+                      }}
+                    />
+                    <span style={{ color: "#718096", fontSize: 16, minWidth: 20, textAlign: "center" }}>to</span>
+                    <input
+                      type="time"
+                      className="form-control"
+                      name="endTime"
+                      value={eventData.endTime}
+                      onChange={handleChange}
+                      disabled={eventData.isAllDay || !account}
+                      style={{
+                        borderRadius: 7,
+                        padding: "0.45rem 0.7rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed",
+                        width: 110
+                      }}
+                    />
+                    {/* Recurring/All Day */}
+                    <div className="d-flex align-items-center gap-4 ms-3 flex-wrap">
+                      <div className="form-check d-flex align-items-center mb-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          name="isRecurring"
+                          checked={eventData.isRecurring}
+                          onChange={e => {
+                            handleChange(e);
+                            if (e.target.checked) setShowRecurrenceModal(true);
                           }}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {user.displayName} ({user.mail})
-                        </li>
-                      ))}
-                    </ul>
+                          id="recurringCheck"
+                          disabled={!account}
+                          style={{
+                            width: "1.7em",
+                            height: "1.7em",
+                            marginRight: "0.5em",
+                            accentColor: "#78b042",
+                          }}
+                        />
+                        <label className="form-check-label mb-0" htmlFor="recurringCheck" style={{ fontSize: 16, color: "white", fontWeight: 500 }}>
+                          Make recurring
+                        </label>
+                      </div>
+                      <div className="form-check d-flex align-items-center mb-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          name="isAllDay"
+                          checked={eventData.isAllDay}
+                          onChange={handleChange}
+                          id="allDayCheck"
+                          disabled={!account}
+                          style={{
+                            width: "1.7em",
+                            height: "1.7em",
+                            marginRight: "0.5em",
+                            accentColor: "#0074bd",
+                          }}
+                        />
+                        <label className="form-check-label mb-0" htmlFor="allDayCheck" style={{ fontSize: 16, color: "white", fontWeight: 500 }}>
+                          All day
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* LOCATION */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Location <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    name="location"
+                    value={eventData.location}
+                    onChange={handleRoomSelect}
+                    required
+                    disabled={!account}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.6rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  >
+                    <option value="">Select a room</option>
+                    {rooms.map(room => {
+                      const status = roomAvailability[room.email];
+                      let color = "black";
+                      let indicator = "";
+                      if (status === "available") { color = "green"; indicator = "✅ "; }
+                      else if (status === "busy") { color = "red"; indicator = "❌ "; }
+                      else { color = "gray"; indicator = "⌛ "; }
+                      return (
+                        <option key={room.email} value={room.name} style={{ color }}>
+                          {indicator} {room.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isCheckingAvailability ? (
+                    <div className="text-info mt-1" style={{ fontSize: 14 }}>Checking room availability...</div>
+                  ) : eventData.roomEmail && (
+                    <div
+                      className={`mt-1 ${roomAvailability[eventData.roomEmail] === "available"
+                        ? "text-success"
+                        : "text-danger"
+                        }`}
+                      style={{ fontSize: 14 }}
+                    >
+                      {roomAvailability[eventData.roomEmail] === "available"
+                        ? <>✅ This room is available.</>
+                        : roomAvailability[eventData.roomEmail] === "busy"
+                          ? <>❌ This room is busy. Please select another time or room.</>
+                          : "Status unknown. Please check your time."}
+                    </div>
                   )}
                 </div>
-                <div className="mt-2 d-flex flex-wrap gap-2">
-                  {attendeeList.map(attendee => (
-                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}>
-                      {attendee.displayName}
-                      <button
-                        type="button"
-                        className="btn-close btn-close-white ms-2"
-                        onClick={() => removeAttendee(attendee.mail)}
-                        aria-label="Remove"
-                        style={{ filter: "brightness(0) invert(1)" }}
-                      ></button>
-                    </span>
-                  ))}
+
+                {/* CATEGORY */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Response Option
+                  </label>
+                  <select
+                    className="form-select"
+                    name="category"
+                    value={eventData.category}
+                    disabled={!account}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.6rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  >
+                    <option value="Busy">Busy</option>
+                    <option value="Free">Free</option>
+                    <option value="Tentative">Tentative</option>
+                  </select>
                 </div>
-              </div>
 
-              {/* Category */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Category</label>
-                <select
-                  className="form-select"
-                  name="category"
-                  value={eventData.category}
-                  disabled={!account}
-                  onChange={handleChange}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                  }}
-                >
-                  <option value="Busy">Busy</option>
-                  <option value="Free">Free</option>
-                  <option value="Tentative">Tentative</option>
-                </select>
-              </div>
+                {/* REMINDER */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Reminder
+                  </label>
+                  <select
+                    className="form-select"
+                    name="reminder"
+                    value={eventData.reminder}
+                    disabled={!account}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.6rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  >
+                    <option value="0">None</option>
+                    <option value="5">5 minutes before</option>
+                    <option value="10">10 minutes before</option>
+                    <option value="15">15 minutes before</option>
+                    <option value="30">30 minutes before</option>
+                    <option value="60">1 hour before</option>
+                  </select>
+                </div>
 
-              {/* Reminder */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Reminder</label>
-                <select
-                  className="form-select"
-                  name="reminder"
-                  value={eventData.reminder}
-                  disabled={!account}
-                  onChange={handleChange}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)"
-                  }}
-                >
-                  <option value="0">None</option>
-                  <option value="5">5 minutes before</option>
-                  <option value="10">10 minutes before</option>
-                  <option value="15">15 minutes before</option>
-                  <option value="30">30 minutes before</option>
-                  <option value="60">1 hour before</option>
-                </select>
-              </div>
+                {/* DESCRIPTION */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                    Description
+                  </label>
+                  <textarea
+                    className="form-control"
+                    placeholder="Add a description..."
+                    name="description"
+                    value={eventData.description}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.75rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed",
+                      minHeight: 95
+                    }}
+                  />
+                </div>
 
-              {/* Description */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Description</label>
-                <textarea
-                  className="form-control"
-                  placeholder="Add a description..."
-                  name="description"
-                  value={eventData.description}
-                  onChange={handleChange}
-                  style={{
-                    borderRadius: "8px",
-                    padding: "0.75rem",
-                    border: "1px solid #cbd5e0",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    minHeight: "100px"
-                  }}
-                ></textarea>
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="modal-footer" style={{ borderTop: "none", padding: "1.5rem 0 0" }}>
-                <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
-                  disabled={isLoading || !account} 
-                  style={{ 
-                    backgroundColor: "transparent",
-                    backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
-                    borderColor: "#3182CE",
-                    color: "white"
-                  }}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Scheduling...
-                    </>
-                  ) : "Schedule Event"} 
-                </button>
-              </div>
-            </form>
+                {/* BUTTONS */}
+                <div className="modal-footer px-0 pb-0 pt-3" style={{ borderTop: "none", justifyContent: "flex-end" }}>
+                  <button type="button" className="btn btn-outline-secondary me-2" onClick={onClose} style={{ borderRadius: 14, minWidth: 90,color:"white", border: "4px solid rgba(255,0, 0)" }}>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary-2"
+                    disabled={isLoading || !account}
+                    style={{
+                      borderRadius: 14,
+                      minWidth: 140,
+                      color:"white",
+                      border: "4px solid rgba(12,219, 36)"
+                    }}
+                  >
+                    {isLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Scheduling...
+                      </>
+                    ) : "Schedule Event"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>

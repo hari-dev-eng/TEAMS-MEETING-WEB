@@ -1,51 +1,32 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImage from "../image.png";
 import backGroundImage from "../team.png";
 import WebFont from "webfontloader";
 import BookingComponent from "./BookingComponent";
+import { useMsal } from "@azure/msal-react";
 
 const CalendarIcon = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM5 20V9h14v11zM8 7h8v2H8z" />
   </svg>
 );
 
 const TrendingUpIcon = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.3L22 12V6h-6z" />
   </svg>
 );
 
 const UsersIcon = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M16.5 16.5c-2.47 0-4.5 2.03-4.5 4.5s2.03 4.5 4.5 4.5 4.5-2.03 4.5-4.5-2.03-4.5-4.5-4.5zm-4.5-5.5a4.5 4.5 0 01-9 0c0-2.47 2.03-4.5 4.5-4.5s4.5 2.03 4.5 4.5zm0-10a4.5 4.5 0 014.5-4.5h-9a4.5 4.5 0 014.5 4.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
   </svg>
 );
 
 const ClockIcon = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.13.8-.71-4.4-2.61V7h-.1z" />
   </svg>
 );
@@ -54,9 +35,8 @@ const ClockIcon = (props) => (
  * Config / constants
  * ────────────────────────────*/
 const PAGE_SIZE = 10;
-
-// API URL - hardcoded for browser compatibility
-const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -82,7 +62,7 @@ const statusGradients = {
 };
 
 /** ─────────────────────────────
- * Small helpers / components
+ * Helpers
  * ────────────────────────────*/
 const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
   const [errorMessage, setErrorMessage] = useState("");
@@ -92,13 +72,11 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
     const inputValue = e.target.value;
     const newDate = new Date(inputValue);
 
-    // Check if it's a valid date
     if (isNaN(newDate.getTime())) {
       setErrorMessage("Please enter a valid date.");
       return;
     }
 
-    // Validate day-month mismatch (e.g., 2025-04-31)
     const [year, month, day] = inputValue.split("-");
     if (
       newDate.getFullYear() !== Number(year) ||
@@ -109,7 +87,7 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
       return;
     }
 
-    setErrorMessage(""); // clear error
+    setErrorMessage("");
     setSelectedDate(newDate);
   };
 
@@ -125,14 +103,10 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
           style={{ minWidth: "140px" }}
         />
       </div>
-      {errorMessage && (
-        <div className="invalid-feedback d-block">{errorMessage}</div>
-      )}
+      {errorMessage && <div className="invalid-feedback d-block">{errorMessage}</div>}
     </div>
   );
 };
-
-
 
 const getMeetingStatus = (startTime, endTime) => {
   const now = new Date();
@@ -159,59 +133,33 @@ const getAttendeesCount = (meeting) =>
 const LiveIndicator = () => (
   <span
     className="blinking-dot me-1"
-    style={{
-      display: "inline-block",
-      width: "10px",
-      height: "10px",
-      borderRadius: "50%",
-      backgroundColor: "#ff0000",
-    }}
+    style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ff0000" }}
   />
 );
 
-
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
-
   let activeCount = 0;
   let totalAttendees = 0;
-  let totalDuration = 0; // in minutes
+  let totalDuration = 0; // minutes
   let totalUsedMinutes = 0;
 
   for (const m of meetings) {
     const start = new Date(m.startTime);
     const end = new Date(m.endTime);
-
-    // Active meeting check
-    if (now >= start && now <= end) {
-      activeCount++;
-    }
-
-    // Attendees
+    if (now >= start && now <= end) activeCount++;
     totalAttendees += getAttendeesCount(m);
-
-    // Duration
-    const duration = (end - start) / (1000 * 60); // in minutes
+    const duration = (end - start) / (1000 * 60);
     totalDuration += duration;
     totalUsedMinutes += duration;
   }
 
   const avgDuration = meetings.length > 0 ? Math.round(totalDuration / meetings.length) : 0;
-
-  // Total possible minutes = floors × hours per floor × 60
   const totalPossibleMinutes = floors * hoursPerFloor * 60;
-
   const roomUtilization =
-    totalPossibleMinutes > 0
-      ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100))
-      : 0;
+    totalPossibleMinutes > 0 ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100)) : 0;
 
-  return {
-    activeMeetings: activeCount,
-    totalAttendees,
-    avgDuration,
-    roomUtilization,
-  };
+  return { activeMeetings: activeCount, totalAttendees, avgDuration, roomUtilization };
 };
 
 const LoadingIndicator = () => (
@@ -223,195 +171,71 @@ const LoadingIndicator = () => (
   </div>
 );
 
-
-// Particles Component
+// Particles
 const ParticlesBackground = () => {
   useEffect(() => {
+    WebFont.load({ google: { families: ["stylus bt", "Montserrat:600"] } });
 
-  WebFont.load({
-    google: {
-      families: ["stylus bt", "Montserrat:600"],
-    },
-  });
-
-    // Load particles.js script
-    const particlesScript = document.createElement('script');
-    particlesScript.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js';
+    const particlesScript = document.createElement("script");
+    particlesScript.src = "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
     particlesScript.async = true;
 
-    // Load stats.js script
-    const statsScript = document.createElement('script');
-    statsScript.src = 'https://threejs.org/examples/js/libs/stats.min.js';
+    const statsScript = document.createElement("script");
+    statsScript.src = "https://threejs.org/examples/js/libs/stats.min.js";
     statsScript.async = true;
 
     document.head.appendChild(particlesScript);
     document.head.appendChild(statsScript);
 
     particlesScript.onload = () => {
-      // Initialize particles once the script is loaded
       if (window.particlesJS) {
         window.particlesJS("particles-js", {
-          "particles": {
-            "number": {
-              "value": 75,
-              "density": {
-                "enable": true,
-                "value_area": 800
-              }
-            },
-            "color": {
-              "value": "#1b1616"
-            },
-            "shape": {
-              "type": "circle",
-              "stroke": {
-                "width": 0,
-                "color": "#000000"
-              },
-              "polygon": {
-                "nb_sides": 5
-              },
-              "image": {
-                "src": "img/github.svg",
-                "width": 100,
-                "height": 100
-              }
-            },
-            "opacity": {
-              "value": 0.37680183430339786,
-              "random": true,
-              "anim": {
-                "enable": true,
-                "speed": 2.273816194443766,
-                "opacity_min": 0.45476323888875325,
-                "sync": false
-              }
-            },
-            "size": {
-              "value": 2.5,
-              "random": false,
-              "anim": {
-                "enable": true,
-                "speed": 17.053621458328248,
-                "size_min": 11.369080972218832,
-                "sync": true
-              }
-            },
-            "line_linked": {
-              "enable": true,
-              "distance": 160,
-              "color": "#070606",
-              "opacity": 0.4,
-              "width": 1
-            },
-            "move": {
-              "enable": true,
-              "speed": 2.5,
-              "direction": "none",
-              "random": false,
-              "straight": false,
-              "out_mode": "out",
-              "bounce": false,
-              "attract": {
-                "enable": false,
-                "rotateX": 600,
-                "rotateY": 1200
-              }
-            }
+          particles: {
+            number: { value: 75, density: { enable: true, value_area: 800 } },
+            color: { value: "#1b1616" },
+            shape: { type: "circle", stroke: { width: 0, color: "#000000" }, polygon: { nb_sides: 5 } },
+            opacity: { value: 0.3768, random: true, anim: { enable: true, speed: 2.27, opacity_min: 0.45, sync: false } },
+            size: { value: 2.5, random: false, anim: { enable: true, speed: 17.05, size_min: 11.36, sync: true } },
+            line_linked: { enable: true, distance: 160, color: "#070606", opacity: 0.4, width: 1 },
+            move: { enable: true, speed: 2.5, direction: "none", random: false, straight: false, out_mode: "out", bounce: false },
           },
-          "interactivity": {
-            "detect_on": "canvas",
-            "events": {
-              "onhover": {
-                "enable": true,
-                "mode": "repulse"
-              },
-              "onclick": {
-                "enable": true,
-                "mode": "push"
-              },
-              "resize": true
+          interactivity: {
+            detect_on: "canvas",
+            events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true },
+            modes: {
+              grab: { distance: 400, line_linked: { opacity: 1 } },
+              bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
+              repulse: { distance: 200, duration: 0.4 },
+              push: { particles_nb: 4 },
+              remove: { particles_nb: 2 },
             },
-            "modes": {
-              "grab": {
-                "distance": 400,
-                "line_linked": {
-                  "opacity": 1
-                }
-              },
-              "bubble": {
-                "distance": 400,
-                "size": 40,
-                "duration": 2,
-                "opacity": 8,
-                "speed": 3
-              },
-              "repulse": {
-                "distance": 200,
-                "duration": 0.4
-              },
-              "push": {
-                "particles_nb": 4
-              },
-              "remove": {
-                "particles_nb": 2
-              }
-            }
           },
-          "retina_detect": true
+          retina_detect: true,
         });
-        
-
-        // Initialize stats
-        if (window.Stats) {
-          const stats = new window.Stats();
-          stats.setMode(0);
-          stats.domElement.style.position = 'absolute';
-          stats.domElement.style.left = '0px';
-          stats.domElement.style.top = '0px';
-          document.body.appendChild(stats.domElement);
-
-          const countParticles = document.querySelector('.js-count-particles');
-          const update = function () {
-            stats.begin();
-            stats.end();
-            if (window.pJSDom && window.pJSDom[0] && window.pJSDom[0].pJS && window.pJSDom[0].pJS.particles && window.pJSDom[0].pJS.particles.array) {
-              countParticles.innerText = window.pJSDom[0].pJS.particles.array.length;
-            }
-            requestAnimationFrame(update);
-          };
-          requestAnimationFrame(update);
-        }
       }
     };
 
-    return () => {
-      // Clean up if needed
-    };
+    return () => { };
   }, []);
 
   return (
-    <>
-      <div
-        id="particles-js"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          zIndex: -1,
-         // backgroundColor: '#f0353fff',
-          backgroundImage: `url(${backGroundImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat"
-        }}
-      ></div>
-    </>
+    <div
+      id="particles-js"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: -1,
+        backgroundImage: `url(${backGroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    />
   );
 };
-
 
 /** ─────────────────────────────
  * Main component
@@ -419,12 +243,7 @@ const ParticlesBackground = () => {
 const MeetingsDashboard = () => {
   const [date, setDate] = useState(new Date());
   const [meetings, setMeetings] = useState([]);
-  const [stats, setStats] = useState({
-    activeMeetings: 0,
-    totalAttendees: 0,
-    avgDuration: 0,
-    roomUtilization: 0,
-  });
+  const [stats, setStats] = useState({ activeMeetings: 0, totalAttendees: 0, avgDuration: 0, roomUtilization: 0 });
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -432,51 +251,130 @@ const MeetingsDashboard = () => {
   const [isManualRefresh, setIsManualRefresh] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  // Function to handle schedule meeting
-  const handleScheduleMeeting = () => {
-  setShowBookingModal(true);
-};
+  // Auth gate (wire to your SSO/MSAL/etc)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const handleSignIn = async () => {
+    // TODO: replace with your real auth; e.g., MSAL loginRedirect/loginPopup, then set true when token present.
+    setIsAuthenticated(true);
+  };
 
-const handleSaveMeeting = async(meetingData) => {
- try {
-    // After successful save, refresh the meetings
+  // Delete flow state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1); // 1: pick, 2: confirm
+  const [selectedMeetingKey, setSelectedMeetingKey] = useState(null);
+  const [deleteSearch, setDeleteSearch] = useState("");
+
+  const getKey = (m) => m.id ?? `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
+
+  const handleScheduleMeeting = () => setShowBookingModal(true);
+
+  const onDelete = () => {
+    if (!isAuthenticated) {
+      setErrorMessage("Please sign in to delete meetings.");
+      setShowErrorModal(true);
+      return;
+    }
+    if (!meetings || meetings.length === 0) {
+      setErrorMessage("No meetings found for the selected date.");
+      setShowErrorModal(true);
+      return;
+    }
+    setDeleteStep(1);
+    setSelectedMeetingKey(null);
+    setDeleteSearch("");
+    setShowDeleteModal(true);
+  };
+
+  const { instance, accounts } = useMsal();
+  async function getAccessToken() {
+    if (accounts.length) {
+      const silent = { scopes: ["User.Read", "Calendars.ReadWrite"], account: accounts[0] };
+      try {
+        const res = await instance.acquireTokenSilent(silent);
+        return res.accessToken;
+      } catch {
+        const res = await instance.acquireTokenPopup(silent);
+        return res.accessToken;
+      }
+    }
+    // If you also support Teams SSO cookie-backed token in your API, you can skip header.
+    return null;
+  }
+
+
+ const deleteSingleMeeting = async (meeting) => {
+  try {
+    const status = getMeetingStatus(meeting.startTime, meeting.endTime);
+    if (status !== "upcoming") {
+      setErrorMessage("Only upcoming meetings can be deleted.");
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Your backend now returns `eventId` + `calendarEmail`
+    const eventId = meeting.eventId || meeting.EventId;
+    const calendarEmail = meeting.calendarEmail || meeting.CalendarEmail;
+
+    if (!eventId || !calendarEmail) {
+      // Fallback (uses composite match on server)
+      const body = {
+        subject: meeting.subject,
+        organizer: meeting.organizer,
+        startTime: meeting.startTime,
+        calendarEmail: meeting.calendarEmail || meeting.CalendarEmail,
+      };
+      const token = await getAccessToken();
+      await api.post("/api/Meetings/delete", body, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } else {
+      // Correct DELETE route with path param
+      const token = await getAccessToken();
+      await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
+        params: { calendarEmail },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    }
+
     await fetchMeetings(false);
-    setShowBookingModal(false);
-  } catch (error) {
-    console.error("Error handling saved meeting:", error);
+    setShowDeleteModal(false);
+  } catch (err) {
+    console.error("Error deleting meeting:", err);
+    setErrorMessage(
+      err?.response?.data?.message ||
+      "Failed to delete the meeting. Please try again."
+    );
+    setShowErrorModal(true);
   }
 };
 
-const handleCloseBookingModal = () => {
-  setShowBookingModal(false);
-};
+  const handleSaveMeeting = async () => {
+    try {
+      await fetchMeetings(false);
+      setShowBookingModal(false);
+    } catch (error) {
+      console.error("Error handling saved meeting:", error);
+    }
+  };
+
+  const handleCloseBookingModal = () => setShowBookingModal(false);
 
   // Fetch meetings
   const fetchMeetings = useCallback(
     async (isManual = false) => {
       if (isManual) setIsManualRefresh(true);
       setLoading(true);
-
       try {
-        // API expects d-M-yyyy (as per your Swagger example)
         const formattedDate = date.toISOString().slice(0, 10);
-        // Start with one email that you know returns data; add others as needed.
         const userEmails = [
           "ffmeeting@conservesolution.com",
           "gfmeeting@conservesolution.com",
           "sfmeeting@conservesolution.com",
-          "contconference@conservesolution.com"
+          "contconference@conservesolution.com",
         ];
 
-        const res = await api.get("/api/Meetings", {
-          params: { userEmails, date: formattedDate },
-        });
-
+        const res = await api.get("/api/Meetings", { params: { userEmails, date: formattedDate } });
         const meetingsData = res.data?.meetings || [];
-        console.log("Meetings data:", meetingsData);
-        if (meetingsData.length > 0) {
-          console.log("First meeting properties:", Object.keys(meetingsData[0]));
-        }
 
         setMeetings(meetingsData);
         setStats(calculateStats(meetingsData));
@@ -487,13 +385,11 @@ const handleCloseBookingModal = () => {
         console.error(err);
         setMeetings([]);
         setStats(calculateStats([]));
-
         const serverMsg =
           err.response?.data?.message ||
           (typeof err.response?.data === "string" ? err.response.data : "") ||
           err.message ||
           "Failed to fetch meetings. Please try again.";
-
         setErrorMessage(serverMsg);
         setShowErrorModal(true);
       } finally {
@@ -508,327 +404,174 @@ const handleCloseBookingModal = () => {
     fetchMeetings(false);
   }, [fetchMeetings]);
 
-  // Auto-refresh every 30s
   useEffect(() => {
     const interval = setInterval(() => fetchMeetings(false), 30000);
     return () => clearInterval(interval);
   }, [fetchMeetings]);
 
-  // Sort meetings: Live, then Upcoming, then Completed
-  const sortedMeetings = meetings.sort((a, b) => {
-    const statusA = getMeetingStatus(a.startTime, a.endTime);
-    const statusB = getMeetingStatus(b.startTime, b.endTime);
+  // Sorted & grouped
+  const sortedMeetings = useMemo(() => {
+    const copy = [...meetings];
+    const order = { Live: 3, upcoming: 2, completed: 1 };
+    copy.sort((a, b) => {
+      const statusA = getMeetingStatus(a.startTime, a.endTime);
+      const statusB = getMeetingStatus(b.startTime, b.endTime);
+      return order[statusB] - order[statusA];
+    });
+    return copy;
+  }, [meetings]);
 
-    const statusOrder = { 'Live': 3, 'upcoming': 2, 'completed': 1 };
-
-    return statusOrder[statusB] - statusOrder[statusA];
-  });
-
-
-  const meetingsByFloor = floorHeaders.reduce((acc, floor) => {
-    acc[floor] = sortedMeetings.filter((m) => m.location?.toLowerCase().includes(floor.toLowerCase()));
-    return acc;
-  }, {});
+  const meetingsByFloor = useMemo(() => {
+    return floorHeaders.reduce((acc, floor) => {
+      acc[floor] = sortedMeetings.filter((m) =>
+        m.location?.toLowerCase().includes(floor.toLowerCase())
+      );
+      return acc;
+    }, {});
+  }, [sortedMeetings]);
 
   const totalPages = Math.ceil(
     Math.max(...floorHeaders.map((f) => meetingsByFloor[f]?.length || 0)) / PAGE_SIZE
   );
 
-  const pagedMeetings = floorHeaders.reduce((acc, floor) => {
-    const all = meetingsByFloor[floor] || [];
-    acc[floor] = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    return acc;
-  }, {});
+  const pagedMeetings = useMemo(() => {
+    return floorHeaders.reduce((acc, floor) => {
+      const all = meetingsByFloor[floor] || [];
+      acc[floor] = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+      return acc;
+    }, {});
+  }, [meetingsByFloor, page]);
+
+  // Delete: upcoming-only list + search
+  const upcomingMeetings = useMemo(
+    () => sortedMeetings.filter((m) => getMeetingStatus(m.startTime, m.endTime) === "upcoming"),
+    [sortedMeetings]
+  );
+
+  const filteredUpcoming = useMemo(() => {
+    const q = deleteSearch.trim().toLowerCase();
+    if (!q) return upcomingMeetings;
+    return upcomingMeetings.filter((m) => {
+      const hay =
+        `${m.subject || ""} ${m.organizer || ""} ${m.location || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [upcomingMeetings, deleteSearch]);
+
+  const selectedMeeting = useMemo(
+    () => filteredUpcoming.find((m) => getKey(m) === selectedMeetingKey) || null,
+    [filteredUpcoming, selectedMeetingKey]
+  );
 
   return (
     <>
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        xintegrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-        crossorigin="anonymous"
+        crossOrigin="anonymous"
       />
 
       <ParticlesBackground />
 
-      {/* Add particles.js styles */}
       <style>
         {`
-          /* ---- reset ---- */ 
-          body{ 
-            margin:0; 
-            font:normal 75% Arial, Helvetica, sans-serif; 
-          } 
-            .particles-js-canvas-el {
-          /*background: linear-gradient(135deg, #fff8e6, #ffd1dc, #c8e7ff, #e6ffe6) !important;*/
-            //background: linear-gradient(135deg, #ecebebff) !important;
-          }
-          canvas{ 
-            display: block; 
-            vertical-align: bottom; 
-          } 
-          /* ---- particles.js container ---- */ 
-          #particles-js{ 
-            position: fixed;
-            width: 100%; 
-            height: 100%; 
-            background-color: #ffffffff; 
-            background-image: url(""); 
-            background-repeat: no-repeat; 
-            background-size: cover; 
-            background-position: 50% 50%; 
-          } 
-          /* ---- stats.js ---- */ 
-          .count-particles{ 
-            background: #000022; 
-            position: absolute; 
-            top: 48px; 
-            left: 0; 
-            width: 80px; 
-            color: #13E8E9; 
-            font-size: .8em; 
-            text-align: left; 
-            text-indent: 4px; 
-            line-height: 14px; 
-            padding-bottom: 2px; 
-            font-family: Helvetica, Arial, sans-serif; 
-            font-weight: bold; 
-          } 
-          .js-count-particles{ 
-            font-size: 1.1em; 
-          } 
-          #stats, .count-particles{ 
-            -webkit-user-select: none; 
-            margin-top: 5px; 
-            margin-left: 5px; 
-          } 
-          #stats{ 
-            border-radius: 3px 3px 0 0; 
-            overflow: hidden; 
-          } 
-          .count-particles{ 
-            border-radius: 0 0 3px 3px; 
-          }
-          
-          @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-          }
-            
+          body{ margin:0; font:normal 75% Arial, Helvetica, sans-serif; }
+          canvas{ display:block; vertical-align:bottom; }
+          #particles-js{ position: fixed; width: 100%; height: 100%; background-color: #ffffffff; background-repeat: no-repeat; background-size: cover; background-position: 50% 50%; }
+          @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
           .blinking-dot { animation: blink 1.5s infinite; }
+          .dashboard-container { display:flex; gap:20px; justify-content:center; padding:20px; font-family: 'Inter', sans-serif; flex-wrap: wrap; }
+          .dashboard-card { flex:1; min-width:200px; max-width:1090px; padding:20px; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:space-between; }
+          .card-header-main { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; font-size:14px; color:#555; font-weight:bold; }
+          .card-icon { width:24px; height:24px; color:#555; }
+          .utilization-icon { color: orange; }
+          .card-body-main .card-value { font-size:32px; font-weight:bold; margin:0; color:#333; }
+          .card-body-main .card-subtext { font-size:12px; color:#777; margin:0; }
+          .card-meetings-color { background-color:#deeafcff; }
+          .card-attendees-color { background-color:#e0f9ee; }
+          .card-duration-color { background-color:#f5e6ff; }
+          .card-utilization-color { background-color:#fff8e6; }
 
-          /* Custom card styles from image */
-          .dashboard-container {
-            display: flex;
-            gap: 20px;
-            width: '800px';
-            justify-content: center;
-            padding: 20px;
-            font-family: 'Inter', sans-serif;
-            flex-wrap: wrap; 
-          }
-          
-          .dashboard-card {
-            flex: 1;
-            min-width: 200px;
-            max-width: 1090px;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-          }
-          
-          .card-header-main {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #555;
-            font-weight: bold;
-          }
-          
-          .card-icon {
-            width: 24px;
-            height: 24px;
-            color: #555;
-          }
-          
-          .utilization-icon {
-            color: orange;
-          }
-
-          .card-body-main .card-value {
-            font-size: 32px;
-            font-weight: bold;
-            margin: 0;
-            color: #333;
-          }
-           
-          
-          .card-body-main .card-subtext {
-            font-size: 12px;
-            color: #777;
-            margin: 0;
-          }
-          
-          /* Specific card color themes */
-          .card-meetings-color {
-            background-color: #deeafcff;
-          }
-          .card-attendees-color {
-            background-color: #e0f9ee;
-          }
-          .card-duration-color {
-            background-color: #f5e6ff;
-          }
-          .card-utilization-color {
-            background-color: #fff8e6;
-          }
-            @font-face {
-  font-family: "Stylus BT";
-  src: url("/fonts/StylusBT.woff2") format("woff2"),
-       url("/fonts/StylusBT.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-          
-          /* Responsive scaling for large screens */
-          .scaling-container {
-            width: 100%;
-          }
-          html {
-            zoom: 0.75;
-          }
-
-          /* Header button alignment */
-          .header-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            gap: 15px;
-          }
-          
-          .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex: 1;
-          }
-          
-          .header-center {
-            flex: 1;
-            text-align: center;
-            min-width: 200px;
-          }
-          
-          .header-right {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex: 1;
-            justify-content: flex-end;
-          }
-          
+          .scaling-container { width:100%; }
+          html { zoom: 0.75; }
+          .header-container { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; width:100%; gap:15px; }
+          .header-left { display:flex; align-items:center; gap:15px; flex:1; }
+          .header-center { flex:1; text-align:center; min-width:200px; }
+          .header-right { display:flex; align-items:center; gap:15px; flex:1; justify-content:flex-end; }
           @media (max-width: 992px) {
-            .header-container {
-              flex-direction: column;
-              align-items: stretch;
-            }
-            
-            .header-left, .header-center, .header-right {
-              justify-content: center;
-              text-align: center;
-            }
-            
-            .header-right {
-              flex-direction: column;
-            }
+            .header-container { flex-direction:column; align-items:stretch; }
+            .header-left, .header-center, .header-right { justify-content:center; text-align:center; }
+            .header-right { flex-direction:column; }
           }
-            .btn-custom {
-            background-color: #0074bdff;
-            border: none;
-            color: white;
-            font-size:16px;
-            padding: 0.8rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
+          .btn-custom { background-color:#0074bdff; border:none; color:white; font-size:16px; padding:0.8rem 1rem; border-radius:6px; cursor:pointer; }
+          .btn-custom:disabled { opacity:0.6; cursor:not-allowed; }
+          .schedule-section { position:relative; display:inline-block; }
+          .schedule-section .dropdown-menu {
+            display:none; position:absolute; top:100%; left:0; background:#fff; min-width:220px;
+            box-shadow:0 8px 24px rgba(0,0,0,0.15); border-radius:10px; z-index:1000; overflow:hidden; padding:6px;
           }
-
-          .btn-custom:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+          .schedule-section:hover .dropdown-menu { display:block; }
+          .dropdown-item-plain {
+            display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:10px 12px; border:none; background:transparent; cursor:pointer; font-family:calibri; font-size:15px; border-radius:8px;
           }
-            .btn-custom-2{
-            background-color: #76b042ff;
-            border: none;
-            color: white;
-            font-size:16px;
-            padding: 0.8rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            }
-            .btn-custom-2:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+          .dropdown-item-plain:hover { background-color:#f3f4f6; }
+          .dropdown-item-muted { color:#6b7280; }
+          .chip {
+            display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#3730a3; font-weight:600;
           }
-
+          /* Delete modal advanced styles */
+          .del-list { max-height: 360px; overflow:auto; border:1px solid #e5e7eb; border-radius:10px; padding:6px; background:#fafafa; }
+          .del-card {
+            display:flex; align-items: center; gap:12px; padding:10px 12px; border-radius:10px; background:white; border:1px solid #e5e7eb;
+          }
+          .del-card + .del-card { margin-top:8px; }
+          .del-card:hover { border-color:#c7d2fe; box-shadow:0 4px 12px rgba(59,130,246,0.08); }
+          .del-title { font-weight:700; margin:0; color:#111827; font-size:14px; }
+          .del-sub { margin:0; color:#6b7280; font-size:12px; }
+          .search-input {
+            border:1px solid #e5e7eb; border-radius:10px; padding:20px 12px; width:100%;font-size: large
+          }
+          .modal-actions { display:flex; justify-content:flex-end; gap:10px; }
         `}
       </style>
 
       <div className="scaling-container">
-        <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: "relative", zIndex: 1 }}>
           {/* Header */}
-          <div
-            className="card h-100 shadow-sm p-2 p-md-3 mb-3 mb-md-4"
-            style={{ borderRadius: "15px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}
-          >
+          <div className="card h-100 shadow-sm p-2 p-md-3 mb-3 mb-md-4" style={{ borderRadius: 15, backgroundColor: "rgba(233, 230, 230, 0.5)" }}>
             <div className="header-container">
-              {/* Left section with logo and title */}
+              {/* Left */}
               <div className="header-left">
-                <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: '60px', height: '65px' }} />
+                <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: 60, height: 65 }} />
                 <h2
                   className="fs-3 fs-md-2 mb-0 fw-bold"
-                  style={{
-                    background: "linear-gradient(90deg, #0074BD, #76B042)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
+                  style={{ background: "linear-gradient(90deg, #0074BD, #76B042)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
                 >
                   Meetly Dashboard
                 </h2>
               </div>
 
-              {/* Center section with slogan */}
+              {/* Center */}
               <div className="header-center">
-                <h2 
-                  className="fs-4 fs-md-3 mb-0 fw-bolder"   
+                <h2
+                  className="fs-4 fs-md-3 mb-0 fw-bolder"
                   style={{
                     background: "linear-gradient(90deg, #20498a, #20498a)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     fontFamily: "stylus bt",
-                    margin: 0
+                    margin: 0,
                   }}
                 >
                   WE ADD VALUE TO YOUR VISION...
                 </h2>
               </div>
-             
-                 {/* Right section with buttons */}
+
+              {/* Right */}
               <div className="header-right">
                 <div className="d-flex align-items-center gap-2">
                   <DatePickerComponent selectedDate={date} setSelectedDate={setDate} />
-                  <button 
-                    className="btn-custom" 
-                    onClick={() => fetchMeetings(true)} 
-                    disabled={loading}
-                  >
+                  <button className="btn-custom" onClick={() => fetchMeetings(true)} disabled={loading}>
                     {loading && isManualRefresh ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -839,35 +582,57 @@ const handleCloseBookingModal = () => {
                     )}
                   </button>
                 </div>
+
                 <div className="schedule-section">
-                  <button 
-                    className="btn-custom-2" style={{ fontFamily: "calibri", fontSize: "16px", color: "#ffffffff" }}
-                    onClick={handleScheduleMeeting} 
+                  <button
+                    className="btn-custom"
+                    style={{
+                      fontFamily: "calibri",
+                      fontSize: 16,
+                      color: "#fff",
+                      backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
+                      padding: "revert-layer",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
                   >
-                    Schedule New Meeting
+                    Manage Meetings ▾
                   </button>
+
+                  <div className="dropdown-menu" role="menu" aria-label="Manage Meetings menu">
+                    <button className="dropdown-item-plain" style={{ color: "#78b042" }} onClick={handleScheduleMeeting} role="menuitem">
+                      ➕ Schedule New Meeting
+                    </button>
+
+                    {isAuthenticated ? (
+                      <button className="dropdown-item-plain" style={{ color: "#b91c1c" }} onClick={onDelete} role="menuitem">
+                        🗑️ Delete Meetings <span className="chip ms-2">Upcoming only</span>
+                      </button>
+                    ) : (
+                      <button className="dropdown-item-plain dropdown-item-muted" onClick={handleSignIn} role="menuitem" title="Sign in required">
+                        🔒 Sign in to delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          
-          {/* Display Date from Image */}
+          {/* Date */}
           <div className="mb-3">
-            <h4 className="text-muted fw-bold" style={{ fontFamily: "calibri", paddingLeft:"10px", fontSize: "32px", color: "#333" }}>
-              {date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <h4 className="text-muted fw-bold" style={{ fontFamily: "calibri", paddingLeft: 10, fontSize: 32, color: "#333" }}>
+              {date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </h4>
           </div>
 
-          {/* Manual loading indicator only */}
+          {/* Manual loading indicator */}
           {loading && isManualRefresh && <LoadingIndicator />}
 
-          {/* Summary cards (Updated section) */}
-          <div className="card mb-4" style={{ borderRadius: "20px", backgroundColor: "rgba(233, 230, 230, 0.5)" }}>
-           
+          {/* Summary cards */}
+          <div className="card mb-4" style={{ borderRadius: 20, backgroundColor: "rgba(233, 230, 230, 0.5)" }}>
             <div className="card-body">
               <div className="dashboard-container">
-                {/* Today's Meetings Card */}
                 <div className="dashboard-card card-meetings-color">
                   <div className="card-header-main">
                     <p>Today's Meetings</p>
@@ -879,7 +644,6 @@ const handleCloseBookingModal = () => {
                   </div>
                 </div>
 
-                {/* Total Attendees Card */}
                 <div className="dashboard-card card-attendees-color">
                   <div className="card-header-main">
                     <p>Total Attendees</p>
@@ -891,7 +655,6 @@ const handleCloseBookingModal = () => {
                   </div>
                 </div>
 
-                {/* Avg Duration Card */}
                 <div className="dashboard-card card-duration-color">
                   <div className="card-header-main">
                     <p>Avg Duration</p>
@@ -903,7 +666,6 @@ const handleCloseBookingModal = () => {
                   </div>
                 </div>
 
-                {/* Room Utilization Card */}
                 <div className="dashboard-card card-utilization-color">
                   <div className="card-header-main">
                     <p>Room Utilization</p>
@@ -923,19 +685,19 @@ const handleCloseBookingModal = () => {
             <div className="row g-2 g-md-3 g-lg-4">
               {floorHeaders.map((floor, colIdx) => (
                 <div key={colIdx} className="col-12 col-sm-6 col-xl-3">
-                  <div className="card h-100 shadow-sm" style={{ borderRadius: "16px", background: "rgba(225, 225, 225, 0.8)" }}>
+                  <div className="card h-100 shadow-sm" style={{ borderRadius: 16, background: "rgba(225, 225, 225, 0.8)" }}>
                     <div
                       className="card-header text-white text-center fw-bold py-2 py-md-3"
                       style={{
                         background: "linear-gradient(90deg, #65799b, #5e2563 60%)",
-                        borderTopLeftRadius: "16px",
-                        borderTopRightRadius: "16px",
+                        borderTopLeftRadius: 16,
+                        borderTopRightRadius: 16,
                         fontSize: "clamp(0.9rem, 1.5vw, 1.1rem)",
                       }}
                     >
                       {floor}
                     </div>
-                    <div className="card-body p-2 p-md-3" style={{ minHeight: "280px" }}>
+                    <div className="card-body p-2 p-md-3" style={{ minHeight: 280 }}>
                       <AnimatePresence>
                         {pagedMeetings[floor]?.length > 0 ? (
                           pagedMeetings[floor].map((meeting, idx) => {
@@ -954,7 +716,7 @@ const handleCloseBookingModal = () => {
                                   background: statusGradients[status],
                                   borderLeft: `4px solid ${status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"
                                     }`,
-                                  minHeight: "80px",
+                                  minHeight: 80,
                                   fontWeight: 700,
                                   opacity: status === "completed" ? 0.8 : 1,
                                 }}
@@ -964,7 +726,6 @@ const handleCloseBookingModal = () => {
                                   className="text-truncate"
                                   title={meeting.subject}
                                 >
-
                                   {meeting.subject}
                                 </div>
 
@@ -989,23 +750,22 @@ const handleCloseBookingModal = () => {
                                   style={{
                                     fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)",
                                     color:
-                                      status === "completed"
+                                      getMeetingStatus(meeting.startTime, meeting.endTime) === "completed"
                                         ? "#7f8c8d"
-                                        : status === "upcoming"
+                                        : getMeetingStatus(meeting.startTime, meeting.endTime) === "upcoming"
                                           ? "rgba(25, 0, 255, 1)"
-                                          : status === "Live"
-                                            ? "#ff0000ff"
-                                            : "",
+                                          : "#ff0000ff",
                                     fontWeight: "bold",
                                     textAlign: "right",
                                     textTransform: "uppercase",
-                                    marginTop: "4px",
+                                    marginTop: 4,
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "flex-end",
                                   }}
                                 >
-                                  {status === "Live" && <LiveIndicator />} {status}
+                                  {getMeetingStatus(meeting.startTime, meeting.endTime) === "Live" && <LiveIndicator />}{" "}
+                                  {getMeetingStatus(meeting.startTime, meeting.endTime)}
                                 </div>
                               </motion.div>
                             );
@@ -1014,8 +774,8 @@ const handleCloseBookingModal = () => {
                           <div
                             className="text-center text-muted fw-semibold p-3"
                             style={{
-                              borderRadius: "12px",
-                              minHeight: "80px",
+                              borderRadius: 12,
+                              minHeight: 80,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -1037,7 +797,7 @@ const handleCloseBookingModal = () => {
           {totalPages > 1 && !loading && (
             <nav className="d-flex justify-content-center mt-3 mt-md-4">
               <ul className="pagination pagination-sm">
-                <li className={`page-item ${page === 1 ? "disabled": ""}`}>
+                <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
                   <button className="page-link" onClick={() => setPage(page - 1)}>
                     Previous
                   </button>
@@ -1080,7 +840,7 @@ const handleCloseBookingModal = () => {
             </div>
           </div>
 
-          {/* Production Level Branding */}
+          {/* Branding */}
           <div
             style={{
               position: "fixed",
@@ -1097,12 +857,139 @@ const handleCloseBookingModal = () => {
         </div>
       </div>
 
-      {/* Render Booking Component Modal when showBookingModal is true */}
-      {showBookingModal && (
-        <BookingComponent 
-          onClose={handleCloseBookingModal} 
-          onSave={handleSaveMeeting} 
-        />
+      {/* Booking Modal */}
+      {showBookingModal && <BookingComponent onClose={handleCloseBookingModal} onSave={handleSaveMeeting} />}
+
+      {/* Delete Flow Modal (advanced UI, upcoming-only) */}
+      {showDeleteModal && (
+        <div
+          className="modal-backdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 2000,
+            width: "Auto",
+            height: "Auto"
+          }}
+        >
+          <div className="modal-content" style={{ background: "rgba(233, 230, 230, 0.8)", padding: 20, borderRadius: 19, width: 540, maxWidth: "94vw" }}>
+            {deleteStep === 1 && (
+              <>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h4 className="mb-0">Delete a Meeting</h4>
+                  <span className="chip">Upcoming only</span>
+                </div>
+                <p className="text-muted mb-3" style={{ fontSize: "large" }}>
+                  Showing meetings for <b>{date.toISOString().slice(0, 10)}</b>.{" "}
+                  <strong>
+                    Completed or live meetings{" "}
+                    <span style={{ color: "#b91c1c" }}>cannot be deleted</span>
+                  </strong>.
+                </p>
+
+
+                <input
+                  className="search-input mb-3"
+                  placeholder="Search by subject, organizer, or room..."
+                  value={deleteSearch}
+                  onChange={(e) => setDeleteSearch(e.target.value)}
+                />
+
+                {filteredUpcoming.length === 0 ? (
+                  <div className="text-center text-muted py-4" style={{ border: "1px dashed #e5e7eb", borderRadius: 10 }}>
+                    No upcoming meetings found.
+                  </div>
+                ) : (
+                  <div className="del-list" style={{ background: "rgba(233, 230, 230, 0.8)" }}>
+                    {filteredUpcoming.map((m) => {
+                      const key = getKey(m);
+                      return (
+                        <label key={key} className="del-card" style={{ background: "rgba(233, 230, 230, 0.8)" }}>
+                          <input
+                            type="radio"
+                            name="deleteMeeting"
+                            className="form-check-input"
+                            style={{ fontSize: "17px" }}
+                            checked={selectedMeetingKey === key}
+                            onChange={() => setSelectedMeetingKey(key)}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <p className="del-title mb-1 text-truncate">{m.subject || "Untitled meeting"}</p>
+                            <p className="del-sub mb-1" style={{ fontSize: "13.5px" }}>
+                              <b>Organizer:</b> {m.organizer || "Unknown"} &nbsp; • &nbsp; <b>Room:</b>{" "}
+                              {m.location || "Unassigned"}
+                            </p>
+                            <p className="del-sub mb-0" style={{ fontSize: "13.5px" }}>
+                              <b>Time:</b> {formatTimeOnly(m.startTime)} – {formatTimeOnly(m.endTime)}
+                            </p>
+                          </div>
+                          <span className="chip">Upcoming</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="modal-actions mt-3">
+                  <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setDeleteStep(2)}
+                    disabled={!selectedMeetingKey}
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
+            )}
+
+            {deleteStep === 2 && selectedMeeting && (
+              <>
+                <h4 className="mb-3">Confirm deletion</h4>
+                <div className="p-3 rounded" style={{ border: "1px solid #e5e7eb", background: "transparent",fontSize:"large" }}>
+                  <div className="mb-1">
+                    <b>Subject:</b> {selectedMeeting.subject || "Untitled"}
+                  </div>
+                  <div className="mb-1">
+                    <b>Organizer:</b> {selectedMeeting.organizer || "Unknown"}
+                  </div>
+                  <div className="mb-1">
+                    <b>Time:</b> <strong>{formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</strong>
+                  </div>
+                  <div className="mb-0">
+                    <b>Location:</b> {selectedMeeting.location || "No room"}
+                  </div>
+                </div>
+
+                <div className="modal-actions mt-3">
+                  <button className="btn btn-outline-secondary" onClick={() => setDeleteStep(1)}>
+                    Back
+                  </button>
+                  <button className="btn btn-danger" onClick={() => deleteSingleMeeting(selectedMeeting)}>
+                    Yes, delete
+                  </button>
+                </div>
+              </>
+            )}
+
+            {deleteStep === 2 && !selectedMeeting && (
+              <>
+                <p className="text-muted">Selection lost—please pick a meeting again.</p>
+                <div className="modal-actions">
+                  <button className="btn btn-primary" onClick={() => setDeleteStep(1)}>
+                    Go back
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </>
   );
