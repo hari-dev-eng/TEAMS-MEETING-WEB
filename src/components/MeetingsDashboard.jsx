@@ -271,11 +271,11 @@ const MeetingsDashboard = () => {
   const handleScheduleMeeting = () => setShowBookingModal(true);
 
   const onDelete = () => {
-   // if (!isAuthenticated) {
+    if (!isAuthenticated) {
       setErrorMessage("Please sign in to delete meetings.");
       setShowErrorModal(true);
-     // return;
-   // }
+      return;
+    }
     if (!meetings || meetings.length === 0) {
       setErrorMessage("No meetings found for the selected date.");
       setShowErrorModal(true);
@@ -300,11 +300,14 @@ const deleteSingleMeeting = async (meeting) => {
 
     const eventId = meeting.eventId || meeting.EventId;
     const calendarEmail = meeting.calendarEmail || meeting.CalendarEmail;
-
+    
+    console.log(eventId, calendarEmail);
+    
     const apiToken = accounts.length
       ? await getApiAccessToken(instance, accounts[0])
       : null;
 
+      console.log(apiToken??"no token available")
     if (eventId && calendarEmail) {
       await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
         params: { calendarEmail },
