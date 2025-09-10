@@ -311,7 +311,8 @@ const deleteSingleMeeting = async (meeting) => {
     if (eventId && calendarEmail) {
       await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
         params: { calendarEmail },
-        headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : {},
+        // headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : {},
+        headers: { Authorization: `Bearer ${apiToken}`}
       });
     } else {
       await api.post(
