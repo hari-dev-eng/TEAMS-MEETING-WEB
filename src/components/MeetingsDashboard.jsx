@@ -300,19 +300,24 @@ const deleteSingleMeeting = async (meeting) => {
 
     const eventId = meeting.eventId || meeting.EventId;
     const calendarEmail = meeting.calendarEmail || meeting.CalendarEmail;
-    
-    console.log(eventId, calendarEmail);
-    
+
+    console.log("Deleting:", eventId, calendarEmail);
+
     const apiToken = accounts.length
       ? await getApiAccessToken(instance, accounts[0])
       : null;
 
-      console.log(apiToken??"no token available")
+    if (!apiToken) {
+      setErrorMessage("Authentication required to delete meeting.");
+      setShowErrorModal(true);
+      return;
+    }
+
     if (eventId && calendarEmail) {
+      // ✅ DELETE with eventId in path and calendarEmail as query param
       await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
         params: { calendarEmail },
-        // headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : {},
-        headers: { Authorization: `Bearer ${apiToken}`}
+        headers: { Authorization: `Bearer ${apiToken}` },
       });
     } else {
       await api.post(
