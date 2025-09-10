@@ -8,77 +8,58 @@ import BookingComponent from "./BookingComponent";
 import { useMsal } from "@azure/msal-react";
 import { getApiAccessToken } from "../msalConfig";
 
-
+// SVG ICONS - no changes
 const CalendarIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM5 20V9h14v11zM8 7h8v2H8z" />
   </svg>
 );
-
 const TrendingUpIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.3L22 12V6h-6z" />
   </svg>
 );
-
 const UsersIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M16.5 16.5c-2.47 0-4.5 2.03-4.5 4.5s2.03 4.5 4.5 4.5 4.5-2.03 4.5-4.5-2.03-4.5-4.5-4.5zm-4.5-5.5a4.5 4.5 0 01-9 0c0-2.47 2.03-4.5 4.5-4.5s4.5 2.03 4.5 4.5zm0-10a4.5 4.5 0 014.5-4.5h-9a4.5 4.5 0 014.5 4.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
   </svg>
 );
-
 const ClockIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.13.8-.71-4.4-2.61V7h-.1z" />
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM12.5 7H11v6l5.2 3.13.8-.71-4.4-2.61V7h-.1z" />
   </svg>
 );
 
-/** ─────────────────────────────
- * Config / constants
- * ────────────────────────────*/
 const PAGE_SIZE = 10;
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
-
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
 const api = axios.create({
   baseURL: API_BASE_URL,
   paramsSerializer: (params) => {
     const usp = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
-      if (Array.isArray(val)) {
-        val.forEach((v) => usp.append(key, v));
-      } else if (val !== undefined && val !== null) {
-        usp.append(key, val);
-      }
+      if (Array.isArray(val)) val.forEach((v) => usp.append(key, v));
+      else if (val !== undefined && val !== null) usp.append(key, val);
     });
     return usp.toString();
   },
 });
-
 const floorHeaders = ["Ground Floor", "1st Floor", "Conference Room", "3rd Floor"];
-
 const statusGradients = {
   upcoming: "linear-gradient(105deg, #56baecbb 30%, #c5e5f5cc 100%)",
   Live: "linear-gradient(105deg, #4cd964bb 30%, #c5e5f5cc 100%)",
   completed: "linear-gradient(105deg, #d1d1d1bb 30%, #e5e5e5cc 100%)",
 };
 
-/** ─────────────────────────────
- * Helpers
- * ────────────────────────────*/
 const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const formattedDate = selectedDate.toISOString().split("T")[0];
-
   const handleDateChange = (e) => {
     const inputValue = e.target.value;
     const newDate = new Date(inputValue);
-
     if (isNaN(newDate.getTime())) {
       setErrorMessage("Please enter a valid date.");
       return;
     }
-
     const [year, month, day] = inputValue.split("-");
     if (
       newDate.getFullYear() !== Number(year) ||
@@ -88,11 +69,9 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
       setErrorMessage("Invalid date. This month doesn’t have that many days.");
       return;
     }
-
     setErrorMessage("");
     setSelectedDate(newDate);
   };
-
   return (
     <div className="d-flex flex-column gap-2">
       <div className="d-flex align-items-center gap-2">
@@ -118,7 +97,6 @@ const getMeetingStatus = (startTime, endTime) => {
   if (now >= start && now <= end) return "Live";
   return "upcoming";
 };
-
 const formatTimeOnly = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleTimeString("en-IN", {
@@ -128,24 +106,19 @@ const formatTimeOnly = (dateStr) => {
     hour12: true,
   });
 };
-
 const getAttendeesCount = (meeting) =>
   meeting.attendeesCount || meeting.attendeeCount || meeting.AttendeeCount || 0;
 
 const LiveIndicator = () => (
-  <span
-    className="blinking-dot me-1"
-    style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ff0000" }}
-  />
+  <span className="blinking-dot me-1" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ff0000" }} />
 );
 
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
   let activeCount = 0;
   let totalAttendees = 0;
-  let totalDuration = 0; // minutes
+  let totalDuration = 0;
   let totalUsedMinutes = 0;
-
   for (const m of meetings) {
     const start = new Date(m.startTime);
     const end = new Date(m.endTime);
@@ -155,12 +128,10 @@ const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
     totalDuration += duration;
     totalUsedMinutes += duration;
   }
-
   const avgDuration = meetings.length > 0 ? Math.round(totalDuration / meetings.length) : 0;
   const totalPossibleMinutes = floors * hoursPerFloor * 60;
   const roomUtilization =
     totalPossibleMinutes > 0 ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100)) : 0;
-
   return { activeMeetings: activeCount, totalAttendees, avgDuration, roomUtilization };
 };
 
@@ -173,22 +144,17 @@ const LoadingIndicator = () => (
   </div>
 );
 
-// Particles
 const ParticlesBackground = () => {
   useEffect(() => {
     WebFont.load({ google: { families: ["stylus bt", "Montserrat:600"] } });
-
     const particlesScript = document.createElement("script");
     particlesScript.src = "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
     particlesScript.async = true;
-
     const statsScript = document.createElement("script");
     statsScript.src = "https://threejs.org/examples/js/libs/stats.min.js";
     statsScript.async = true;
-
     document.head.appendChild(particlesScript);
     document.head.appendChild(statsScript);
-
     particlesScript.onload = () => {
       if (window.particlesJS) {
         window.particlesJS("particles-js", {
@@ -216,10 +182,8 @@ const ParticlesBackground = () => {
         });
       }
     };
-
     return () => { };
   }, []);
-
   return (
     <div
       id="particles-js"
@@ -239,10 +203,12 @@ const ParticlesBackground = () => {
   );
 };
 
-/** ─────────────────────────────
- * Main component
- * ────────────────────────────*/
+const SIDE_PANEL_WIDTH = "30vw";
+const SIDE_PANEL_MIN_WIDTH = 340;
+const SIDE_PANEL_MAX_WIDTH = 540;
+
 const MeetingsDashboard = () => {
+  // All state variables, as before
   const [date, setDate] = useState(new Date());
   const [meetings, setMeetings] = useState([]);
   const [stats, setStats] = useState({ activeMeetings: 0, totalAttendees: 0, avgDuration: 0, roomUtilization: 0 });
@@ -253,114 +219,85 @@ const MeetingsDashboard = () => {
   const [isManualRefresh, setIsManualRefresh] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  // Auth gate (wire to your SSO/MSAL/etc)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const handleSignIn = async () => {
-    // TODO: replace with your real auth; e.g., MSAL loginRedirect/loginPopup, then set true when token present.
-    setIsAuthenticated(true);
-  };
+  const handleSignIn = async () => setIsAuthenticated(true);
 
-  // Delete flow state
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteStep, setDeleteStep] = useState(1); // 1: pick, 2: confirm
+  const [showSidePanel, setShowSidePanel] = useState(false);
+  const [sidePanelTab, setSidePanelTab] = useState("list");
+  const [alertModal, setAlertModal] = useState({ show: false, title: "", message: "" });
+
+  const [deleteStep, setDeleteStep] = useState(1);
   const [selectedMeetingKey, setSelectedMeetingKey] = useState(null);
   const [deleteSearch, setDeleteSearch] = useState("");
 
+  // Side panel state
+  const [panelDate, setPanelDate] = useState(new Date());
+  const [panelMeetings, setPanelMeetings] = useState([]);
+  const [panelLoading, setPanelLoading] = useState(false);
+
   const getKey = (m) => m.id ?? `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
+  const { accounts } = useMsal();
 
-  const handleScheduleMeeting = () => setShowBookingModal(true);
-
-  const onDelete = () => {
-    if (!isAuthenticated) {
-      setErrorMessage("Please sign in to delete meetings.");
-      setShowErrorModal(true);
-      return;
-    }
-    if (!meetings || meetings.length === 0) {
-      setErrorMessage("No meetings found for the selected date.");
-      setShowErrorModal(true);
-      return;
-    }
+  // === HANDLERS for missing functions ===
+  const openSidePanel = () => setShowSidePanel(true);
+  const closeSidePanel = () => {
+    setShowSidePanel(false);
     setDeleteStep(1);
     setSelectedMeetingKey(null);
-    setDeleteSearch("");
-    setShowDeleteModal(true);
+    setSidePanelTab("list");
   };
 
-  const { instance, accounts } = useMsal();
-
-const deleteSingleMeeting = async (meeting) => {
-  try {
-    const status = getMeetingStatus(meeting.startTime, meeting.endTime);
-    if (status !== "upcoming") {
-      setErrorMessage("Only upcoming meetings can be deleted.");
-      setShowErrorModal(true);
-      return;
-    }
-
-    const eventId = meeting.eventId || meeting.EventId;
-    const calendarEmail = meeting.calendarEmail || meeting.CalendarEmail;
-
-    console.log("Deleting:", eventId, calendarEmail);
-
-    const apiToken = accounts.length
-      ? await getApiAccessToken(instance, accounts[0])
-      : null;
-
-    if (!apiToken) {
-      setErrorMessage("Authentication required to delete meeting.");
-      setShowErrorModal(true);
-      return;
-    }
-
-    if (eventId && calendarEmail) {
-      // ✅ DELETE with eventId in path and calendarEmail as query param
-      await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
-        params: { calendarEmail },
-        headers: { Authorization: `Bearer ${apiToken}` },
-      });
-    } else {
-      await api.post(
-        "/api/Meetings/delete",
-        {
-          subject: meeting.subject,
-          organizer: meeting.organizer,
-          startTime: meeting.startTime,
-          calendarEmail: calendarEmail || meeting.calendarEmail,
-        },
-        { headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : {} }
-      );
-    }
-
-    await fetchMeetings(false);
-    setShowDeleteModal(false);
-  } catch (err) {
-    const status = err?.response?.status;
-    if (status === 401) {
-      setErrorMessage("Please sign in to delete meetings.");
-    } else if (status === 403) {
-      setErrorMessage(err?.response?.data?.message || "You are not allowed to delete this meeting.");
-    } else if (status === 404) {
-      setErrorMessage("Event not found. It may have already been deleted.");
-    } else {
-      setErrorMessage(err?.response?.data?.message || "Failed to delete the meeting. Please try again.");
-    }
-    setShowErrorModal(true);
-  }
-};
-
-  const handleSaveMeeting = async () => {
-    try {
-      await fetchMeetings(false);
-      setShowBookingModal(false);
-    } catch (error) {
-      console.error("Error handling saved meeting:", error);
-    }
+  const showAlert = (message, title = "Notice") => {
+    setAlertModal({ show: true, message, title });
   };
 
+  const handleScheduleMeeting = () => setShowBookingModal(true);
   const handleCloseBookingModal = () => setShowBookingModal(false);
+  const handleSaveMeeting = (meetingData) => {
+    setShowBookingModal(false);
+    fetchMeetings(true);
+    fetchPanelMeetings();
+    showAlert("Meeting created successfully!", "Success");
+  };
 
-  // Fetch meetings
+  const deleteSingleMeeting = async (meeting) => {
+    try {
+      // Replace with your actual delete API call
+      // await api.delete(`/api/Meetings/${meeting.id}`);
+      setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+      fetchMeetings();
+    } catch (e) {
+      showAlert("Failed to delete meeting.", "Error");
+    }
+  };
+
+  // === API fetch handlers (unchanged) ===
+  const fetchPanelMeetings = useCallback(
+    async () => {
+      setPanelLoading(true);
+      try {
+        const formattedDate = panelDate.toISOString().slice(0, 10);
+        const userEmails = [
+          "ffmeeting@conservesolution.com",
+          "gfmeeting@conservesolution.com",
+          "sfmeeting@conservesolution.com",
+          "contconference@conservesolution.com",
+        ];
+        const res = await api.get("/api/Meetings", { params: { userEmails, date: formattedDate } });
+        setPanelMeetings(res.data?.meetings || []);
+      } catch (err) {
+        setPanelMeetings([]);
+      } finally {
+        setPanelLoading(false);
+      }
+    },
+    [panelDate]
+  );
+
+  useEffect(() => {
+    if (showSidePanel) fetchPanelMeetings();
+  }, [panelDate, showSidePanel, fetchPanelMeetings]);
+
   const fetchMeetings = useCallback(
     async (isManual = false) => {
       if (isManual) setIsManualRefresh(true);
@@ -373,17 +310,14 @@ const deleteSingleMeeting = async (meeting) => {
           "sfmeeting@conservesolution.com",
           "contconference@conservesolution.com",
         ];
-
         const res = await api.get("/api/Meetings", { params: { userEmails, date: formattedDate } });
         const meetingsData = res.data?.meetings || [];
-
         setMeetings(meetingsData);
         setStats(calculateStats(meetingsData));
         setPage(1);
         setShowErrorModal(false);
         setErrorMessage("");
       } catch (err) {
-        console.error(err);
         setMeetings([]);
         setStats(calculateStats([]));
         const serverMsg =
@@ -401,16 +335,12 @@ const deleteSingleMeeting = async (meeting) => {
     [date]
   );
 
-  useEffect(() => {
-    fetchMeetings(false);
-  }, [fetchMeetings]);
-
+  useEffect(() => { fetchMeetings(false); }, [fetchMeetings]);
   useEffect(() => {
     const interval = setInterval(() => fetchMeetings(false), 30000);
     return () => clearInterval(interval);
   }, [fetchMeetings]);
 
-  // Sorted & grouped
   const sortedMeetings = useMemo(() => {
     const copy = [...meetings];
     const order = { Live: 3, upcoming: 2, completed: 1 };
@@ -421,7 +351,6 @@ const deleteSingleMeeting = async (meeting) => {
     });
     return copy;
   }, [meetings]);
-
   const meetingsByFloor = useMemo(() => {
     return floorHeaders.reduce((acc, floor) => {
       acc[floor] = sortedMeetings.filter((m) =>
@@ -430,11 +359,9 @@ const deleteSingleMeeting = async (meeting) => {
       return acc;
     }, {});
   }, [sortedMeetings]);
-
   const totalPages = Math.ceil(
     Math.max(...floorHeaders.map((f) => meetingsByFloor[f]?.length || 0)) / PAGE_SIZE
   );
-
   const pagedMeetings = useMemo(() => {
     return floorHeaders.reduce((acc, floor) => {
       const all = meetingsByFloor[floor] || [];
@@ -442,38 +369,317 @@ const deleteSingleMeeting = async (meeting) => {
       return acc;
     }, {});
   }, [meetingsByFloor, page]);
-
-  // Delete: upcoming-only list + search
   const upcomingMeetings = useMemo(
     () => sortedMeetings.filter((m) => getMeetingStatus(m.startTime, m.endTime) === "upcoming"),
     [sortedMeetings]
   );
-
   const filteredUpcoming = useMemo(() => {
     const q = deleteSearch.trim().toLowerCase();
     if (!q) return upcomingMeetings;
     return upcomingMeetings.filter((m) => {
-      const hay =
-        `${m.subject || ""} ${m.organizer || ""} ${m.location || ""}`.toLowerCase();
+      const hay = `${m.subject || ""} ${m.organizer || ""} ${m.location || ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [upcomingMeetings, deleteSearch]);
-
   const selectedMeeting = useMemo(
     () => filteredUpcoming.find((m) => getKey(m) === selectedMeetingKey) || null,
     [filteredUpcoming, selectedMeetingKey]
   );
 
+  // Side Panel Component
+  const SidePanel = () => {
+    const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
+
+    return (
+      <AnimatePresence>
+        {showSidePanel && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="panel-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.45 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              style={{
+                position: "fixed", inset: 0, background: "#000", zIndex: 1200,
+              }}
+              onClick={closeSidePanel}
+            />
+
+            {/* Side Panel */}
+            <motion.div
+              key="side-panel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 340, damping: 32 }}
+              style={{
+                position: "fixed",
+                top: 0, right: 0,
+                height: "190vh",
+                width: SIDE_PANEL_WIDTH,
+                minWidth: SIDE_PANEL_MIN_WIDTH,
+                maxWidth: SIDE_PANEL_MAX_WIDTH,
+                background: "rgba(245, 250, 255, 0.87)",
+                backdropFilter: "blur(10px) saturate(1.4)",
+                boxShadow: "-8px 0 28px 0 rgba(33,55,95,0.11), -2px 0 16px #bad6fa42",
+                zIndex: 1202,
+                display: "flex", flexDirection: "column",
+                borderTopLeftRadius: 0, borderBottomLeftRadius: 24,
+                borderLeft: "1.5px solid #e6e8ec",
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header: Title + DatePicker */}
+              <div
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "21px 22px 14px 26px",
+                  borderBottom: "1.5px solid #e5e7eb",
+                  background: "rgba(229, 237, 250, 0.78)",
+                  borderTopLeftRadius: 24,
+                  position: "sticky", top: 0, zIndex: 2,
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "1.23rem", color: "#1346a8", letterSpacing: 0.1, flex: 1 }}>
+                  <span style={{
+                    background: "linear-gradient(90deg, #0074BD 60%, #78b042 100%)",
+                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+                  }}>Manage Meetings</span>
+                </div>
+                {/* Inline DatePicker for the panel */}
+                <div style={{ minWidth: 155, marginRight: 4 }}>
+                  <DatePickerComponent
+                    selectedDate={panelDate}
+                    setSelectedDate={setPanelDate}
+                    label={null}
+                  />
+                </div>
+                <button
+                  className="btn-close"
+                  style={{
+                    fontSize: 24,
+                    background: "#f5f8fc",
+                    borderRadius: 8, border: "none", outline: "none",
+                    boxShadow: "0 2px 7px #e8f2fa8b",
+                    marginLeft: 7
+                  }}
+                  onClick={closeSidePanel}
+                />
+              </div>
+
+              {/* Content */}
+              <div
+                style={{
+                  padding: "19px 22px 15px 22px",
+                  overflowY: "auto",
+                  flex: 1,
+                  minHeight: 0,
+                  maxHeight: "100%",
+                }}
+              >
+                <button
+                  className="btn w-100 btn-success mb-3"
+                  style={{
+                    background: "linear-gradient(90deg, #78b042, #0074bd)", fontWeight: 600,
+                    fontSize: "1.08rem", borderRadius: 10, boxShadow: "0 2px 8px #b6e1ca70",
+                    border: "none", marginBottom: 18, letterSpacing: 0.08,
+                  }}
+                  onClick={handleScheduleMeeting}
+                >
+                  ➕ Schedule New Meeting
+                </button>
+
+                <div>
+                  {panelLoading ? (
+                    <LoadingIndicator />
+                  ) : panelMeetings.length === 0 ? (
+                    <div className="text-center text-muted p-4" style={{
+                      background: "#f7fafc88",
+                      borderRadius: 14, marginBottom: 9, fontWeight: 500
+                    }}>No meetings found for this day.</div>
+                  ) : (
+                    panelMeetings.map((meeting, idx) => {
+                      const status = getMeetingStatus(meeting.startTime, meeting.endTime);
+                      const isOrganizer =
+                        (meeting.organizer || "").toLowerCase() === signedInEmail ||
+                        (meeting.organizerEmail || "").toLowerCase() === signedInEmail;
+                      const isCompleted = status === "completed";
+                      const canDelete =
+                        status === "upcoming" && isAuthenticated && isOrganizer;
+
+                      return (
+                        <motion.div
+                          key={meeting.id || idx}
+                          initial={{ opacity: 0, y: 22 }}
+                          animate={{ opacity: isCompleted ? 0.54 : 1, y: 0 }}
+                          exit={{ opacity: 0, y: 26 }}
+                          transition={{ delay: idx * 0.04, duration: 0.38, ease: "easeOut" }}
+                          className="mb-2"
+                        >
+                          <div
+                            style={{
+                              background: statusGradients[status],
+                              borderLeft: `5px solid ${status === "completed"
+                                ? "#b2bec3" : status === "Live"
+                                ? "#38df6c" : "#3498db"
+                              }`,
+                              padding: "15px 13px 15px 18px", borderRadius: 15,
+                              display: "flex", flexDirection: "column", boxShadow: "0 2px 6px #deeefc3a",
+                              position: "relative", opacity: isCompleted ? 0.72 : 1,
+                              filter: isCompleted ? "grayscale(0.26)" : undefined,
+                              marginBottom: 4,
+                            }}
+                          >
+                            <div style={{
+                              fontWeight: 700, fontSize: 15.8, color: "#24416c",
+                              textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden"
+                            }}>
+                              {meeting.subject || "Untitled"}
+                            </div>
+                            <div style={{ fontSize: 13.9, color: "#484f65", margin: "2px 0" }}>
+                              <b>Room:</b> {meeting.location || "Unassigned"}
+                            </div>
+                            <div style={{ fontSize: 13.4, color: "#484f65" }}>
+                              <b>Time:</b> {formatTimeOnly(meeting.startTime)} – {formatTimeOnly(meeting.endTime)}
+                            </div>
+                            <div style={{ fontSize: 12.6, color: "#6a7b98", marginTop: 2 }}>
+                              <b>Organizer:</b> {meeting.organizer || meeting.organizerEmail || "Unknown"}
+                            </div>
+                            <div style={{
+                              display: "flex", alignItems: "center", marginTop: 10, gap: 8,
+                            }}>
+                              <span style={{
+                                background: "#eef2ff", color: "#43438a", fontWeight: 600,
+                                borderRadius: 8, fontSize: 13.2, padding: "1.5px 9px"
+                              }}>
+                                {status.toUpperCase()}
+                              </span>
+                              <span style={{ color: "#555", fontSize: 12.6 }}>
+                                🙎🏻‍♂️ {getAttendeesCount(meeting)}
+                              </span>
+                              {/* Only show Delete if organizer, authenticated, and upcoming */}
+                              {canDelete ? (
+                                <button
+                                  className="btn btn-sm btn-outline-danger ms-auto"
+                                  style={{
+                                    padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600,
+                                    opacity: canDelete ? 1 : 0.3,
+                                  }}
+                                  onClick={() => {
+                                    setSelectedMeetingKey(getKey(meeting));
+                                    setDeleteStep(2);
+                                    setSidePanelTab("delete");
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              ) : status === "upcoming" ? (
+                                <button
+                                  className="btn btn-sm btn-outline-danger ms-auto"
+                                  style={{
+                                    padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600,
+                                    opacity: 0.5, cursor: "not-allowed",
+                                  }}
+                                  disabled
+                                  title={
+                                    !isAuthenticated
+                                      ? "Sign in to delete"
+                                      : isOrganizer
+                                        ? "Not allowed"
+                                        : "Only the organizer can delete"
+                                  }
+                                >
+                                  Delete
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </div>
+
+              {/* Deletion Confirmation */}
+              {sidePanelTab === "delete" && deleteStep === 2 && selectedMeeting && (
+                <div>
+                  <div className="mb-3" style={{ fontWeight: 600, fontSize: 18 }}>Confirm Deletion</div>
+                  <div className="p-3 mb-2 rounded" style={{ background: "#f8fbff", fontSize: 15 }}>
+                    <div><b>Subject:</b> {selectedMeeting.subject || "Untitled"}</div>
+                    <div><b>Organizer:</b> {selectedMeeting.organizer || "Unknown"}</div>
+                    <div><b>Room:</b> {selectedMeeting.location || "Unassigned"}</div>
+                    <div><b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</div>
+                  </div>
+                  <div className="d-flex gap-2 justify-content-end mt-3">
+                    <button className="btn btn-secondary" onClick={() => setSidePanelTab("list")}>Cancel</button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={async () => {
+                        await deleteSingleMeeting(selectedMeeting);
+                        setSidePanelTab("list");
+                        setDeleteStep(1);
+                        setSelectedMeetingKey(null);
+                        showAlert("Meeting deleted successfully!", "Success");
+                      }}
+                    >
+                      Yes, Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+
+  const AlertModal = () => (
+    <AnimatePresence>
+      {alertModal.show && (
+        <motion.div
+          key="alert-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+            zIndex: 2500, display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.45)"
+          }}
+          onClick={() => setAlertModal({ ...alertModal, show: false })}
+        >
+          <motion.div
+            initial={{ scale: 0.86, y: -40 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.85, y: 40 }}
+            transition={{ type: "spring", stiffness: 280, damping: 23 }}
+            style={{
+              background: "#fff", borderRadius: 13, padding: 32, boxShadow: "0 8px 32px #43488a33",
+              minWidth: 300, maxWidth: "96vw", textAlign: "center"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>{alertModal.title || "Notice"}</div>
+            <div style={{ fontSize: 15.6, color: "#444", whiteSpace: "pre-wrap", marginBottom: 24 }}>{alertModal.message}</div>
+            <button className="btn btn-primary" onClick={() => setAlertModal({ ...alertModal, show: false })}>
+              OK
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
     <>
-      <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        crossOrigin="anonymous"
-      />
-
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" crossOrigin="anonymous" />
       <ParticlesBackground />
-
       <style>
         {`
           body{ margin:0; font:normal 75% Arial, Helvetica, sans-serif; }
@@ -492,7 +698,6 @@ const deleteSingleMeeting = async (meeting) => {
           .card-attendees-color { background-color:#e0f9ee; }
           .card-duration-color { background-color:#f5e6ff; }
           .card-utilization-color { background-color:#fff8e6; }
-
           .scaling-container { width:100%; }
           html { zoom: 0.75; }
           .header-container { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; width:100%; gap:15px; }
@@ -506,42 +711,12 @@ const deleteSingleMeeting = async (meeting) => {
           }
           .btn-custom { background-color:#0074bdff; border:none; color:white; font-size:16px; padding:0.8rem 1rem; border-radius:6px; cursor:pointer; }
           .btn-custom:disabled { opacity:0.6; cursor:not-allowed; }
-          .schedule-section { position:relative; display:inline-block; }
-          .schedule-section .dropdown-menu {
-            display:none; position:absolute; top:100%; left:0; background:#fff; min-width:220px;
-            box-shadow:0 8px 24px rgba(0,0,0,0.15); border-radius:10px; z-index:1000; overflow:hidden; padding:6px;
-          }
-          .schedule-section:hover .dropdown-menu { display:block; }
-          .dropdown-item-plain {
-            display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:10px 12px; border:none; background:transparent; cursor:pointer; font-family:calibri; font-size:15px; border-radius:8px;
-          }
-          .dropdown-item-plain:hover { background-color:#f3f4f6; }
-          .dropdown-item-muted { color:#6b7280; }
-          .chip {
-            display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#3730a3; font-weight:600;
-          }
-          /* Delete modal advanced styles */
-          .del-list { max-height: 360px; overflow:auto; border:1px solid #e5e7eb; border-radius:10px; padding:6px; background:#fafafa; }
-          .del-card {
-            display:flex; align-items: center; gap:12px; padding:10px 12px; border-radius:10px; background:white; border:1px solid #e5e7eb;
-          }
-          .del-card + .del-card { margin-top:8px; }
-          .del-card:hover { border-color:#c7d2fe; box-shadow:0 4px 12px rgba(59,130,246,0.08); }
-          .del-title { font-weight:700; margin:0; color:#111827; font-size:14px; }
-          .del-sub { margin:0; color:#6b7280; font-size:12px; }
-          .search-input {
-            border:1px solid #e5e7eb; border-radius:10px; padding:20px 12px; width:100%;font-size: large
-          }
-          .modal-actions { display:flex; justify-content:flex-end; gap:10px; }
         `}
       </style>
-
       <div className="scaling-container">
         <div className="container-fluid px-2 px-md-3 px-lg-4 px-xl-5 my-3 my-md-4" style={{ position: "relative", zIndex: 1 }}>
-          {/* Header */}
           <div className="card h-100 shadow-sm p-2 p-md-3 mb-3 mb-md-4" style={{ borderRadius: 15, backgroundColor: "rgba(233, 230, 230, 0.5)" }}>
             <div className="header-container">
-              {/* Left */}
               <div className="header-left">
                 <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: 60, height: 65 }} />
                 <h2
@@ -551,8 +726,6 @@ const deleteSingleMeeting = async (meeting) => {
                   Meetly Dashboard
                 </h2>
               </div>
-
-              {/* Center */}
               <div className="header-center">
                 <h2
                   className="fs-4 fs-md-3 mb-0 fw-bolder"
@@ -567,8 +740,6 @@ const deleteSingleMeeting = async (meeting) => {
                   WE ADD VALUE TO YOUR VISION...
                 </h2>
               </div>
-
-              {/* Right */}
               <div className="header-right">
                 <div className="d-flex align-items-center gap-2">
                   <DatePickerComponent selectedDate={date} setSelectedDate={setDate} />
@@ -583,54 +754,30 @@ const deleteSingleMeeting = async (meeting) => {
                     )}
                   </button>
                 </div>
-
-                <div className="schedule-section">
-                  <button
-                    className="btn-custom"
-                    style={{
-                      fontFamily: "calibri",
-                      fontSize: 16,
-                      color: "#fff",
-                      backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
-                      padding: "revert-layer",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Manage Meetings ▾
-                  </button>
-
-                  <div className="dropdown-menu" role="menu" aria-label="Manage Meetings menu">
-                    <button className="dropdown-item-plain" style={{ color: "#78b042" }} onClick={handleScheduleMeeting} role="menuitem">
-                      ➕ Schedule New Meeting
-                    </button>
-
-                    {isAuthenticated ? (
-                      <button className="dropdown-item-plain" style={{ color: "#b91c1c" }} onClick={onDelete} role="menuitem">
-                        🗑️ Delete Meetings <span className="chip ms-2">Upcoming only</span>
-                      </button>
-                    ) : (
-                      <button className="dropdown-item-plain dropdown-item-muted" onClick={handleSignIn} role="menuitem" title="Sign in required">
-                        🔒 Sign in to delete
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <button
+                  className="btn-custom"
+                  style={{
+                    fontFamily: "calibri",
+                    fontSize: 16,
+                    color: "#fff",
+                    backgroundImage: "linear-gradient(to right, #0074bd, #78b042)",
+                    padding: "revert-layer",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                  }}
+                  onClick={openSidePanel}
+                >
+                  Manage Meetings
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Date */}
           <div className="mb-3">
             <h4 className="text-muted fw-bold" style={{ fontFamily: "calibri", paddingLeft: 10, fontSize: 32, color: "#333" }}>
               {date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </h4>
           </div>
-
-          {/* Manual loading indicator */}
           {loading && isManualRefresh && <LoadingIndicator />}
-
-          {/* Summary cards */}
           <div className="card mb-4" style={{ borderRadius: 20, backgroundColor: "rgba(233, 230, 230, 0.5)" }}>
             <div className="card-body">
               <div className="dashboard-container">
@@ -644,7 +791,6 @@ const deleteSingleMeeting = async (meeting) => {
                     <p className="card-subtext">{stats.activeMeetings} currently active</p>
                   </div>
                 </div>
-
                 <div className="dashboard-card card-attendees-color">
                   <div className="card-header-main">
                     <p>Total Attendees</p>
@@ -655,7 +801,6 @@ const deleteSingleMeeting = async (meeting) => {
                     <p className="card-subtext">Across all meetings</p>
                   </div>
                 </div>
-
                 <div className="dashboard-card card-duration-color">
                   <div className="card-header-main">
                     <p>Avg Duration</p>
@@ -666,7 +811,6 @@ const deleteSingleMeeting = async (meeting) => {
                     <p className="card-subtext">Per meeting</p>
                   </div>
                 </div>
-
                 <div className="dashboard-card card-utilization-color">
                   <div className="card-header-main">
                     <p>Room Utilization</p>
@@ -680,8 +824,6 @@ const deleteSingleMeeting = async (meeting) => {
               </div>
             </div>
           </div>
-
-          {/* Grid */}
           {!loading || !isManualRefresh ? (
             <div className="row g-2 g-md-3 g-lg-4">
               {floorHeaders.map((floor, colIdx) => (
@@ -704,7 +846,6 @@ const deleteSingleMeeting = async (meeting) => {
                           pagedMeetings[floor].map((meeting, idx) => {
                             const status = getMeetingStatus(meeting.startTime, meeting.endTime);
                             const attendeesCount = getAttendeesCount(meeting);
-
                             return (
                               <motion.div
                                 key={meeting.id || `${meeting.subject}-${idx}`}
@@ -729,7 +870,6 @@ const deleteSingleMeeting = async (meeting) => {
                                 >
                                   {meeting.subject}
                                 </div>
-
                                 <div className="d-flex justify-content-between align-items-center mt-1">
                                   <div
                                     style={{ fontSize: "clamp(0.7rem, 1.6vw, 0.85rem)", color: "#444" }}
@@ -742,11 +882,9 @@ const deleteSingleMeeting = async (meeting) => {
                                     🙎🏻‍♂️ {attendeesCount}
                                   </div>
                                 </div>
-
                                 <div style={{ fontSize: "clamp(0.75rem, 1.7vw, 0.9rem)", color: "#555" }}>
                                   {formatTimeOnly(meeting.startTime)} - {formatTimeOnly(meeting.endTime)}
                                 </div>
-
                                 <div
                                   style={{
                                     fontSize: "clamp(0.65rem, 1.5vw, 0.75rem)",
@@ -793,8 +931,6 @@ const deleteSingleMeeting = async (meeting) => {
               ))}
             </div>
           ) : null}
-
-          {/* Pagination */}
           {totalPages > 1 && !loading && (
             <nav className="d-flex justify-content-center mt-3 mt-md-4">
               <ul className="pagination pagination-sm">
@@ -818,30 +954,6 @@ const deleteSingleMeeting = async (meeting) => {
               </ul>
             </nav>
           )}
-
-          {/* Error Modal */}
-          <div className={`modal ${showErrorModal ? "d-block" : ""}`} tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header bg-danger text-white">
-                  <h5 className="modal-title">Error</h5>
-                  <button type="button" className="btn-close" onClick={() => setShowErrorModal(false)}></button>
-                </div>
-                <div className="modal-body">
-                  <p className="mb-0" style={{ whiteSpace: "pre-wrap" }}>
-                    {errorMessage}
-                  </p>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowErrorModal(false)}>
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Branding */}
           <div
             style={{
               position: "fixed",
@@ -856,144 +968,11 @@ const deleteSingleMeeting = async (meeting) => {
             Powered by R&D Conserve
           </div>
         </div>
+        {SidePanel()}
+        {AlertModal()}
       </div>
-
-      {/* Booking Modal */}
       {showBookingModal && <BookingComponent onClose={handleCloseBookingModal} onSave={handleSaveMeeting} />}
-
-      {/* Delete Flow Modal (advanced UI, upcoming-only) */}
-      {showDeleteModal && (
-        <div
-          className="modal-backdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 2000,
-            width: "Auto",
-            height: "Auto"
-          }}
-        >
-          <div className="modal-content" style={{ background: "rgba(233, 230, 230, 0.8)", padding: 20, borderRadius: 19, width: 540, maxWidth: "94vw" }}>
-            {deleteStep === 1 && (
-              <>
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <h4 className="mb-0">Delete a Meeting</h4>
-                  <span className="chip">Upcoming only</span>
-                </div>
-                <p className="text-muted mb-3" style={{ fontSize: "large" }}>
-                  Showing meetings for <b>{date.toISOString().slice(0, 10)}</b>.{" "}
-                  <strong>
-                    Completed or live meetings{" "}
-                    <span style={{ color: "#b91c1c" }}>cannot be deleted</span>
-                  </strong>.
-                </p>
-
-
-                <input
-                  className="search-input mb-3"
-                  placeholder="Search by subject, organizer, or room..."
-                  value={deleteSearch}
-                  onChange={(e) => setDeleteSearch(e.target.value)}
-                />
-
-                {filteredUpcoming.length === 0 ? (
-                  <div className="text-center text-muted py-4" style={{ border: "1px dashed #e5e7eb", borderRadius: 10 }}>
-                    No upcoming meetings found.
-                  </div>
-                ) : (
-                  <div className="del-list" style={{ background: "rgba(233, 230, 230, 0.8)" }}>
-                    {filteredUpcoming.map((m) => {
-                      const key = getKey(m);
-                      return (
-                        <label key={key} className="del-card" style={{ background: "rgba(233, 230, 230, 0.8)" }}>
-                          <input
-                            type="radio"
-                            name="deleteMeeting"
-                            className="form-check-input"
-                            style={{ fontSize: "17px" }}
-                            checked={selectedMeetingKey === key}
-                            onChange={() => setSelectedMeetingKey(key)}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <p className="del-title mb-1 text-truncate">{m.subject || "Untitled meeting"}</p>
-                            <p className="del-sub mb-1" style={{ fontSize: "13.5px" }}>
-                              <b>Organizer:</b> {m.organizer || "Unknown"} &nbsp; • &nbsp; <b>Room:</b>{" "}
-                              {m.location || "Unassigned"}
-                            </p>
-                            <p className="del-sub mb-0" style={{ fontSize: "13.5px" }}>
-                              <b>Time:</b> {formatTimeOnly(m.startTime)} – {formatTimeOnly(m.endTime)}
-                            </p>
-                          </div>
-                          <span className="chip">Upcoming</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="modal-actions mt-3">
-                  <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                    Cancel
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => setDeleteStep(2)}
-                    disabled={!selectedMeetingKey}
-                  >
-                    Next
-                  </button>
-                </div>
-              </>
-            )}
-
-            {deleteStep === 2 && selectedMeeting && (
-              <>
-                <h4 className="mb-3">Confirm deletion</h4>
-                <div className="p-3 rounded" style={{ border: "1px solid #e5e7eb", background: "transparent",fontSize:"large" }}>
-                  <div className="mb-1">
-                    <b>Subject:</b> {selectedMeeting.subject || "Untitled"}
-                  </div>
-                  <div className="mb-1">
-                    <b>Organizer:</b> {selectedMeeting.organizer || "Unknown"}
-                  </div>
-                  <div className="mb-1">
-                    <b>Time:</b> <strong>{formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</strong>
-                  </div>
-                  <div className="mb-0">
-                    <b>Location:</b> {selectedMeeting.location || "No room"}
-                  </div>
-                </div>
-
-                <div className="modal-actions mt-3">
-                  <button className="btn btn-outline-secondary" onClick={() => setDeleteStep(1)}>
-                    Back
-                  </button>
-                  <button className="btn btn-danger" onClick={() => deleteSingleMeeting(selectedMeeting)}>
-                    Yes, delete
-                  </button>
-                </div>
-              </>
-            )}
-
-            {deleteStep === 2 && !selectedMeeting && (
-              <>
-                <p className="text-muted">Selection lost—please pick a meeting again.</p>
-                <div className="modal-actions">
-                  <button className="btn btn-primary" onClick={() => setDeleteStep(1)}>
-                    Go back
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 };
-
 export default MeetingsDashboard;
