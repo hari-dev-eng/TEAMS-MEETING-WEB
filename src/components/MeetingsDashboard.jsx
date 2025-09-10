@@ -271,11 +271,11 @@ const MeetingsDashboard = () => {
   const handleScheduleMeeting = () => setShowBookingModal(true);
 
   const onDelete = () => {
-    if (!isAuthenticated) {
+   // if (!isAuthenticated) {
       setErrorMessage("Please sign in to delete meetings.");
       setShowErrorModal(true);
-      return;
-    }
+     // return;
+   // }
     if (!meetings || meetings.length === 0) {
       setErrorMessage("No meetings found for the selected date.");
       setShowErrorModal(true);
