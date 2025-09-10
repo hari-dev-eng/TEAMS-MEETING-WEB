@@ -286,23 +286,27 @@ const MeetingsDashboard = () => {
   };
 
   const { instance, accounts } = useMsal();
-  async function getAccessToken() {
-    if (accounts.length) {
-      const silent = { scopes: ["User.Read", "Calendars.ReadWrite"], account: accounts[0] };
-      try {
-        const res = await instance.acquireTokenSilent(silent);
-        return res.accessToken;
-      } catch {
-        const res = await instance.acquireTokenPopup(silent);
-        return res.accessToken;
-      }
-    }
-    // If you also support Teams SSO cookie-backed token in your API, you can skip header.
-    return null;
+
+// ✅ API token for YOUR backend (used for DELETE)
+//    Set REACT_APP_API_SCOPE in your env, e.g. api://<api-app-id>/access_as_user
+async function getApiAccessToken() {
+  if (!accounts.length) throw new Error("Please sign in.");
+  const apiScope = process.env.REACT_APP_API_SCOPE; // e.g. "api://xxxx/access_as_user"
+  if (!apiScope) {
+    throw new Error("Missing REACT_APP_API_SCOPE env var (api://<appId>/access_as_user).");
   }
+  const request = { scopes: [apiScope], account: accounts[0] };
+  try {
+    const res = await instance.acquireTokenSilent(request);
+    return res.accessToken;
+  } catch {
+    const res = await instance.acquireTokenPopup(request);
+    return res.accessToken;
+  }
+}
 
 
- const deleteSingleMeeting = async (meeting) => {
+const deleteSingleMeeting = async (meeting) => {
   try {
     const status = getMeetingStatus(meeting.startTime, meeting.endTime);
     if (status !== "upcoming") {
@@ -311,28 +315,29 @@ const MeetingsDashboard = () => {
       return;
     }
 
-    // Your backend now returns `eventId` + `calendarEmail`
-    const eventId = meeting.eventId || meeting.EventId;
-    const calendarEmail = meeting.calendarEmail || meeting.CalendarEmail;
+    // unify casing from backend
+    const eventId = meeting.eventId ?? meeting.EventId ?? meeting.id;
+    const calendarEmail = meeting.calendarEmail ?? meeting.CalendarEmail;
 
-    if (!eventId || !calendarEmail) {
-      // Fallback (uses composite match on server)
+    // Always call your secured API with YOUR API token
+    const apiToken = await getApiAccessToken();
+
+    if (eventId && calendarEmail) {
+      // Preferred: exact delete by id
+      await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
+        params: { calendarEmail },
+        headers: { Authorization: `Bearer ${apiToken}` },
+      });
+    } else {
+      // Fallback: composite match on server (must include calendarEmail)
       const body = {
         subject: meeting.subject,
         organizer: meeting.organizer,
-        startTime: meeting.startTime,
-        calendarEmail: meeting.calendarEmail || meeting.CalendarEmail,
+        startTime: meeting.startTime, // server expects the same 'yyyy-MM-ddTHH:mm:ss' you received
+        calendarEmail,                // ensure this is present
       };
-      const token = await getAccessToken();
       await api.post("/api/Meetings/delete", body, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-    } else {
-      // Correct DELETE route with path param
-      const token = await getAccessToken();
-      await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
-        params: { calendarEmail },
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${apiToken}` },
       });
     }
 
@@ -340,10 +345,18 @@ const MeetingsDashboard = () => {
     setShowDeleteModal(false);
   } catch (err) {
     console.error("Error deleting meeting:", err);
-    setErrorMessage(
-      err?.response?.data?.message ||
-      "Failed to delete the meeting. Please try again."
-    );
+    const status = err?.response?.status;
+    if (status === 401) {
+      setErrorMessage("Please sign in to your Microsoft account to delete meetings.");
+    } else if (status === 403) {
+      setErrorMessage(err?.response?.data?.message || "You are not allowed to delete this meeting.");
+    } else if (status === 404) {
+      setErrorMessage("Event not found. It may have already been deleted.");
+    } else {
+      setErrorMessage(
+        err?.response?.data?.message || "Failed to delete the meeting. Please try again."
+      );
+    }
     setShowErrorModal(true);
   }
 };
