@@ -301,10 +301,9 @@ const deleteSingleMeeting = async (meeting) => {
     const eventId = meeting.eventId || meeting.EventId;
     const calendarEmail = meeting.calendarEmail || meeting.CalendarEmail;
 
-    // ✅ Token for YOUR API (audience = your API app)
     const apiToken = accounts.length
-      ? await getApiAccessToken(instance, accounts[0])  // uses the helper from msalConfig.js
-      : null; // if your API also accepts Teams SSO cookie, you can proceed without header
+      ? await getApiAccessToken(instance, accounts[0])
+      : null;
 
     if (eventId && calendarEmail) {
       await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
@@ -328,14 +327,18 @@ const deleteSingleMeeting = async (meeting) => {
     setShowDeleteModal(false);
   } catch (err) {
     const status = err?.response?.status;
-    if (status === 401) setErrorMessage("Please sign in to delete meetings.");
-    else if (status === 403) setErrorMessage(err?.response?.data?.message || "You are not allowed to delete this meeting.");
-    else if (status === 404) setErrorMessage("Event not found. It may have already been deleted.");
-    else setErrorMessage(err?.response?.data?.message || "Failed to delete the meeting. Please try again.");
+    if (status === 401) {
+      setErrorMessage("Please sign in to delete meetings.");
+    } else if (status === 403) {
+      setErrorMessage(err?.response?.data?.message || "You are not allowed to delete this meeting.");
+    } else if (status === 404) {
+      setErrorMessage("Event not found. It may have already been deleted.");
+    } else {
+      setErrorMessage(err?.response?.data?.message || "Failed to delete the meeting. Please try again.");
+    }
     setShowErrorModal(true);
   }
 };
-
 
   const handleSaveMeeting = async () => {
     try {

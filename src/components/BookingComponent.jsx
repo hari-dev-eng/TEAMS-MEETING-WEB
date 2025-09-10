@@ -914,7 +914,7 @@ const BookingComponent = ({ onClose, onSave }) => {
           <div
             className="modal-content"
             style={{
-              background: "rgba(255, 255, 255, 0.15)", // semi-transparent white
+              background: "rgba(255, 255, 255, 1)", // semi-transparent white
               boxShadow: "0 10px 30px rgba(0,0,0,0.16)",
               borderRadius: 0,
               border: "1.5px solid rgba(255,255,255,0.22)",
@@ -932,7 +932,7 @@ const BookingComponent = ({ onClose, onSave }) => {
               <form onSubmit={handleSubmit}>
                 {/* ORGANIZER */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Organizer <span className="text-danger">*</span>
                   </label>
                   {account ? (
@@ -978,19 +978,19 @@ const BookingComponent = ({ onClose, onSave }) => {
                         Sign In with Microsoft
                       </button>
                       <div
-                          className="form-text mt-2"
-                          style={{ fontSize: 15, marginBottom: 0, color: "whitesmoke" }}
-                        >
-                          Only <strong>Conserve Solution</strong> domain will be allowed.
-                        </div>
+                        className="form-text mt-2"
+                        style={{ fontSize: 15, marginBottom: 0, color: "#ff0000ff" }}
+                      >
+                        Only <strong>Conserve Solution</strong> domain will be allowed.
+                      </div>
 
-                        <div
-                          className="form-text"
-                          style={{ fontSize: 15, color: "whitesmoke" }}
-                        >
-                          If you encounter issues, please try refreshing or contact{" "}
-                          <strong>R&amp;D Conserve</strong>.
-                        </div>
+                      <div
+                        className="form-text"
+                        style={{ fontSize: 15, color: "#ff0000ff" }}
+                      >
+                        If you encounter issues, please try refreshing or contact{" "}
+                        <strong>R&amp;D Conserve</strong>.
+                      </div>
 
                     </div>
                   )}
@@ -1003,7 +1003,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* SUBJECT */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Subject <span className="text-danger">*</span>
                   </label>
                   <input
@@ -1025,7 +1025,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* ATTENDEES */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Attendees
                   </label>
                   <div className="attendee-input-container position-relative">
@@ -1081,7 +1081,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* DATE & TIME */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Date <span className="text-danger">*</span>
                   </label>
                   <div className="d-flex align-items-center gap-3 flex-wrap" style={{ minHeight: 45, rowGap: 6 }}>
@@ -1154,7 +1154,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                             accentColor: "#78b042",
                           }}
                         />
-                        <label className="form-check-label mb-0" htmlFor="recurringCheck" style={{ fontSize: 16, color: "white", fontWeight: 500 }}>
+                        <label className="form-check-label mb-0" htmlFor="recurringCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
                           Make recurring
                         </label>
                       </div>
@@ -1174,7 +1174,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                             accentColor: "#0074bd",
                           }}
                         />
-                        <label className="form-check-label mb-0" htmlFor="allDayCheck" style={{ fontSize: 16, color: "white", fontWeight: 500 }}>
+                        <label className="form-check-label mb-0" htmlFor="allDayCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
                           All day
                         </label>
                       </div>
@@ -1184,7 +1184,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* LOCATION */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Location <span className="text-danger">*</span>
                   </label>
                   <select
@@ -1237,7 +1237,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* CATEGORY */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Response Option
                   </label>
                   <select
@@ -1261,7 +1261,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* REMINDER */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Reminder
                   </label>
                   <select
@@ -1288,7 +1288,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {/* DESCRIPTION */}
                 <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#ffffffff", fontSize: "20px" }}>
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Description
                   </label>
                   <textarea
@@ -1308,10 +1308,35 @@ const BookingComponent = ({ onClose, onSave }) => {
                 </div>
 
                 {/* BUTTONS */}
-                <div className="modal-footer px-0 pb-0 pt-3" style={{ borderTop: "none", justifyContent: "flex-end" }}>
-                  <button type="button" className="btn btn-outline-secondary me-2" onClick={onClose} style={{ borderRadius: 14, minWidth: 90,color:"white", border: "4px solid rgba(255,0, 0)" }}>
+                <div
+                  className="modal-footer px-0 pb-0 pt-3"
+                  style={{ borderTop: "none",marginTop:"-20px", justifyContent: "flex-end" }}
+                >
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="btn me-2"
+                    style={{
+                      borderRadius: 14,
+                      minWidth: 90,
+                      fontWeight: "bolder",
+                      color: "#ff0000",
+                      border: "4px solid rgba(255,0,0,1)",
+                      background: "transparent",
+                      pointerEvents: isLoading ? "none" : "auto",
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = "transparent"; // prevent hover fill
+                      e.target.style.color = "#ff0000";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "transparent";
+                      e.target.style.color = "#ff0000";
+                    }}
+                  >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
                     className="btn btn-primary-2"
@@ -1319,16 +1344,23 @@ const BookingComponent = ({ onClose, onSave }) => {
                     style={{
                       borderRadius: 14,
                       minWidth: 140,
-                      color:"white",
-                      border: "4px solid rgba(12,219, 36)"
+                      fontWeight: "bolder",
+                      color: "rgba(13, 119, 25, 1)",
+                      border: "4px solid rgba(13,119,25,1)",
                     }}
                   >
                     {isLoading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
                         Scheduling...
                       </>
-                    ) : "Schedule Event"}
+                    ) : (
+                      "Schedule Event"
+                    )}
                   </button>
                 </div>
               </form>
