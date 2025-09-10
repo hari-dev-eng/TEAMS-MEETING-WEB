@@ -1,5 +1,4 @@
-// msalConfig.js
-
+// src/msalConfig.js
 export const msalConfig = {
   auth: {
     clientId: process.env.REACT_APP_CLIENT_ID || "e993e6b1-9127-4d76-8873-adff75542ed1",
@@ -9,17 +8,10 @@ export const msalConfig = {
   cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false },
 };
 
-// ----- API scope for YOUR backend (Expose an API -> Scopes) -----
 export const API_SCOPE =
   process.env.REACT_APP_API_SCOPE ||
   "api://e993e6b1-9127-4d76-8873-adff75542ed1/Bookings.ReadWrite";
 
-// Login request includes Graph + your API scope
-export const loginRequest = {
-  scopes: ["openid", "profile", "email", "User.Read", API_SCOPE],
-};
-
-// Your backend base URL
 export const apiConfig = {
   apiUrl: process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app",
 };
