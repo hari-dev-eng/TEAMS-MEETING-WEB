@@ -489,7 +489,7 @@ const MeetingsDashboard = () => {
                   }}
                   onClick={handleScheduleMeeting}
                 >
-                  ➕ Schedule New Meeting
+                  💡 Create Meeting
                 </button>
 
                 <div>

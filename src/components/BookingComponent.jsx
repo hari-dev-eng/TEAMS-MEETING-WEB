@@ -396,80 +396,101 @@ const BookingComponent = ({ onClose, onSave }) => {
   }, []);
 
   const getAccessToken = useCallback(async () => {
-    try {
-      // If in Teams and we have an SSO token, use it
-      if (isInTeams && ssoToken) {
-        return ssoToken;
-      }
-
-      // Otherwise, use MSAL to get token
-      if (account) {
-        const silentRequest = {
-          scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
-          account: account
-        };
-
-        try {
-          const response = await msalInstance.acquireTokenSilent(silentRequest);
-          return response.accessToken;
-        } catch (silentError) {
-          console.log("Silent token acquisition failed, using popup", silentError);
-          const response = await msalInstance.acquireTokenPopup(silentRequest);
-          return response.accessToken;
-        }
-      }
-
-      // Fallback to backend token endpoint
-      const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
-      if (!response.ok) {
-        throw new Error(`Failed to get token: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.access_token || data.accessToken;
-    } catch (error) {
-      console.error("Error getting access token:", error);
-      showAlertMessage("Failed to authenticate with Azure AD", "danger");
-      return null;
+  try {
+    // If in Teams and we have an SSO token, use it
+    if (isInTeams && ssoToken) {
+      return ssoToken;
     }
-  }, [account, isInTeams, msalInstance, ssoToken, showAlertMessage]);
+
+    // Otherwise, use MSAL to get token
+    if (account) {
+      const silentRequest = {
+        scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
+        account: account
+      };
+
+      try {
+        // Try silent token acquisition first
+        const response = await msalInstance.acquireTokenSilent(silentRequest);
+        return response.accessToken;
+      } catch (silentError) {
+        // If silent fails, use redirect (NOT popup)
+        console.log("Silent token acquisition failed. Using redirect.", silentError);
+
+        // IMPORTANT: acquireTokenRedirect does not return a promise. It redirects the page.
+        // After redirect and successful login, MSAL will put the token in cache, and your app will reload.
+        msalInstance.acquireTokenRedirect(silentRequest);
+
+        // Return null as control will not reach here on successful redirect
+        return null;
+      }
+    }
+
+    // Fallback to backend token endpoint (if not authenticated at all)
+    const response = await fetch(`${API_BASE_URL}/api/Bookings/GetAccessToken`);
+    if (!response.ok) {
+      throw new Error(`Failed to get token: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.access_token || data.accessToken;
+  } catch (error) {
+    console.error("Error getting access token:", error);
+    showAlertMessage("Failed to authenticate with Azure AD", "danger");
+    return null;
+  }
+}, [account, isInTeams, msalInstance, ssoToken, showAlertMessage]);
+
 
   // Function to check room availability
   const checkRoomAvailability = useCallback(async () => {
-    if (!eventData.startDate || !eventData.startTime || !eventData.endTime) return;
+  if (!eventData.startDate || !eventData.startTime || !eventData.endTime) return;
 
-    setIsCheckingAvailability(true);
+  setIsCheckingAvailability(true);
 
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
 
-      const startDateTime = new Date(`${eventData.startDate}T${eventData.startTime}`).toISOString();
-      const endDateTime = new Date(`${eventData.startDate}T${eventData.endTime}`).toISOString();
+    const startDateTime = new Date(`${eventData.startDate}T${eventData.startTime}`).toISOString();
+    const endDateTime = new Date(`${eventData.startDate}T${eventData.endTime}`).toISOString();
 
-      const availabilityResults = {};
+    const availabilityResults = {};
 
-      for (const room of rooms) {
-        try {
-          const response = await axios.get(
-            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
-            {
-              headers: { Authorization: `Bearer ${token}` }
-            }
-          );
-          availabilityResults[room.email] = response.data.value.length > 0 ? "busy" : "available";
-        } catch (err) {
-          availabilityResults[room.email] = "unknown";
-          console.error(`Error fetching ${room.email}:`, err);
+    for (const room of rooms) {
+      try {
+        // Only check if email is set
+        if (!room.email) {
+          availabilityResults[room.email] = "not_configured";
+          continue;
         }
+        const response = await axios.get(
+          `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+        availabilityResults[room.email] = response.data.value.length > 0 ? "busy" : "available";
+      } catch (err) {
+        // Handle 404 as room not configured, 403 as unauthorized
+        if (err.response && err.response.status === 404) {
+          availabilityResults[room.email] = "not_configured";
+        } else if (err.response && err.response.status === 403) {
+          availabilityResults[room.email] = "forbidden";
+        } else {
+          availabilityResults[room.email] = "unknown";
+        }
+        // Optionally, log error for admin
+        console.error(`Error fetching ${room.email}:`, err);
       }
-
-      setRoomAvailability(availabilityResults);
-    } catch (error) {
-      console.error("Failed to fetch availability:", error);
-    } finally {
-      setIsCheckingAvailability(false);
     }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, getAccessToken]);
+    setRoomAvailability(availabilityResults);
+  } catch (error) {
+    console.error("Failed to fetch availability:", error);
+  } finally {
+    setIsCheckingAvailability(false);
+  }
+}, [eventData.startDate, eventData.startTime, eventData.endTime, getAccessToken]);
+
 
   useEffect(() => {
     if (eventData.startDate && eventData.startTime && eventData.endTime) {
@@ -575,59 +596,86 @@ const BookingComponent = ({ onClose, onSave }) => {
     };
   }, []);
 
-  const login = async () => {
-    try {
-      const loginRequest = {
-        scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
-        prompt: "select_account"
-      };
+ const login = async () => {
+  try {
+    const loginRequest = {
+      scopes: ["User.Read", "Calendars.ReadWrite", "People.Read", "Directory.Read.All"],
+      prompt: "select_account"
+    };
 
-      console.log("Attempting login with MSAL");
-      const loginResponse = await msalInstance.loginPopup(loginRequest);
-      console.log("Login response received:", loginResponse);
+    console.log("Attempting login with MSAL");
+    const loginResponse = await msalInstance.loginPopup(loginRequest);
+    console.log("Login response received:", loginResponse);
 
-      if (!loginResponse.account) {
-        showAlertMessage("Login failed. No account information returned.", "danger");
-        return;
-      }
-
-      const activeAccount = loginResponse.account;
-
-      // Extract email from account - try multiple possible properties
-      const userEmail = activeAccount.username ||
-        activeAccount.userName ||
-        (activeAccount.idTokenClaims && activeAccount.idTokenClaims.email) ||
-        (activeAccount.idTokenClaims && activeAccount.idTokenClaims.preferred_username);
-
-      if (!userEmail || !isWorkSchoolAccount(userEmail)) {
-        showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
-        setIsValidEmail(false);
-        // Sign out the non-work account
-        msalInstance.logoutPopup();
-        return;
-      }
-
-      // Set the active account
-      msalInstance.setActiveAccount(activeAccount);
-      setAccount(activeAccount);
-      setEventData(prev => ({
-        ...prev,
-        userEmail: userEmail
-      }));
-      setIsValidEmail(true);
-      showAlertMessage(`Welcome ${activeAccount.name}`, "success");
-    } catch (err) {
-      console.error("Login error:", err);
-
-      if (err.errorCode === "user_cancelled") {
-        showAlertMessage("Login was cancelled", "warning");
-      } else if (err.errorCode === "login_failed") {
-        showAlertMessage("Login failed. Please check your credentials and try again.", "danger");
-      } else {
-        showAlertMessage("Login failed. Please try again or contact support if the issue persists.", "danger");
-      }
+    if (!loginResponse.account) {
+      showAlertMessage("Login failed. No account information returned.", "danger");
+      return;
     }
-  };
+
+    const activeAccount = loginResponse.account;
+
+    // Extract email from all possible locations
+    const userEmail =
+      activeAccount.username ||
+      activeAccount.userName ||
+      (activeAccount.idTokenClaims && activeAccount.idTokenClaims.email) ||
+      (activeAccount.idTokenClaims && activeAccount.idTokenClaims.preferred_username);
+
+    // Only allow official work/school account (customize as per your org domain)
+    if (!userEmail || !isWorkSchoolAccount(userEmail)) {
+      showAlertMessage("Please login with your official @conservesolution.com account.", "danger");
+      setIsValidEmail(false);
+      // Proactively sign out this invalid account
+      await msalInstance.logoutPopup();
+      return;
+    }
+
+    // Success: Set the active account and update state/UI
+    msalInstance.setActiveAccount(activeAccount);
+    setAccount(activeAccount);
+    setEventData(prev => ({
+      ...prev,
+      userEmail: userEmail
+    }));
+    setIsValidEmail(true);
+    showAlertMessage(`Welcome ${activeAccount.name || userEmail}`, "success");
+
+  } catch (err) {
+    // Log the raw error for debugging
+    console.error("Login error:", err);
+
+    // Handle all common MSAL and network errors
+    if (err.errorCode === "user_cancelled" || err.errorMessage?.includes("AADB2C90091")) {
+      showAlertMessage("Login was cancelled.", "warning");
+    } else if (err.errorCode === "login_required" || err.errorCode === "consent_required") {
+      showAlertMessage("Login required. Please try again.", "warning");
+    } else if (err.errorCode === "interaction_required") {
+      showAlertMessage("Interaction required. Please login again.", "warning");
+    } else if (err.errorCode === "access_denied" || err.errorCode === "server_error") {
+      showAlertMessage("Access denied or server error. Please contact your administrator.", "danger");
+    } else if (err.errorCode === "login_failed") {
+      showAlertMessage("Login failed. Please check your credentials and try again.", "danger");
+    } else if (err.errorMessage && err.errorMessage.includes("AADSTS65001")) {
+      // Special: Admin consent required
+      showAlertMessage(
+        "Admin approval required. Please contact your administrator to grant required permissions.",
+        "danger"
+      );
+    } else if (err.errorMessage && err.errorMessage.toLowerCase().includes("network")) {
+      showAlertMessage(
+        "Network error. Please check your internet connection and try again.",
+        "danger"
+      );
+    } else {
+      // Generic fallback
+      showAlertMessage(
+        "Login failed. Please try again or contact support if the issue persists.",
+        "danger"
+      );
+    }
+  }
+};
+
 
   //logout
   const logout = async () => {
@@ -737,34 +785,40 @@ const BookingComponent = ({ onClose, onSave }) => {
   }, []);
 
   // API call function
-  const makeApiCall = async (requestBody) => {
-    try {
-      // Get access token for the API call
-      const token = await getAccessToken();
-      if (!token) {
-        throw new Error("No access token available");
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error ${response.status}: ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (err) {
-      console.error("API Error:", err);
-      throw err;
+ const makeApiCall = async (requestBody) => {
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      throw new Error("No access token available");
     }
-  };
+
+    const response = await fetch(`${API_BASE_URL}/api/Bookings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.status === 401) {
+      // Show user-friendly error
+      showAlertMessage("You are not authorized to book meetings. Please sign in with a valid Microsoft account.", "danger");
+      return null;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error ${response.status}: ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error("API Error:", err);
+    throw err;
+  }
+};
+
 
   //single handle for signin and signout
   const handleAuthAction = () => {
@@ -1187,35 +1241,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                   <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
                     Location <span className="text-danger">*</span>
                   </label>
-                  <select
-                    className="form-select"
-                    name="location"
-                    value={eventData.location}
-                    onChange={handleRoomSelect}
-                    required
-                    disabled={!account}
-                    style={{
-                      borderRadius: 8,
-                      padding: "0.6rem",
-                      fontSize: 15,
-                      border: "5px solid #e0e6ed"
-                    }}
-                  >
-                    <option value="">Select a room</option>
-                    {rooms.map(room => {
-                      const status = roomAvailability[room.email];
-                      let color = "black";
-                      let indicator = "";
-                      if (status === "available") { color = "green"; indicator = "✅ "; }
-                      else if (status === "busy") { color = "red"; indicator = "❌ "; }
-                      else { color = "gray"; indicator = "⌛ "; }
-                      return (
-                        <option key={room.email} value={room.name} style={{ color }}>
-                          {indicator} {room.name}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  name="location"
                   {isCheckingAvailability ? (
                     <div className="text-info mt-1" style={{ fontSize: 14 }}>Checking room availability...</div>
                   ) : eventData.roomEmail && (
