@@ -197,6 +197,8 @@ const MeetingsDashboard = () => {
 
   const getKey = (m) => m.id ?? `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
   const { accounts } = useMsal();
+  const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
+
 
   // === HANDLERS for missing functions ===
   const openSidePanel = () => setShowSidePanel(true);
@@ -220,13 +222,20 @@ const MeetingsDashboard = () => {
     showAlert("Meeting created successfully!", "Success");
   };
 
-  const deleteSingleMeeting = async (meeting) => {
+const deleteSingleMeeting = async (meeting) => {
+    const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
+    if (organizer !== signedInEmail) { showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied"); return; }
     try {
-      // Replace with your actual delete API call
-      // await api.delete(`/api/Meetings/${meeting.id}`);
+      await api.delete(`/api/Meetings/${meeting.id}`, { 
+  params: { 
+    calendarEmail: organizer, 
+    signedInUser: signedInEmail 
+  } 
+});
       setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-      fetchMeetings();
-    } catch (e) {
+      setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+      showAlert("Meeting deleted successfully!", "Success");
+    } catch {
       showAlert("Failed to delete meeting.", "Error");
     }
   };
