@@ -227,15 +227,34 @@ const deleteSingleMeeting = async (meeting) => {
   }
 
   try {
-    const eventId = meeting.eventId; // must be Graph eventId, not DB id!
-    const calendarEmail = meeting.organizerEmail; // must be the organizer mailbox
+    if (!meeting.iCalUId) {
+      console.error("No iCalUId found for meeting:", meeting);
+      showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
+      return;
+    }
 
-    await api.delete(`/api/Meetings/by-ical/${meeting.iCalUId}`, {
-  params: { organizerEmail: meeting.organizerEmail }
-});
+    // Resolve base URL (from .env or fallback)
+    const API_BASE_URL =
+      process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
 
+    const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(
+      meeting.iCalUId
+    )}`;
+
+    console.log("Deleting meeting:", {
+      iCalUId: meeting.iCalUId,
+      organizerEmail: meeting.organizerEmail,
+      url,
+    });
+
+    await api.delete(url, {
+      params: { organizerEmail: meeting.organizerEmail },
+    });
+
+    // Update UI state
     setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
     setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+
     showAlert("Meeting deleted successfully!", "Success");
   } catch (err) {
     console.error("Delete failed:", err.response?.data || err.message);
