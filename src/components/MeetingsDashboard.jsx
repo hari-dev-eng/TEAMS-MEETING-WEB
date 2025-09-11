@@ -219,7 +219,7 @@ const MeetingsDashboard = () => {
     showAlert("Meeting created successfully!", "Success");
   };
 
- const deleteSingleMeeting = async (meeting) => {
+const deleteSingleMeeting = async (meeting) => {
   const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
   if (organizer !== signedInEmail.toLowerCase()) {
     showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
@@ -227,18 +227,18 @@ const MeetingsDashboard = () => {
   }
 
   try {
-    const eventId = meeting.eventId || meeting.id; // make sure this is Graph eventId
-    const calendarEmail = meeting.organizerEmail || signedInEmail;
+    const eventId = meeting.eventId; // must be Graph eventId, not DB id!
+    const calendarEmail = meeting.organizerEmail; // must be the organizer mailbox
 
-    await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
-      params: { calendarEmail }
-    });
+    await api.delete(`/api/Meetings/by-ical/${meeting.iCalUId}`, {
+  params: { organizerEmail: meeting.organizerEmail }
+});
 
     setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
     setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
     showAlert("Meeting deleted successfully!", "Success");
   } catch (err) {
-    console.error("Delete failed:", err);
+    console.error("Delete failed:", err.response?.data || err.message);
     showAlert("Failed to delete meeting.", "Error");
   }
 };
