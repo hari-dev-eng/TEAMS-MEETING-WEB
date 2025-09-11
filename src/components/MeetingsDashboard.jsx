@@ -6,9 +6,7 @@ import backGroundImage from "../team.png";
 import WebFont from "webfontloader";
 import BookingComponent from "./BookingComponent";
 import { useMsal } from "@azure/msal-react";
-import { getApiAccessToken } from "../msalConfig";
 
-// SVG ICONS - no changes
 const CalendarIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM5 20V9h14v11zM8 7h8v2H8z" />
@@ -26,7 +24,7 @@ const UsersIcon = (props) => (
 );
 const ClockIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM12.5 7H11v6l5.2 3.13.8-.71-4.4-2.61V7h-.1z" />
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.13.8-.71-4.4-2.61V7h-.1z" />
   </svg>
 );
 
@@ -57,20 +55,13 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
     const inputValue = e.target.value;
     const newDate = new Date(inputValue);
     if (isNaN(newDate.getTime())) {
-      setErrorMessage("Please enter a valid date.");
-      return;
+      setErrorMessage("Please enter a valid date."); return;
     }
     const [year, month, day] = inputValue.split("-");
-    if (
-      newDate.getFullYear() !== Number(year) ||
-      newDate.getMonth() + 1 !== Number(month) ||
-      newDate.getDate() !== Number(day)
-    ) {
-      setErrorMessage("Invalid date. This month doesn’t have that many days.");
-      return;
+    if (newDate.getFullYear() !== Number(year) || newDate.getMonth() + 1 !== Number(month) || newDate.getDate() !== Number(day)) {
+      setErrorMessage("Invalid date. This month doesn’t have that many days."); return;
     }
-    setErrorMessage("");
-    setSelectedDate(newDate);
+    setErrorMessage(""); setSelectedDate(newDate);
   };
   return (
     <div className="d-flex flex-column gap-2">
@@ -99,47 +90,32 @@ const getMeetingStatus = (startTime, endTime) => {
 };
 const formatTimeOnly = (dateStr) => {
   const date = new Date(dateStr);
-  return date.toLocaleTimeString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
 };
 const getAttendeesCount = (meeting) =>
   meeting.attendeesCount || meeting.attendeeCount || meeting.AttendeeCount || 0;
-
 const LiveIndicator = () => (
-  <span className="blinking-dot me-1" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ff0000" }} />
+  <span className="blinking-dot me-1" style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ff0000" }} />
 );
 
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
-  let activeCount = 0;
-  let totalAttendees = 0;
-  let totalDuration = 0;
-  let totalUsedMinutes = 0;
+  let activeCount = 0, totalAttendees = 0, totalDuration = 0, totalUsedMinutes = 0;
   for (const m of meetings) {
-    const start = new Date(m.startTime);
-    const end = new Date(m.endTime);
+    const start = new Date(m.startTime); const end = new Date(m.endTime);
     if (now >= start && now <= end) activeCount++;
     totalAttendees += getAttendeesCount(m);
     const duration = (end - start) / (1000 * 60);
-    totalDuration += duration;
-    totalUsedMinutes += duration;
+    totalDuration += duration; totalUsedMinutes += duration;
   }
   const avgDuration = meetings.length > 0 ? Math.round(totalDuration / meetings.length) : 0;
   const totalPossibleMinutes = floors * hoursPerFloor * 60;
-  const roomUtilization =
-    totalPossibleMinutes > 0 ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100)) : 0;
+  const roomUtilization = totalPossibleMinutes > 0 ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100)) : 0;
   return { activeMeetings: activeCount, totalAttendees, avgDuration, roomUtilization };
 };
-
 const LoadingIndicator = () => (
   <div className="d-flex justify-content-center align-items-center p-3">
-    <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
-      <span className="visually-hidden">Loading...</span>
-    </div>
+    <div className="spinner-border spinner-border-sm text-primary me-2" role="status"><span className="visually-hidden">Loading...</span></div>
     <span>Loading meetings...</span>
   </div>
 );
@@ -147,14 +123,9 @@ const LoadingIndicator = () => (
 const ParticlesBackground = () => {
   useEffect(() => {
     WebFont.load({ google: { families: ["stylus bt", "Montserrat:600"] } });
-    const particlesScript = document.createElement("script");
-    particlesScript.src = "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
-    particlesScript.async = true;
-    const statsScript = document.createElement("script");
-    statsScript.src = "https://threejs.org/examples/js/libs/stats.min.js";
-    statsScript.async = true;
+    const particlesScript = document.createElement('script');
+    particlesScript.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js'; particlesScript.async = true;
     document.head.appendChild(particlesScript);
-    document.head.appendChild(statsScript);
     particlesScript.onload = () => {
       if (window.particlesJS) {
         window.particlesJS("particles-js", {
@@ -178,32 +149,21 @@ const ParticlesBackground = () => {
               remove: { particles_nb: 2 },
             },
           },
-          retina_detect: true,
+          retina_detect: true
         });
       }
     };
     return () => { };
   }, []);
   return (
-    <div
-      id="particles-js"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        zIndex: -1,
-        backgroundImage: `url(${backGroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    />
+    <div id="particles-js" style={{
+      position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1,
+      backgroundImage: `url(${backGroundImage})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat"
+    }} />
   );
 };
 
-const SIDE_PANEL_WIDTH = "30vw";
+const SIDE_PANEL_WIDTH = 450;
 const SIDE_PANEL_MIN_WIDTH = 340;
 const SIDE_PANEL_MAX_WIDTH = 540;
 
@@ -489,7 +449,7 @@ const MeetingsDashboard = () => {
                   }}
                   onClick={handleScheduleMeeting}
                 >
-                  💡 Create Meeting
+                  ➕ Schedule New Meeting
                 </button>
 
                 <div>
