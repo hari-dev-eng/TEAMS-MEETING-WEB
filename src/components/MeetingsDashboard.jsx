@@ -168,7 +168,6 @@ const SIDE_PANEL_MIN_WIDTH = 340;
 const SIDE_PANEL_MAX_WIDTH = 540;
 
 const MeetingsDashboard = () => {
-  // All state variables, as before
   const [date, setDate] = useState(new Date());
   const [meetings, setMeetings] = useState([]);
   const [stats, setStats] = useState({ activeMeetings: 0, totalAttendees: 0, avgDuration: 0, roomUtilization: 0 });
@@ -178,9 +177,6 @@ const MeetingsDashboard = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isManualRefresh, setIsManualRefresh] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const handleSignIn = async () => setIsAuthenticated(true);
 
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [sidePanelTab, setSidePanelTab] = useState("list");
@@ -196,11 +192,12 @@ const MeetingsDashboard = () => {
   const [panelLoading, setPanelLoading] = useState(false);
 
   const getKey = (m) => m.id ?? `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
+
+  // get MSAL account
   const { accounts } = useMsal();
   const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
+  const isAuthenticated = accounts && accounts.length > 0;
 
-
-  // === HANDLERS for missing functions ===
   const openSidePanel = () => setShowSidePanel(true);
   const closeSidePanel = () => {
     setShowSidePanel(false);
@@ -458,7 +455,7 @@ const deleteSingleMeeting = async (meeting) => {
                   }}
                   onClick={handleScheduleMeeting}
                 >
-                  ➕ Schedule New Meeting
+                  💡 Schedule New Meeting
                 </button>
 
                 <div>
