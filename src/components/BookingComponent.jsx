@@ -856,188 +856,442 @@ const BookingComponent = ({ onClose, onSave }) => {
           </div>
 
           <div className="modal-body" style={{ padding: "1.5rem" }}>
-            <form onSubmit={handleSubmit}>
-              {/* Organizer */}
-              <div className="mb-4 position-relative">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Organizer <span className="text-danger">*</span></label>
-                {account ? (
-                  <div className="d-flex align-items-center">
-                    <input type="email" className="form-control" value={eventData.userEmail} readOnly
-                      style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", backgroundColor: "#e9ecef", color: "#6c757d", marginRight: "10px" }} />
-                    <button type="button" onClick={handleAuthAction}
-                      className={`btn btn-sm ${account ? "btn-outline-danger" : "btn-success"}`}
-                      style={{ borderRadius: "8px", padding: "0.6rem 1.2rem", fontWeight: "500" }}>
-                      {account ? "Remove" : "Sign In with Microsoft"}
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <button type="button" className="btn btn-primary" onClick={login}
-                      style={{ borderRadius: "8px", padding: "0.75rem 1.5rem", fontWeight: "500" }}>
-                      Sign In with Microsoft
-                    </button>
-                    <div className="form-text text-muted mt-2">Only Conserve Solution domain will be allowed</div>
-                    <div className="form-text text-muted mt-1">If you encounter issues, please try refreshing the page or contact R&D Conserve.</div>
-                  </div>
-                )}
-                {!isValidEmail && (<div className="text-danger mt-2">Please sign in with a valid @conservesolution.com account</div>)}
-              </div>
-
-              {/* Make recurring & all day */}
-              <div className="mb-4">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" name="isRecurring"
-                    checked={eventData.isRecurring}
-                    onChange={(e) => { handleChange(e); if (e.target.checked) setShowRecurrenceModal(true); }}
-                    id="recurringCheck" disabled={!account}
-                    style={{ width: "1.1em", height: "1.1em", marginTop: "0.2em" }} />
-                  <label className="form-check-label" htmlFor="recurringCheck" style={{ color: "#4a5568" }}>
-                    Make recurring
+           
+           <form onSubmit={handleSubmit}>
+                {/* ORGANIZER */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Organizer <span className="text-danger">*</span>
                   </label>
-                </div>
-
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" name="isAllDay"
-                    checked={eventData.isAllDay} onChange={handleChange}
-                    id="allDayCheck" disabled={!account}
-                    style={{ width: "1.1em", height: "1.1em", marginTop: "0.2em" }} />
-                  <label className="form-check-label" htmlFor="allDayCheck" style={{ color: "#4a5568" }}>
-                    All day
-                  </label>
-                </div>
-              </div>
-
-              {/* Date and Time */}
-              <div className="d-flex align-items-center gap-3 mb-4" style={{ flexWrap: "nowrap" }}>
-                <div>
-                  <input type="date" className="form-control" name="startDate"
-                    value={eventData.startDate} onChange={handleChange} required disabled={!account}
-                    min={new Date().toISOString().split("T")[0]} />
-                </div>
-                <div style={{ flex: "0.5" }}>
-                  <input type="time" className="form-control" name="startTime"
-                    value={eventData.startTime} onChange={handleChange}
-                    disabled={eventData.isAllDay || !account} />
-                </div>
-                <span style={{ color: "#718096", whiteSpace: "nowrap" }}>to</span>
-                <div style={{ flex: "0.5" }}>
-                  <input type="time" className="form-control" name="endTime"
-                    value={eventData.endTime} onChange={handleChange}
-                    disabled={eventData.isAllDay || !account} />
-                </div>
-              </div>
-
-              {/* Subject */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Subject <span className="text-danger">*</span></label>
-                <input type="text" className="form-control" placeholder="Teams meeting" name="title"
-                  value={eventData.title} onChange={handleChange} required
-                  style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", transition: "all 0.2s ease" }} />
-              </div>
-
-              {/* Room */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>
-                  Location <span className="text-danger">*</span>
-                </label>
-                <select className="form-select" name="location" value={eventData.location} onChange={handleRoomSelect}
-                  required disabled={!account}
-                  style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}>
-                  <option value="">Select a room</option>
-                  {rooms.map((room) => {
-                    const status = roomAvailability[room.email];
-                    let color = "black"; let indicator = "";
-                    if (status === "available") { color = "green"; indicator = "✅ "; }
-                    else if (status === "busy") { color = "red"; indicator = "❌ "; }
-                    else { color = "gray"; indicator = "⌛ "; }
-                    return (<option key={room.email} value={room.name} style={{ color }}>{indicator} {room.name}</option>);
-                  })}
-                </select>
-                {isCheckingAvailability ? (
-                  <div className="text-info mt-2">Checking room availability...</div>
-                ) : (
-                  eventData.roomEmail && (
-                    <div className={`mt-2 ${roomAvailability[eventData.roomEmail] === "available" ? "text-success" : "text-danger"}`}>
-                      {roomAvailability[eventData.roomEmail] === "available" ? "✅ This room is available."
-                        : roomAvailability[eventData.roomEmail] === "busy" ? "❌ This room is busy. Please select another time or room."
-                          : "Status unknown. Please check your time."}
+                  {account ? (
+                    <div className="d-flex align-items-center gap-2">
+                      <input
+                        type="email"
+                        className="form-control"
+                        value={eventData.userEmail}
+                        readOnly
+                        style={{
+                          borderRadius: 8,
+                          padding: "0.55rem 0.85rem",
+                          //background: "#e9ecef",
+                          color: "#6c757d",
+                          fontSize: "15px",
+                          border: "1px solid #e0e6ed",
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAuthAction}
+                        className="btn btn-sm btn-outline-danger"
+                        style={{ borderRadius: 7, padding: "0.5rem 1rem", fontWeight: 500, minWidth: 80 }}
+                      >
+                        Remove
+                      </button>
                     </div>
-                  )
-                )}
-              </div>
+                  ) : (
+                    <div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={login}
+                        style={{
+                          borderRadius: 17,
+                          padding: "0.5rem 1.5rem",
+                          fontWeight: 500,
+                          fontSize: "16px"
+                        }}
+                      >
+                        Sign In with Microsoft
+                      </button>
+                      <div
+                        className="form-text mt-2"
+                        style={{ fontSize: 15, marginBottom: 0, color: "#ff0000ff" }}
+                      >
+                        Only <strong>Conserve Solution</strong> domain will be allowed.
+                      </div>
 
-              {/* Attendees */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Attendees</label>
-                <div className="attendee-input-container position-relative">
-                  <input type="text" className="form-control" placeholder="Search for attendees by name or email"
-                    name="attendees" disabled={!account} value={attendeeSearchTerm} onChange={handleChange}
-                    style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} />
-                  {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3" role="status"></div>}
-                  {attendeeSuggestions.length > 0 && (
-                    <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
-                      {attendeeSuggestions.map(user => (
-                        <li key={user.id} className="list-group-item list-group-item-action"
-                          onClick={(e) => { e.stopPropagation(); selectUser(user, true); }}
-                          style={{ cursor: "pointer" }}>
-                          {user.displayName}
-                        </li>
-                      ))}
-                    </ul>
+                      <div
+                        className="form-text"
+                        style={{ fontSize: 15, color: "#ff0000ff" }}
+                      >
+                        If you encounter issues, please try refreshing or contact{" "}
+                        <strong>R&amp;D Conserve</strong>.
+                      </div>
+
+                    </div>
+                  )}
+                  {!isValidEmail && (
+                    <div className="text-danger mt-1" style={{ fontSize: 14 }}>
+                      Please sign in with a valid @conservesolution.com account
+                    </div>
                   )}
                 </div>
-                <div className="mt-2 d-flex flex-wrap gap-2">
-                  {attendeeList.map(attendee => (
-                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "1.2em", padding: "0.8em 0.85em", backgroundColor: "#0074bdff" }}>
-                      {attendee.displayName}
-                      <button type="button" className="btn-close btn-close-white ms-2" onClick={() => removeAttendee(attendee.mail)} aria-label="Remove" style={{ filter: "brightness(0) invert(1)" }}></button>
-                    </span>
-                  ))}
+
+                {/* SUBJECT */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Subject <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Teams meeting"
+                    name="title"
+                    value={eventData.title}
+                    onChange={handleChange}
+                    required
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.55rem 0.85rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  />
                 </div>
-              </div>
 
-              {/* Category */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Category</label>
-                <select className="form-select" name="category" value={eventData.category} disabled={!account} onChange={handleChange}
-                  style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}>
-                  <option value="Busy">Busy</option>
-                  <option value="Free">Free</option>
-                  <option value="Tentative">Tentative</option>
-                </select>
-              </div>
+                {/* ATTENDEES */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Attendees
+                  </label>
+                  <div className="attendee-input-container position-relative">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search for attendees by name or email"
+                      name="attendees"
+                      disabled={!account}
+                      value={attendeeSearchTerm}
+                      onChange={handleChange}
+                      style={{
+                        borderRadius: 8,
+                        padding: "0.55rem 0.85rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed"
+                      }}
+                    />
+                    {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3"></div>}
+                    {attendeeSuggestions.length > 0 && (
+                      <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
+                        {attendeeSuggestions.map(user => (
+                          <li
+                            key={user.id}
+                            className="list-group-item list-group-item-action"
+                            onClick={e => {
+                              e.stopPropagation();
+                              selectUser(user, true);
+                            }}
+                            style={{ cursor: "pointer", fontSize: 15 }}
+                          >
+                            {user.displayName} ({user.mail})
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="mt-2 d-flex flex-wrap gap-2">
+                    {attendeeList.map(attendee => (
+                      <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}>
+                        {attendee.displayName}
+                        <button
+                          type="button"
+                          className="btn-close btn-close-white ms-2"
+                          onClick={() => removeAttendee(attendee.mail)}
+                          aria-label="Remove"
+                          style={{ filter: "brightness(0) invert(1)" }}
+                        ></button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Reminder */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Reminder</label>
-                <select className="form-select" name="reminder" value={eventData.reminder} disabled={!account} onChange={handleChange}
-                  style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}>
-                  <option value="0">None</option>
-                  <option value="5">5 minutes before</option>
-                  <option value="10">10 minutes before</option>
-                  <option value="15">15 minutes before</option>
-                  <option value="30">30 minutes before</option>
-                  <option value="60">1 hour before</option>
-                </select>
-              </div>
+                {/* DATE & TIME */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Date <span className="text-danger">*</span>
+                  </label>
+                  <div className="d-flex align-items-center gap-3 flex-wrap" style={{ minHeight: 45, rowGap: 6 }}>
+                    <input
+                      type="date"
+                      className="form-control"
+                      name="startDate"
+                      value={eventData.startDate}
+                      onChange={handleChange}
+                      required
+                      disabled={!account}
+                      min={new Date().toISOString().split("T")[0]}
+                      style={{
+                        borderRadius: 7,
+                        padding: "0.45rem 0.7rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed",
+                        width: 160
+                      }}
+                    />
+                    <input
+                      type="time"
+                      className="form-control"
+                      name="startTime"
+                      value={eventData.startTime}
+                      onChange={handleChange}
+                      disabled={eventData.isAllDay || !account}
+                      style={{
+                        borderRadius: 7,
+                        padding: "0.45rem 0.7rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed",
+                        width: 110
+                      }}
+                    />
+                    <span style={{ color: "#718096", fontSize: 16, minWidth: 20, textAlign: "center" }}>to</span>
+                    <input
+                      type="time"
+                      className="form-control"
+                      name="endTime"
+                      value={eventData.endTime}
+                      onChange={handleChange}
+                      disabled={eventData.isAllDay || !account}
+                      style={{
+                        borderRadius: 7,
+                        padding: "0.45rem 0.7rem",
+                        fontSize: 15,
+                        border: "5px solid #e0e6ed",
+                        width: 110
+                      }}
+                    />
+                    {/* Recurring/All Day */}
+                    <div className="d-flex align-items-center gap-4 ms-3 flex-wrap">
+                      <div className="form-check d-flex align-items-center mb-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          name="isRecurring"
+                          checked={eventData.isRecurring}
+                          onChange={e => {
+                            handleChange(e);
+                            if (e.target.checked) setShowRecurrenceModal(true);
+                          }}
+                          id="recurringCheck"
+                          disabled={!account}
+                          style={{
+                            width: "1.7em",
+                            height: "1.7em",
+                            marginRight: "0.5em",
+                            accentColor: "#78b042",
+                          }}
+                        />
+                        <label className="form-check-label mb-0" htmlFor="recurringCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
+                          Make recurring
+                        </label>
+                      </div>
+                      <div className="form-check d-flex align-items-center mb-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          name="isAllDay"
+                          checked={eventData.isAllDay}
+                          onChange={handleChange}
+                          id="allDayCheck"
+                          disabled={!account}
+                          style={{
+                            width: "1.7em",
+                            height: "1.7em",
+                            marginRight: "0.5em",
+                            accentColor: "#0074bd",
+                          }}
+                        />
+                        <label className="form-check-label mb-0" htmlFor="allDayCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
+                          All day
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Description */}
-              <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#4a5568", fontSize: "24px" }}>Description</label>
-                <textarea className="form-control" placeholder="Add a description..." name="description"
-                  value={eventData.description} onChange={handleChange}
-                  style={{ borderRadius: "8px", padding: "0.75rem", border: "1px solid #cbd5e0", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", minHeight: "100px" }}></textarea>
-              </div>
+                {/* LOCATION */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Location <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    name="location"
+                    value={eventData.location}
+                    onChange={handleRoomSelect}
+                    required
+                    disabled={!account}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.6rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  >
+                    <option value="">Select a room</option>
+                    {rooms.map(room => {
+                      const status = roomAvailability[room.email];
+                      let color = "black";
+                      let indicator = "";
+                      if (status === "available") { color = "green"; indicator = "✅ "; }
+                      else if (status === "busy") { color = "red"; indicator = "❌ "; }
+                      else { color = "gray"; indicator = "⌛ "; }
+                      return (
+                        <option key={room.email} value={room.name} style={{ color }}>
+                          {indicator} {room.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isCheckingAvailability ? (
+                    <div className="text-info mt-1" style={{ fontSize: 14 }}>Checking room availability...</div>
+                  ) : eventData.roomEmail && (
+                    <div
+                      className={`mt-1 ${roomAvailability[eventData.roomEmail] === "available"
+                        ? "text-success"
+                        : "text-danger"
+                        }`}
+                      style={{ fontSize: 14 }}
+                    >
+                      {roomAvailability[eventData.roomEmail] === "available"
+                        ? <>✅ This room is available.</>
+                        : roomAvailability[eventData.roomEmail] === "busy"
+                          ? <>❌ This room is busy. Please select another time or room.</>
+                          : "Status unknown. Please check your time."}
+                    </div>
+                  )}
+                </div>
 
-              {/* Footer Buttons */}
-              <div className="modal-footer" style={{ borderTop: "none", padding: "1.5rem 0 0" }}>
-                <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isLoading || !account}
-                  style={{ backgroundColor: "transparent", backgroundImage: "linear-gradient(to right, #0074bd, #78b042)", borderColor: "#3182CE", color: "white" }}>
-                  {isLoading ? (<><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Scheduling...</>) : "Schedule Event"}
-                </button>
-              </div>
-            </form>
+                {/* CATEGORY */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Response Option
+                  </label>
+                  <select
+                    className="form-select"
+                    name="category"
+                    value={eventData.category}
+                    disabled={!account}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.6rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  >
+                    <option value="Busy">Busy</option>
+                    <option value="Free">Free</option>
+                    <option value="Tentative">Tentative</option>
+                  </select>
+                </div>
+
+                {/* REMINDER */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Reminder
+                  </label>
+                  <select
+                    className="form-select"
+                    name="reminder"
+                    value={eventData.reminder}
+                    disabled={!account}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.6rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed"
+                    }}
+                  >
+                    <option value="0">None</option>
+                    <option value="5">5 minutes before</option>
+                    <option value="10">10 minutes before</option>
+                    <option value="15">15 minutes before</option>
+                    <option value="30">30 minutes before</option>
+                    <option value="60">1 hour before</option>
+                  </select>
+                </div>
+
+                {/* DESCRIPTION */}
+                <div className="mb-3">
+                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                    Description
+                  </label>
+                  <textarea
+                    className="form-control"
+                    placeholder="Add a description..."
+                    name="description"
+                    value={eventData.description}
+                    onChange={handleChange}
+                    style={{
+                      borderRadius: 8,
+                      padding: "0.75rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed",
+                      minHeight: 95
+                    }}
+                  />
+                </div>
+
+                {/* BUTTONS */}
+                <div
+                  className="modal-footer px-0 pb-0 pt-3"
+                  style={{ borderTop: "none",marginTop:"-20px", justifyContent: "flex-end" }}
+                >
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="btn me-2"
+                    style={{
+                      borderRadius: 14,
+                      minWidth: 90,
+                      fontWeight: "bolder",
+                      color: "#ff0000",
+                      border: "4px solid rgba(255,0,0,1)",
+                      background: "transparent",
+                      pointerEvents: isLoading ? "none" : "auto",
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = "transparent"; // prevent hover fill
+                      e.target.style.color = "#ff0000";
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = "transparent";
+                      e.target.style.color = "#ff0000";
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary-2"
+                    disabled={isLoading || !account}
+                    style={{
+                      borderRadius: 14,
+                      minWidth: 140,
+                      fontWeight: "bolder",
+                      color: "rgba(13, 119, 25, 1)",
+                      border: "4px solid rgba(13,119,25,1)",
+                    }}
+                  >
+                    {isLoading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+                        Scheduling...
+                      </>
+                    ) : (
+                      "Schedule Event"
+                    )}
+                  </button>
+                </div>
+              </form>
           </div>
         </div>
       </div>
