@@ -219,20 +219,30 @@ const MeetingsDashboard = () => {
     showAlert("Meeting created successfully!", "Success");
   };
 
-const deleteSingleMeeting = async (meeting) => {
-    const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
-    if (organizer !== signedInEmail) { showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied"); return; }
-    try {
-     await api.delete(`/api/Meetings/${meeting.id}`, { 
-  params: { organizerEmail: meeting.organizerEmail } 
-});
-      setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-      setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-      showAlert("Meeting deleted successfully!", "Success");
-    } catch {
-      showAlert("Failed to delete meeting.", "Error");
-    }
-  };
+ const deleteSingleMeeting = async (meeting) => {
+  const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
+  if (organizer !== signedInEmail.toLowerCase()) {
+    showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
+    return;
+  }
+
+  try {
+    const eventId = meeting.eventId || meeting.id; // make sure this is Graph eventId
+    const calendarEmail = meeting.organizerEmail || signedInEmail;
+
+    await api.delete(`/api/Meetings/${encodeURIComponent(eventId)}`, {
+      params: { calendarEmail }
+    });
+
+    setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+    setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+    showAlert("Meeting deleted successfully!", "Success");
+  } catch (err) {
+    console.error("Delete failed:", err);
+    showAlert("Failed to delete meeting.", "Error");
+  }
+};
+
 
   // === API fetch handlers (unchanged) ===
   const fetchPanelMeetings = useCallback(
