@@ -223,11 +223,8 @@ const deleteSingleMeeting = async (meeting) => {
     const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
     if (organizer !== signedInEmail) { showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied"); return; }
     try {
-      await api.delete(`/api/Meetings/${meeting.id}`, { 
-  params: { 
-    calendarEmail: organizer, 
-    signedInUser: signedInEmail 
-  } 
+     await api.delete(`/api/Meetings/${meeting.id}`, { 
+  params: { organizerEmail: meeting.organizerEmail } 
 });
       setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
       setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
