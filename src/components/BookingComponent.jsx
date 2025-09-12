@@ -488,27 +488,27 @@ const BookingComponent = ({ onClose, onSave }) => {
   const checkRoomAvailability = useCallback(async () => {
   if (!eventData.startDate) return;
 
-  setIsCheckingAvailability(true);
-  try {
-    const token = await getAccessToken();
-    if (!token) return;
+    setIsCheckingAvailability(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
 
-    let startDateTime, endDateTime;
-    if (eventData.isAllDay) {
-      const start = new Date(`${eventData.startDate}T00:00:00`);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      startDateTime = start.toISOString();
-      endDateTime = end.toISOString();
-    } else if (eventData.startTime && eventData.endTime) {
-      const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
-      const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-      // ❌ no +1s, no -1s. Graph API expects exclusive end.
-      startDateTime = start.toISOString();
-      endDateTime = end.toISOString();
-    } else {
-      return;
-    }
+      let startDateTime, endDateTime;
+      if (eventData.isAllDay) {
+        const start = new Date(`${eventData.startDate}T00:00:00`);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        startDateTime = start.toISOString();
+        endDateTime = end.toISOString();
+      } else if (eventData.startTime && eventData.endTime) {
+        const start = new Date(`${eventData.startDate}T${eventData.startTime}:00`);
+        const end = new Date(`${eventData.startDate}T${eventData.endTime}:00`);
+        startDateTime = start.toISOString();
+        endDateTime = end.toISOString();
+      }
+      else {
+        return;
+      }
 
     const availabilityResults = {};
     for (const room of rooms) {
@@ -790,9 +790,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         startIso = start.toISOString();
         endIso = end.toISOString();
       } else {
-        const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
-        const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-        //send real times, no adjustments
+        const start = new Date(`${eventData.startDate}T${eventData.startTime}:00`);
+        const end = new Date(`${eventData.startDate}T${eventData.endTime}:00`);
         startIso = start.toISOString();
         endIso = end.toISOString();
       }
