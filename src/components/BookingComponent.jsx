@@ -484,69 +484,91 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
   }, [showAlertMessage]);
 
-  const buildIsoTime = (date, time, isEnd = false, forAvailability = false) => {
-    const dt = new Date(`${date}T${time}:00.000`);
-    if (isEnd && forAvailability) {
-      // Only shift for availability checks
-      dt.setMilliseconds(dt.getMilliseconds() - 1);
+  // Build ISO string in UTC. Optionally nudge availability end by -1ms.
+const buildIsoTime = (date, time, opts = {}) => {
+  const dt = new Date(`${date}T${time}:00.000`);
+  if (opts.forAvailabilityEnd) dt.setMilliseconds(dt.getMilliseconds() - 1); // 10:30 → 10:29:59.999
+  return dt.toISOString(); // UTC "Z"
+};
+
+
+
+// availability respects All-day (00:00→next day 00:00) and uses strict overlap
+const checkRoomAvailability = useCallback(async () => {
+  if (!eventData.startDate) return;
+
+  setIsCheckingAvailability(true);
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
+
+    // Build the desired window (UTC). For availability we use end-1ms.
+    let startDateTime, endDateTime;
+    if (eventData.isAllDay) {
+      const start = new Date(`${eventData.startDate}T00:00:00.000Z`);
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 1);
+      startDateTime = start.toISOString();
+      endDateTime = new Date(end.getTime() - 1).toISOString(); // 23:59:59.999 of the same local day
+    } else if (eventData.startTime && eventData.endTime) {
+      startDateTime = buildIsoTime(eventData.startDate, eventData.startTime);
+      endDateTime   = buildIsoTime(eventData.startDate, eventData.endTime, { forAvailabilityEnd: true });
+    } else {
+      return;
     }
-    return dt.toISOString();
-  };
 
+    // For consistent parsing, ask Graph to return UTC times.
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Prefer: 'outlook.timezone="UTC"' // response start/end.dateTime will be UTC
+    };
 
-  // availability respects All-day (00:00→next day 00:00)
-  const checkRoomAvailability = useCallback(async () => {
-    if (!eventData.startDate) return;
-
-    setIsCheckingAvailability(true);
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
-
-      let startDateTime, endDateTime;
-      if (eventData.isAllDay) {
-        const start = new Date(`${eventData.startDate}T00:00:00`);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        startDateTime = start.toISOString();
-        endDateTime = end.toISOString();
-      } else if (eventData.startTime && eventData.endTime) {
-        startDateTime = buildIsoTime(eventData.startDate, eventData.startTime, false, true);
-        endDateTime = buildIsoTime(eventData.startDate, eventData.endTime, true, true);
+    // Helper to parse Graph datetime reliably (UTC expected)
+    const parseGraphDate = (dtObjOrString) => {
+      if (dtObjOrString?.dateTime) {
+        // 'UTC' from header → append 'Z' to force UTC parse
+        return new Date(`${dtObjOrString.dateTime}Z`);
       }
-      else {
-        return;
-      }
+      if (typeof dtObjOrString === 'string') return new Date(dtObjOrString);
+      return new Date();
+    };
 
-      const availabilityResults = {};
-      for (const room of rooms) {
-        try {
-          const response = await axios.get(
-            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${encodeURIComponent(startDateTime)}&endDateTime=${encodeURIComponent(endDateTime)}&$select=id,subject,start,end`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          availabilityResults[room.email] =
-            response.data.value.length > 0 ? "busy" : "available";
-        } catch (err) {
-          availabilityResults[room.email] = "unknown";
-          console.error(`Error fetching ${room.email}:`, err);
-        }
+    const desiredStart = new Date(startDateTime);
+    const desiredEnd   = new Date(endDateTime);
+
+    const availabilityResults = {};
+    for (const room of rooms) {
+      try {
+        const url =
+          `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(room.email)}/calendarView` +
+          `?startDateTime=${encodeURIComponent(startDateTime)}` +
+          `&endDateTime=${encodeURIComponent(endDateTime)}` +
+          `&$select=id,subject,start,end`;
+
+        const response = await axios.get(url, { headers });
+
+        const events = response.data?.value || [];
+        // STRICT overlap (end is exclusive): s < desiredEnd && e > desiredStart
+        const isBusy = events.some(ev => {
+          const s = parseGraphDate(ev.start);
+          const e = parseGraphDate(ev.end);
+          return s < desiredEnd && e > desiredStart;
+        });
+
+        availabilityResults[room.email] = isBusy ? "busy" : "available";
+      } catch (err) {
+        console.error(`Error fetching ${room.email}:`, err);
+        availabilityResults[room.email] = "unknown";
       }
-      setRoomAvailability(availabilityResults);
-    } catch (error) {
-      console.error("Failed to fetch availability:", error);
-    } finally {
-      setIsCheckingAvailability(false);
     }
-  }, [
-    eventData.startDate,
-    eventData.startTime,
-    eventData.endTime,
-    eventData.isAllDay,
-    getAccessToken,
-  ]);
 
-
+    setRoomAvailability(availabilityResults);
+  } catch (error) {
+    console.error("Failed to fetch availability:", error);
+  } finally {
+    setIsCheckingAvailability(false);
+  }
+}, [eventData.startDate,eventData.startTime,eventData.endTime,eventData.isAllDay,getAccessToken,]);
 
   useEffect(() => {
     if (eventData.startDate && (eventData.isAllDay || (eventData.startTime && eventData.endTime))) {
@@ -759,6 +781,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     if (account) logout(); else login();
   };
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -814,7 +837,7 @@ const BookingComponent = ({ onClose, onSave }) => {
         Reminder: eventData.reminder,
         IsAllDay: eventData.isAllDay,
         IsRecurring: eventData.isRecurring,
-        // ⬇️ send the DTO that the backend expects
+        //send the DTO that the backend expects
         RecurrencePattern: eventData.isRecurring ? eventData.RecurrencePattern : null
       };
 
