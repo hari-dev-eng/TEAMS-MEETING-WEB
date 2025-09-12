@@ -84,8 +84,8 @@ const getMeetingStatus = (startTime, endTime) => {
   const now = new Date();
   const start = new Date(startTime);
   const end = new Date(endTime);
-  if (now.getTime() > end.getTime()) return "completed";
-  if (now.getTime() >= start.getTime() && now.getTime() < end.getTime()) return "Live";
+  if (now > end) return "completed";
+  if (now >= start && now <= end) return "Live";
   return "upcoming";
 };
 const formatTimeOnly = (dateStr) => {
@@ -393,7 +393,6 @@ const MeetingsDashboard = () => {
       return hay.includes(q);
     });
   }, [upcomingMeetings, deleteSearch]);
-
   const selectedMeeting = useMemo(
   () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
   [panelMeetings, selectedMeetingKey]
@@ -401,7 +400,7 @@ const MeetingsDashboard = () => {
 
   // Side Panel Component
   const SidePanel = () => {
-    const signedInEmail = accounts?.[0]?.username?.toLowerCase() || ""; 
+    const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
 
     return (
       <AnimatePresence>
