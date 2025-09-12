@@ -484,6 +484,15 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
   }, [showAlertMessage]);
 
+  const buildIsoTime = (date, time, isEnd = false) => {
+  const dt = new Date(`${date}T${time}:00.000`);
+  if (isEnd) {
+    // subtract 1 ms so end is exclusive (09:00–10:00 ends at 09:59:59.999)
+    dt.setMilliseconds(dt.getMilliseconds() - 1);
+  }
+  return dt.toISOString();
+};
+
   // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
   if (!eventData.startDate) return;
@@ -501,10 +510,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         startDateTime = start.toISOString();
         endDateTime = end.toISOString();
       } else if (eventData.startTime && eventData.endTime) {
-        const start = new Date(`${eventData.startDate}T${eventData.startTime}:00`);
-        const end = new Date(`${eventData.startDate}T${eventData.endTime}:00`);
-        startDateTime = start.toISOString();
-        endDateTime = end.toISOString();
+        startDateTime = buildIsoTime(eventData.startDate, eventData.startTime, false);
+        endDateTime = buildIsoTime(eventData.startDate, eventData.endTime, true);
       }
       else {
         return;
@@ -790,10 +797,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         startIso = start.toISOString();
         endIso = end.toISOString();
       } else {
-        const start = new Date(`${eventData.startDate}T${eventData.startTime}:00`);
-        const end = new Date(`${eventData.startDate}T${eventData.endTime}:00`);
-        startIso = start.toISOString();
-        endIso = end.toISOString();
+        startIso = buildIsoTime(eventData.startDate, eventData.startTime, false);
+        endIso = buildIsoTime(eventData.startDate, eventData.endTime, true);
       }
       const requestBody = {
         Title: eventData.title,
