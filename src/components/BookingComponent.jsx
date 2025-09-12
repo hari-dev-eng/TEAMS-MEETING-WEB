@@ -486,53 +486,54 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
-  if (!eventData.startDate) return;
+    if (!eventData.startDate) return;
 
-  setIsCheckingAvailability(true);
-  try {
-    const token = await getAccessToken();
-    if (!token) return;
+    setIsCheckingAvailability(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
 
-    let startDateTime, endDateTime;
-    if (eventData.isAllDay) {
-      const start = new Date(`${eventData.startDate}T00:00:00`);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      startDateTime = start.toISOString();
-      endDateTime = end.toISOString();
-    } else if (eventData.startTime && eventData.endTime) {
-      const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
-      const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+      let startDateTime, endDateTime;
+      if (eventData.isAllDay) {
+        const start = new Date(`${eventData.startDate}T00:00:00`);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        startDateTime = start.toISOString();
+        endDateTime = end.toISOString();
+      } else if (eventData.startTime && eventData.endTime) {
+        const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
+        const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+        end.setMinutes(end.getMinutes() + 1); // ✅ catch events ending at endTime
 
-      // ✅ Add +1s so back-to-back meetings don’t overlap
-      end.setSeconds(end.getSeconds() + 1);
-
-      startDateTime = start.toISOString();
-      endDateTime = end.toISOString();
-    } else {
-      return;
-    }
-
-    const availabilityResults = {};
-    for (const room of rooms) {
-      try {
-        const response = await axios.get(
-          `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        availabilityResults[room.email] = response.data.value.length > 0 ? "busy" : "available";
-      } catch (err) {
-        availabilityResults[room.email] = "unknown";
-        console.error(`Error fetching ${room.email}:`, err);
+        startDateTime = start.toISOString();
+        endDateTime = end.toISOString();
+      } else {
+        return;
       }
+
+      const availabilityResults = {};
+      for (const room of rooms) {
+        try {
+          const response = await axios.get(
+            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          availabilityResults[room.email] =
+            response.data.value.length > 0 ? "busy" : "available";
+        } catch (err) {
+          availabilityResults[room.email] = "unknown";
+          console.error(`Error fetching ${room.email}:`, err);
+        }
+      }
+      setRoomAvailability(availabilityResults);
+    } catch (error) {
+      console.error("Failed to fetch availability:", error);
+    } finally {
+      setIsCheckingAvailability(false);
     }
-    setRoomAvailability(availabilityResults);
-  } catch (error) {
-    console.error("Failed to fetch availability:", error);
-  } finally {
-    setIsCheckingAvailability(false);
-  }
-}, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken]);
+  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken,
+  ]);
+
 
 
   useEffect(() => {
@@ -744,9 +745,9 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   const handleAuthAction = () => {
     if (account) logout(); else login();
-    };
+  };
 
-   const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -776,25 +777,22 @@ const BookingComponent = ({ onClose, onSave }) => {
       return;
     }
 
-   try {
-  // Build Start/End based on All day
-  let startIso, endIso;
-  if (eventData.isAllDay) {
-    const start = new Date(`${eventData.startDate}T00:00:00`);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    startIso = start.toISOString();
-    endIso = end.toISOString();
-  } else {
-    const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
-    const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-
-    // ✅ Keep exact values (no -1s hack)
-    startIso = start.toISOString();
-    endIso = end.toISOString();
-  }
-
-
+    try {
+      // Build Start/End based on All day
+      let startIso, endIso;
+      if (eventData.isAllDay) {
+        const start = new Date(`${eventData.startDate}T00:00:00`);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        startIso = start.toISOString();
+        endIso = end.toISOString();
+      } else {
+        const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
+        const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+        //no -1s hack, send exact values
+        startIso = start.toISOString();
+        endIso = end.toISOString();
+      }
       const requestBody = {
         Title: eventData.title,
         Description: eventData.description || eventData.title,
@@ -868,92 +866,115 @@ const BookingComponent = ({ onClose, onSave }) => {
           </div>
 
           <div className="modal-body" style={{ padding: "1.5rem" }}>
-           
-           <form onSubmit={handleSubmit}>
-                {/* ORGANIZER */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Organizer <span className="text-danger">*</span>
-                  </label>
-                  {account ? (
-                    <div className="d-flex align-items-center gap-2">
-                      <input
-                        type="email"
-                        className="form-control"
-                        value={eventData.userEmail}
-                        readOnly
-                        style={{
-                          borderRadius: 8,
-                          padding: "0.55rem 0.85rem",
-                          //background: "#e9ecef",
-                          color: "#6c757d",
-                          fontSize: "15px",
-                          border: "1px solid #e0e6ed",
-                          minWidth: 0,
-                          flex: 1,
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAuthAction}
-                        className="btn btn-sm btn-outline-danger"
-                        style={{ borderRadius: 7, padding: "0.5rem 1rem", fontWeight: 500, minWidth: 80 }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={login}
-                        style={{
-                          borderRadius: 17,
-                          padding: "0.5rem 1.5rem",
-                          fontWeight: 500,
-                          fontSize: "16px"
-                        }}
-                      >
-                        Sign In with Microsoft
-                      </button>
-                      <div
-                        className="form-text mt-2"
-                        style={{ fontSize: 15, marginBottom: 0, color: "#ff0000ff" }}
-                      >
-                        Only <strong>Conserve Solution</strong> domain will be allowed.
-                      </div>
 
-                      <div
-                        className="form-text"
-                        style={{ fontSize: 15, color: "#ff0000ff" }}
-                      >
-                        If you encounter issues, please try refreshing or contact{" "}
-                        <strong>R&amp;D Conserve</strong>.
-                      </div>
-
+            <form onSubmit={handleSubmit}>
+              {/* ORGANIZER */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Organizer <span className="text-danger">*</span>
+                </label>
+                {account ? (
+                  <div className="d-flex align-items-center gap-2">
+                    <input
+                      type="email"
+                      className="form-control"
+                      value={eventData.userEmail}
+                      readOnly
+                      style={{
+                        borderRadius: 8,
+                        padding: "0.55rem 0.85rem",
+                        //background: "#e9ecef",
+                        color: "#6c757d",
+                        fontSize: "15px",
+                        border: "1px solid #e0e6ed",
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAuthAction}
+                      className="btn btn-sm btn-outline-danger"
+                      style={{ borderRadius: 7, padding: "0.5rem 1rem", fontWeight: 500, minWidth: 80 }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={login}
+                      style={{
+                        borderRadius: 17,
+                        padding: "0.5rem 1.5rem",
+                        fontWeight: 500,
+                        fontSize: "16px"
+                      }}
+                    >
+                      Sign In with Microsoft
+                    </button>
+                    <div
+                      className="form-text mt-2"
+                      style={{ fontSize: 15, marginBottom: 0, color: "#ff0000ff" }}
+                    >
+                      Only <strong>Conserve Solution</strong> domain will be allowed.
                     </div>
-                  )}
-                  {!isValidEmail && (
-                    <div className="text-danger mt-1" style={{ fontSize: 14 }}>
-                      Please sign in with a valid @conservesolution.com account
-                    </div>
-                  )}
-                </div>
 
-                {/* SUBJECT */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Subject <span className="text-danger">*</span>
-                  </label>
+                    <div
+                      className="form-text"
+                      style={{ fontSize: 15, color: "#ff0000ff" }}
+                    >
+                      If you encounter issues, please try refreshing or contact{" "}
+                      <strong>R&amp;D Conserve</strong>.
+                    </div>
+
+                  </div>
+                )}
+                {!isValidEmail && (
+                  <div className="text-danger mt-1" style={{ fontSize: 14 }}>
+                    Please sign in with a valid @conservesolution.com account
+                  </div>
+                )}
+              </div>
+
+              {/* SUBJECT */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Subject <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Teams meeting"
+                  name="title"
+                  value={eventData.title}
+                  onChange={handleChange}
+                  required
+                  style={{
+                    borderRadius: 8,
+                    padding: "0.55rem 0.85rem",
+                    fontSize: 15,
+                    border: "5px solid #e0e6ed"
+                  }}
+                />
+              </div>
+
+              {/* ATTENDEES */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Attendees
+                </label>
+                <div className="attendee-input-container position-relative">
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Teams meeting"
-                    name="title"
-                    value={eventData.title}
+                    placeholder="Search for attendees by name or email"
+                    name="attendees"
+                    disabled={!account}
+                    value={attendeeSearchTerm}
                     onChange={handleChange}
-                    required
                     style={{
                       borderRadius: 8,
                       padding: "0.55rem 0.85rem",
@@ -961,349 +982,326 @@ const BookingComponent = ({ onClose, onSave }) => {
                       border: "5px solid #e0e6ed"
                     }}
                   />
-                </div>
-
-                {/* ATTENDEES */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Attendees
-                  </label>
-                  <div className="attendee-input-container position-relative">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search for attendees by name or email"
-                      name="attendees"
-                      disabled={!account}
-                      value={attendeeSearchTerm}
-                      onChange={handleChange}
-                      style={{
-                        borderRadius: 8,
-                        padding: "0.55rem 0.85rem",
-                        fontSize: 15,
-                        border: "5px solid #e0e6ed"
-                      }}
-                    />
-                    {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3"></div>}
-                    {attendeeSuggestions.length > 0 && (
-                      <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
-                        {attendeeSuggestions.map(user => (
-                          <li
-                            key={user.id}
-                            className="list-group-item list-group-item-action"
-                            onClick={e => {
-                              e.stopPropagation();
-                              selectUser(user, true);
-                            }}
-                            style={{ cursor: "pointer", fontSize: 15 }}
-                          >
-                            {user.displayName} ({user.mail})
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <div className="mt-2 d-flex flex-wrap gap-2">
-                    {attendeeList.map(attendee => (
-                      <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}>
-                        {attendee.displayName}
-                        <button
-                          type="button"
-                          className="btn-close btn-close-white ms-2"
-                          onClick={() => removeAttendee(attendee.mail)}
-                          aria-label="Remove"
-                          style={{ filter: "brightness(0) invert(1)" }}
-                        ></button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* DATE & TIME */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Date <span className="text-danger">*</span>
-                  </label>
-                  <div className="d-flex align-items-center gap-3 flex-wrap" style={{ minHeight: 45, rowGap: 6 }}>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="startDate"
-                      value={eventData.startDate}
-                      onChange={handleChange}
-                      required
-                      disabled={!account}
-                      min={new Date().toISOString().split("T")[0]}
-                      style={{
-                        borderRadius: 7,
-                        padding: "0.45rem 0.7rem",
-                        fontSize: 15,
-                        border: "5px solid #e0e6ed",
-                        width: 160
-                      }}
-                    />
-                    <input
-                      type="time"
-                      className="form-control"
-                      name="startTime"
-                      value={eventData.startTime}
-                      onChange={handleChange}
-                      disabled={eventData.isAllDay || !account}
-                      style={{
-                        borderRadius: 7,
-                        padding: "0.45rem 0.7rem",
-                        fontSize: 15,
-                        border: "5px solid #e0e6ed",
-                        width: 110
-                      }}
-                    />
-                    <span style={{ color: "#718096", fontSize: 16, minWidth: 20, textAlign: "center" }}>to</span>
-                    <input
-                      type="time"
-                      className="form-control"
-                      name="endTime"
-                      value={eventData.endTime}
-                      onChange={handleChange}
-                      disabled={eventData.isAllDay || !account}
-                      style={{
-                        borderRadius: 7,
-                        padding: "0.45rem 0.7rem",
-                        fontSize: 15,
-                        border: "5px solid #e0e6ed",
-                        width: 110
-                      }}
-                    />
-                    {/* Recurring/All Day */}
-                    <div className="d-flex align-items-center gap-4 ms-3 flex-wrap">
-                      <div className="form-check d-flex align-items-center mb-0">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          name="isRecurring"
-                          checked={eventData.isRecurring}
-                          onChange={e => {
-                            handleChange(e);
-                            if (e.target.checked) setShowRecurrenceModal(true);
+                  {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3"></div>}
+                  {attendeeSuggestions.length > 0 && (
+                    <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
+                      {attendeeSuggestions.map(user => (
+                        <li
+                          key={user.id}
+                          className="list-group-item list-group-item-action"
+                          onClick={e => {
+                            e.stopPropagation();
+                            selectUser(user, true);
                           }}
-                          id="recurringCheck"
-                          disabled={!account}
-                          style={{
-                            width: "1.7em",
-                            height: "1.7em",
-                            marginRight: "0.5em",
-                            accentColor: "#78b042",
-                          }}
-                        />
-                        <label className="form-check-label mb-0" htmlFor="recurringCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
-                          Make recurring
-                        </label>
-                      </div>
-                      <div className="form-check d-flex align-items-center mb-0">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          name="isAllDay"
-                          checked={eventData.isAllDay}
-                          onChange={handleChange}
-                          id="allDayCheck"
-                          disabled={!account}
-                          style={{
-                            width: "1.7em",
-                            height: "1.7em",
-                            marginRight: "0.5em",
-                            accentColor: "#0074bd",
-                          }}
-                        />
-                        <label className="form-check-label mb-0" htmlFor="allDayCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
-                          All day
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* LOCATION */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Location <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    name="location"
-                    value={eventData.location}
-                    onChange={handleRoomSelect}
-                    required
-                    disabled={!account}
-                    style={{
-                      borderRadius: 8,
-                      padding: "0.6rem",
-                      fontSize: 15,
-                      border: "5px solid #e0e6ed"
-                    }}
-                  >
-                    <option value="">Select a room</option>
-                    {rooms.map(room => {
-                      const status = roomAvailability[room.email];
-                      let color = "black";
-                      let indicator = "";
-                      if (status === "available") { color = "green"; indicator = "✅ "; }
-                      else if (status === "busy") { color = "red"; indicator = "❌ "; }
-                      else { color = "gray"; indicator = "⌛ "; }
-                      return (
-                        <option key={room.email} value={room.name} style={{ color }}>
-                          {indicator} {room.name}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  {isCheckingAvailability ? (
-                    <div className="text-info mt-1" style={{ fontSize: 14 }}>Checking room availability...</div>
-                  ) : eventData.roomEmail && (
-                    <div
-                      className={`mt-1 ${roomAvailability[eventData.roomEmail] === "available"
-                        ? "text-success"
-                        : "text-danger"
-                        }`}
-                      style={{ fontSize: 14 }}
-                    >
-                      {roomAvailability[eventData.roomEmail] === "available"
-                        ? <>✅ This room is available.</>
-                        : roomAvailability[eventData.roomEmail] === "busy"
-                          ? <>❌ This room is busy. Please select another time or room.</>
-                          : "Status unknown. Please check your time."}
-                    </div>
+                          style={{ cursor: "pointer", fontSize: 15 }}
+                        >
+                          {user.displayName} ({user.mail})
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
-
-                {/* CATEGORY */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Response Option
-                  </label>
-                  <select
-                    className="form-select"
-                    name="category"
-                    value={eventData.category}
-                    disabled={!account}
-                    onChange={handleChange}
-                    style={{
-                      borderRadius: 8,
-                      padding: "0.6rem",
-                      fontSize: 15,
-                      border: "5px solid #e0e6ed"
-                    }}
-                  >
-                    <option value="Busy">Busy</option>
-                    <option value="Free">Free</option>
-                    <option value="Tentative">Tentative</option>
-                  </select>
+                <div className="mt-2 d-flex flex-wrap gap-2">
+                  {attendeeList.map(attendee => (
+                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}>
+                      {attendee.displayName}
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        onClick={() => removeAttendee(attendee.mail)}
+                        aria-label="Remove"
+                        style={{ filter: "brightness(0) invert(1)" }}
+                      ></button>
+                    </span>
+                  ))}
                 </div>
+              </div>
 
-                {/* REMINDER */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Reminder
-                  </label>
-                  <select
-                    className="form-select"
-                    name="reminder"
-                    value={eventData.reminder}
-                    disabled={!account}
-                    onChange={handleChange}
-                    style={{
-                      borderRadius: 8,
-                      padding: "0.6rem",
-                      fontSize: 15,
-                      border: "5px solid #e0e6ed"
-                    }}
-                  >
-                    <option value="0">None</option>
-                    <option value="5">5 minutes before</option>
-                    <option value="10">10 minutes before</option>
-                    <option value="15">15 minutes before</option>
-                    <option value="30">30 minutes before</option>
-                    <option value="60">1 hour before</option>
-                  </select>
-                </div>
-
-                {/* DESCRIPTION */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                    Description
-                  </label>
-                  <textarea
+              {/* DATE & TIME */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Date <span className="text-danger">*</span>
+                </label>
+                <div className="d-flex align-items-center gap-3 flex-wrap" style={{ minHeight: 45, rowGap: 6 }}>
+                  <input
+                    type="date"
                     className="form-control"
-                    placeholder="Add a description..."
-                    name="description"
-                    value={eventData.description}
+                    name="startDate"
+                    value={eventData.startDate}
                     onChange={handleChange}
+                    required
+                    disabled={!account}
+                    min={new Date().toISOString().split("T")[0]}
                     style={{
-                      borderRadius: 8,
-                      padding: "0.75rem",
+                      borderRadius: 7,
+                      padding: "0.45rem 0.7rem",
                       fontSize: 15,
                       border: "5px solid #e0e6ed",
-                      minHeight: 95
+                      width: 160
                     }}
                   />
+                  <input
+                    type="time"
+                    className="form-control"
+                    name="startTime"
+                    value={eventData.startTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
+                    style={{
+                      borderRadius: 7,
+                      padding: "0.45rem 0.7rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed",
+                      width: 110
+                    }}
+                  />
+                  <span style={{ color: "#718096", fontSize: 16, minWidth: 20, textAlign: "center" }}>to</span>
+                  <input
+                    type="time"
+                    className="form-control"
+                    name="endTime"
+                    value={eventData.endTime}
+                    onChange={handleChange}
+                    disabled={eventData.isAllDay || !account}
+                    style={{
+                      borderRadius: 7,
+                      padding: "0.45rem 0.7rem",
+                      fontSize: 15,
+                      border: "5px solid #e0e6ed",
+                      width: 110
+                    }}
+                  />
+                  {/* Recurring/All Day */}
+                  <div className="d-flex align-items-center gap-4 ms-3 flex-wrap">
+                    <div className="form-check d-flex align-items-center mb-0">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        name="isRecurring"
+                        checked={eventData.isRecurring}
+                        onChange={e => {
+                          handleChange(e);
+                          if (e.target.checked) setShowRecurrenceModal(true);
+                        }}
+                        id="recurringCheck"
+                        disabled={!account}
+                        style={{
+                          width: "1.7em",
+                          height: "1.7em",
+                          marginRight: "0.5em",
+                          accentColor: "#78b042",
+                        }}
+                      />
+                      <label className="form-check-label mb-0" htmlFor="recurringCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
+                        Make recurring
+                      </label>
+                    </div>
+                    <div className="form-check d-flex align-items-center mb-0">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        name="isAllDay"
+                        checked={eventData.isAllDay}
+                        onChange={handleChange}
+                        id="allDayCheck"
+                        disabled={!account}
+                        style={{
+                          width: "1.7em",
+                          height: "1.7em",
+                          marginRight: "0.5em",
+                          accentColor: "#0074bd",
+                        }}
+                      />
+                      <label className="form-check-label mb-0" htmlFor="allDayCheck" style={{ fontSize: 16, color: "#193565ff", fontWeight: 500 }}>
+                        All day
+                      </label>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                {/* BUTTONS */}
-                <div
-                  className="modal-footer px-0 pb-0 pt-3"
-                  style={{ borderTop: "none",marginTop:"-20px", justifyContent: "flex-end" }}
+              {/* LOCATION */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Location <span className="text-danger">*</span>
+                </label>
+                <select
+                  className="form-select"
+                  name="location"
+                  value={eventData.location}
+                  onChange={handleRoomSelect}
+                  required
+                  disabled={!account}
+                  style={{
+                    borderRadius: 8,
+                    padding: "0.6rem",
+                    fontSize: 15,
+                    border: "5px solid #e0e6ed"
+                  }}
                 >
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn me-2"
-                    style={{
-                      borderRadius: 14,
-                      minWidth: 90,
-                      fontWeight: "bolder",
-                      color: "#ff0000",
-                      border: "4px solid rgba(255,0,0,1)",
-                      background: "transparent",
-                      pointerEvents: isLoading ? "none" : "auto",
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.background = "transparent"; // prevent hover fill
-                      e.target.style.color = "#ff0000";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.background = "transparent";
-                      e.target.style.color = "#ff0000";
-                    }}
+                  <option value="">Select a room</option>
+                  {rooms.map(room => {
+                    const status = roomAvailability[room.email];
+                    let color = "black";
+                    let indicator = "";
+                    if (status === "available") { color = "green"; indicator = "✅ "; }
+                    else if (status === "busy") { color = "red"; indicator = "❌ "; }
+                    else { color = "gray"; indicator = "⌛ "; }
+                    return (
+                      <option key={room.email} value={room.name} style={{ color }}>
+                        {indicator} {room.name}
+                      </option>
+                    );
+                  })}
+                </select>
+                {isCheckingAvailability ? (
+                  <div className="text-info mt-1" style={{ fontSize: 14 }}>Checking room availability...</div>
+                ) : eventData.roomEmail && (
+                  <div
+                    className={`mt-1 ${roomAvailability[eventData.roomEmail] === "available"
+                      ? "text-success"
+                      : "text-danger"
+                      }`}
+                    style={{ fontSize: 14 }}
                   >
-                    Cancel
-                  </button>
+                    {roomAvailability[eventData.roomEmail] === "available"
+                      ? <>✅ This room is available.</>
+                      : roomAvailability[eventData.roomEmail] === "busy"
+                        ? <>❌ This room is busy. Please select another time or room.</>
+                        : "Status unknown. Please check your time."}
+                  </div>
+                )}
+              </div>
 
-                  <button
-                    type="submit"
-                    className="btn btn-primary-2"
-                    disabled={isLoading || !account}
-                    style={{
-                      borderRadius: 14,
-                      minWidth: 140,
-                      fontWeight: "bolder",
-                      color: "rgba(13, 119, 25, 1)",
-                      border: "4px solid rgba(13,119,25,1)",
-                    }}
-                  >
-                    {isLoading ? (
-                      <>
-                        <span
-                          className="spinner-border spinner-border-sm me-2"
-                          role="status"
-                          aria-hidden="true"
-                        ></span>
-                        Scheduling...
-                      </>
-                    ) : (
-                      "Schedule Event"
-                    )}
-                  </button>
-                </div>
-              </form>
+              {/* CATEGORY */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Response Option
+                </label>
+                <select
+                  className="form-select"
+                  name="category"
+                  value={eventData.category}
+                  disabled={!account}
+                  onChange={handleChange}
+                  style={{
+                    borderRadius: 8,
+                    padding: "0.6rem",
+                    fontSize: 15,
+                    border: "5px solid #e0e6ed"
+                  }}
+                >
+                  <option value="Busy">Busy</option>
+                  <option value="Free">Free</option>
+                  <option value="Tentative">Tentative</option>
+                </select>
+              </div>
+
+              {/* REMINDER */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Reminder
+                </label>
+                <select
+                  className="form-select"
+                  name="reminder"
+                  value={eventData.reminder}
+                  disabled={!account}
+                  onChange={handleChange}
+                  style={{
+                    borderRadius: 8,
+                    padding: "0.6rem",
+                    fontSize: 15,
+                    border: "5px solid #e0e6ed"
+                  }}
+                >
+                  <option value="0">None</option>
+                  <option value="5">5 minutes before</option>
+                  <option value="10">10 minutes before</option>
+                  <option value="15">15 minutes before</option>
+                  <option value="30">30 minutes before</option>
+                  <option value="60">1 hour before</option>
+                </select>
+              </div>
+
+              {/* DESCRIPTION */}
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
+                  Description
+                </label>
+                <textarea
+                  className="form-control"
+                  placeholder="Add a description..."
+                  name="description"
+                  value={eventData.description}
+                  onChange={handleChange}
+                  style={{
+                    borderRadius: 8,
+                    padding: "0.75rem",
+                    fontSize: 15,
+                    border: "5px solid #e0e6ed",
+                    minHeight: 95
+                  }}
+                />
+              </div>
+
+              {/* BUTTONS */}
+              <div
+                className="modal-footer px-0 pb-0 pt-3"
+                style={{ borderTop: "none", marginTop: "-20px", justifyContent: "flex-end" }}
+              >
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn me-2"
+                  style={{
+                    borderRadius: 14,
+                    minWidth: 90,
+                    fontWeight: "bolder",
+                    color: "#ff0000",
+                    border: "4px solid rgba(255,0,0,1)",
+                    background: "transparent",
+                    pointerEvents: isLoading ? "none" : "auto",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = "transparent"; // prevent hover fill
+                    e.target.style.color = "#ff0000";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = "transparent";
+                    e.target.style.color = "#ff0000";
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary-2"
+                  disabled={isLoading || !account}
+                  style={{
+                    borderRadius: 14,
+                    minWidth: 140,
+                    fontWeight: "bolder",
+                    color: "rgba(13, 119, 25, 1)",
+                    border: "4px solid rgba(13,119,25,1)",
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-2"
+                        role="status"
+                        aria-hidden="true"
+                      ></span>
+                      Scheduling...
+                    </>
+                  ) : (
+                    "Schedule Event"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
