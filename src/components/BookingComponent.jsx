@@ -798,8 +798,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         startIso = start.toISOString();
         endIso = end.toISOString();
       } else {
-        startIso = buildIsoTime(eventData.startDate, eventData.startTime, false, false);
-        endIso = buildIsoTime(eventData.startDate, eventData.endTime, true, false);
+        startIso = buildIsoTime(eventData.startDate, eventData.startTime);
+        endIso = buildIsoTime(eventData.startDate, eventData.endTime);
       }
       const requestBody = {
         Title: eventData.title,
