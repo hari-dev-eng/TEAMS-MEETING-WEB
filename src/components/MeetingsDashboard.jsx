@@ -220,48 +220,56 @@ const MeetingsDashboard = () => {
   };
 
   const deleteSingleMeeting = async (meeting) => {
+    console.log("[Delete] Called with meeting:", meeting);
+
     const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
+    console.log("[Delete] Organizer from meeting:", organizer);
+    console.log("[Delete] Signed-in email:", signedInEmail);
+
     if (organizer !== signedInEmail.toLowerCase()) {
+      console.warn("[Delete] Organizer mismatch — access denied");
       showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
       return;
     }
 
     try {
+      console.log("[Delete] Acquiring token...");
       const token = await instance.acquireTokenSilent({
         scopes: ["Calendars.ReadWrite"],
         account: accounts[0],
       });
+      console.log("[Delete] Token acquired:", token ? "YES" : "NO");
 
       if (!meeting.iCalUId) {
-        console.error("No iCalUId found for meeting:", meeting);
+        console.error("[Delete] No iCalUId found on meeting");
         showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
         return;
       }
 
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
+      console.log("[Delete] API URL built:", url);
+      console.log("[Delete] OrganizerEmail param:", meeting.organizerEmail);
 
-      console.log("Deleting meeting:", {
-        iCalUId: meeting.iCalUId,
-        organizerEmail: meeting.organizerEmail,
-        url,
-      });
-
-      await api.delete(url, {
+      console.log("[Delete] Sending DELETE request...");
+      const resp = await api.delete(url, {
         params: { organizerEmail: meeting.organizerEmail },
         headers: { Authorization: `Bearer ${token.accessToken}` },
       });
+      console.log("[Delete] DELETE response:", resp.status, resp.data);
 
+      console.log("[Delete] Updating local state (panel + dashboard)...");
       setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
       setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
 
+      console.log("[Delete] Success — showing alert");
       showAlert("Meeting deleted successfully!", "Success");
     } catch (err) {
-      console.error("Delete failed:", err.response?.data || err.message);
+      console.error("[Delete] Error caught:", err);
+      console.error("[Delete] Response data:", err.response?.data);
+      console.error("[Delete] Message:", err.message);
       showAlert("Failed to delete meeting.", "Error");
     }
   };
-
-
 
   // === API fetch handlers (unchanged) ===
   const fetchPanelMeetings = useCallback(
@@ -516,8 +524,8 @@ const MeetingsDashboard = () => {
                               background: statusGradients[status],
                               borderLeft: `5px solid ${status === "completed"
                                 ? "#b2bec3" : status === "Live"
-                                ? "#38df6c" : "#3498db"
-                              }`,
+                                  ? "#38df6c" : "#3498db"
+                                }`,
                               padding: "15px 13px 15px 18px", borderRadius: 15,
                               display: "flex", flexDirection: "column", boxShadow: "0 2px 6px #deeefc3a",
                               position: "relative", opacity: isCompleted ? 0.72 : 1,
@@ -561,6 +569,7 @@ const MeetingsDashboard = () => {
                                     opacity: canDelete ? 1 : 0.3,
                                   }}
                                   onClick={() => {
+                                    console.log("[UI] Delete button clicked for:", meeting);
                                     setSelectedMeetingKey(getKey(meeting));
                                     setDeleteStep(2);
                                     setSidePanelTab("delete");
@@ -595,40 +604,60 @@ const MeetingsDashboard = () => {
                   )}
                 </div>
 
-              {/* Deletion Confirmation */}
-              {sidePanelTab === "delete" && deleteStep === 2 && selectedMeeting && (
-                <div>
-                  <div className="mb-3" style={{ fontWeight: 600, fontSize: 18 }}>Confirm Deletion</div>
-                  <div className="p-3 mb-2 rounded" style={{ background: "#f8fbff", fontSize: 15 }}>
-                    <div><b>Subject:</b> {selectedMeeting.subject || "Untitled"}</div>
-                    <div><b>Organizer:</b> {selectedMeeting.organizer || "Unknown"}</div>
-                    <div><b>Room:</b> {selectedMeeting.location || "Unassigned"}</div>
-                    <div><b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</div>
-                  </div>
-                  <div className="d-flex gap-2 justify-content-end mt-3">
-                    <button className="btn btn-secondary" onClick={() => setSidePanelTab("list")}>Cancel</button>
-                    <button
-                      className="btn btn-danger"
-                      onClick={async () => {
-                        await deleteSingleMeeting(selectedMeeting);
-                        setSidePanelTab("list");
-                        setDeleteStep(1);
-                        setSelectedMeetingKey(null);
-                        showAlert("Meeting deleted successfully!", "Success");
-                      }}
-                    >
-                      Yes, Delete
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-};
+                {/* Deletion Confirmation */}
+                {sidePanelTab === "delete" && deleteStep === 2 && selectedMeeting && (
+  <div>
+    {console.log("[UI] Rendered confirmation for:", selectedMeeting)}
+
+    <div className="mb-3" style={{ fontWeight: 600, fontSize: 18 }}>
+      Confirm Deletion
+    </div>
+    <div className="p-3 mb-2 rounded" style={{ background: "#f8fbff", fontSize: 15 }}>
+      <div><b>Subject:</b> {selectedMeeting.subject || "Untitled"}</div>
+      <div><b>Organizer:</b> {selectedMeeting.organizer || "Unknown"}</div>
+      <div><b>Room:</b> {selectedMeeting.location || "Unassigned"}</div>
+      <div>
+        <b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}
+      </div>
+    </div>
+
+    <div className="d-flex gap-2 justify-content-end mt-3">
+      <button
+        className="btn btn-secondary"
+        onClick={() => {
+          console.log("[UI] Cancel clicked — returning to list");
+          setSidePanelTab("list");
+        }}
+      >
+        Cancel
+      </button>
+
+      <button
+        className="btn btn-danger"
+        onClick={async () => {
+          console.log("[UI] Yes, Delete clicked for:", selectedMeeting);
+          await deleteSingleMeeting(selectedMeeting);
+          console.log("[UI] Delete function finished");
+
+          setSidePanelTab("list");
+          setDeleteStep(1);
+          setSelectedMeetingKey(null);
+
+        }}
+      >
+        Yes, Delete
+      </button>
+    </div>
+  </div>
+)}
+
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+  };
 
 
   const AlertModal = () => (
