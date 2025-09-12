@@ -219,24 +219,51 @@ const MeetingsDashboard = () => {
     showAlert("Meeting created successfully!", "Success");
   };
 
-  const deleteSingleMeeting = async (meeting) => {
+  // helper to extract username before @
+const extractUserName = (email) => {
+  if (!email) return "";
+  return email.split("@")[0].trim().toLowerCase();
+};
+
+const deleteSingleMeeting = async (meeting) => {
   console.log("[Delete] Called with meeting:", meeting);
 
-  const organizerEmail = (meeting.organizer || meeting.organizerEmail || "").trim().toLowerCase();
+  // Log raw values
+  console.log("[Delete] Raw meeting.organizer:", meeting.organizer);
+  console.log("[Delete] Raw meeting.organizerEmail:", meeting.organizerEmail);
+  console.log("[Delete] Raw signedInEmail:", signedInEmail);
+
+  // Normalize organizer email
+  const organizerEmail =
+    typeof meeting.organizer === "string"
+      ? meeting.organizer.trim().toLowerCase()
+      : typeof meeting.organizer?.emailAddress?.address === "string"
+      ? meeting.organizer.emailAddress.address.trim().toLowerCase()
+      : (meeting.organizerEmail || "").trim().toLowerCase();
+
   const userEmail = (signedInEmail || "").trim().toLowerCase();
 
-  console.log("[Delete] Organizer from meeting:", organizerEmail);
-  console.log("[Delete] Signed-in email:", userEmail);
+  // Extract usernames (before @)
+  const organizerUser = extractUserName(organizerEmail);
+  const signedInUser = extractUserName(userEmail);
 
-  if (!userEmail) {
-    console.warn("[Delete] No signed-in email found");
+  console.log("[Delete] Normalized organizer email:", organizerEmail);
+  console.log("[Delete] Normalized user email:", userEmail);
+  console.log("[Delete] Organizer username:", organizerUser);
+  console.log("[Delete] Signed-in username:", signedInUser);
+
+  if (!signedInUser) {
+    console.warn("[Delete] No signed-in user found");
     showAlert("You must be signed in to cancel this meeting.", "Access Denied");
     return;
   }
 
-  if (organizerEmail !== userEmail) {
+  if (organizerUser !== signedInUser) {
     console.warn("[Delete] Organizer mismatch — access denied");
-    showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
+    showAlert(
+      `Only the meeting organizer can cancel this meeting.\n\nOrganizer: ${organizerUser}\nYou: ${signedInUser}`,
+      "Access Denied"
+    );
     return;
   }
 
@@ -254,7 +281,9 @@ const MeetingsDashboard = () => {
       return;
     }
 
-    const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
+    const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(
+      meeting.iCalUId
+    )}`;
     console.log("[Delete] API URL built:", url);
     console.log("[Delete] OrganizerEmail param:", meeting.organizerEmail);
 
