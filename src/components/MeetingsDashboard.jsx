@@ -393,10 +393,11 @@ const MeetingsDashboard = () => {
       return hay.includes(q);
     });
   }, [upcomingMeetings, deleteSearch]);
+  
   const selectedMeeting = useMemo(
-    () => filteredUpcoming.find((m) => getKey(m) === selectedMeetingKey) || null,
-    [filteredUpcoming, selectedMeetingKey]
-  );
+  () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
+  [panelMeetings, selectedMeetingKey]
+);
 
   // Side Panel Component
   const SidePanel = () => {
