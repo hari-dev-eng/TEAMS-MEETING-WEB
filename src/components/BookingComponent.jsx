@@ -486,53 +486,52 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
-    if (!eventData.startDate) return;
+  if (!eventData.startDate) return;
 
-    setIsCheckingAvailability(true);
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
+  setIsCheckingAvailability(true);
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
 
-      let startDateTime, endDateTime;
-      if (eventData.isAllDay) {
-        const start = new Date(`${eventData.startDate}T00:00:00`);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        startDateTime = start.toISOString();
-        endDateTime = end.toISOString();
-      } else if (eventData.startTime && eventData.endTime) {
-        startDateTime = new Date(`${eventData.startDate}T${eventData.startTime}`).toISOString();
-        endDateTime = new Date(`${eventData.startDate}T${eventData.endTime}`).toISOString();
-      } else {
-        return;
-      }
-
-      const availabilityResults = {};
-      for (const room of rooms) {
-        try {
-          const response = await axios.get(
-            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          availabilityResults[room.email] = response.data.value.length > 0 ? "busy" : "available";
-        } catch (err) {
-          availabilityResults[room.email] = "unknown";
-          console.error(`Error fetching ${room.email}:`, err);
-        }
-      }
-      setRoomAvailability(availabilityResults);
-    } catch (error) {
-      console.error("Failed to fetch availability:", error);
-    } finally {
-      setIsCheckingAvailability(false);
+    let startDateTime, endDateTime;
+    if (eventData.isAllDay) {
+      const start = new Date(`${eventData.startDate}T00:00:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      startDateTime = start.toISOString();
+      endDateTime = end.toISOString();
+    } else if (eventData.startTime && eventData.endTime) {
+      // Add 1 second to end time to make it exclusive
+      const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
+      const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+      end.setSeconds(end.getSeconds() + 1); // Make end time exclusive
+      
+      startDateTime = start.toISOString();
+      endDateTime = end.toISOString();
+    } else {
+      return;
     }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken]);
 
-  useEffect(() => {
-    if (eventData.startDate && (eventData.isAllDay || (eventData.startTime && eventData.endTime))) {
-      checkRoomAvailability();
+    const availabilityResults = {};
+    for (const room of rooms) {
+      try {
+        const response = await axios.get(
+          `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        availabilityResults[room.email] = response.data.value.length > 0 ? "busy" : "available";
+      } catch (err) {
+        availabilityResults[room.email] = "unknown";
+        console.error(`Error fetching ${room.email}:`, err);
+      }
     }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, checkRoomAvailability]);
+    setRoomAvailability(availabilityResults);
+  } catch (error) {
+    console.error("Failed to fetch availability:", error);
+  } finally {
+    setIsCheckingAvailability(false);
+  }
+}, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken]);
 
   const fetchUsers = useCallback(async (searchTerm = "", isAttendeeField = false) => {
     if (!searchTerm || searchTerm.length < 2) {
@@ -779,8 +778,14 @@ const BookingComponent = ({ onClose, onSave }) => {
         startIso = start.toISOString();
         endIso = end.toISOString();
       } else {
-        startIso = new Date(`${eventData.startDate}T${eventData.startTime}`).toISOString();
-        endIso = new Date(`${eventData.startDate}T${eventData.endTime}`).toISOString();
+        const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
+        const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+
+        // Subtract 1 second to avoid overlap
+        end.setSeconds(end.getSeconds() - 1);
+
+        startIso = start.toISOString();
+        endIso = end.toISOString();
       }
 
       const requestBody = {
