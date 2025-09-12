@@ -41,7 +41,10 @@ const api = axios.create({
     return usp.toString();
   },
 });
+
+// Column headers
 const floorHeaders = ["Ground Floor", "1st Floor", "Conference Room", "3rd Floor"];
+
 const statusGradients = {
   upcoming: "linear-gradient(105deg, #56baecbb 30%, #c5e5f5cc 100%)",
   Live: "linear-gradient(105deg, #4cd964bb 30%, #c5e5f5cc 100%)",
@@ -94,25 +97,99 @@ const formatTimeOnly = (dateStr) => {
 };
 const getAttendeesCount = (meeting) =>
   meeting.attendeesCount || meeting.attendeeCount || meeting.AttendeeCount || 0;
+
 const LiveIndicator = () => (
   <span className="blinking-dot me-1" style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ff0000" }} />
 );
 
+/* ===================== MULTI-ROOM HELPERS ===================== */
+const getOrganizerId = (m) => (m.organizerEmail || m.organizer || "").toLowerCase().trim();
+const multiKeyFor = (m) =>
+  m.iCalUId ||
+  `${(m.subject || "").trim()}|${new Date(m.startTime).toISOString()}|${new Date(m.endTime).toISOString()}|${getOrganizerId(m)}`;
+
+// Use backend "multiRooms" when present; otherwise detect by grouping duplicates.
+const annotateMultiRoom = (list = []) => {
+  const provided = list.some((m) => Array.isArray(m.multiRooms));
+  if (provided) {
+    return list.map((m) => ({
+      ...m,
+      multiRoom: Array.isArray(m.multiRooms) && m.multiRooms.length > 1,
+      multiRoomCount: Array.isArray(m.multiRooms) ? m.multiRooms.length : 0,
+    }));
+  }
+
+  const groups = new Map();
+  list.forEach((m) => {
+    const k = multiKeyFor(m);
+    const entry = groups.get(k) || { rooms: new Set(), items: [] };
+    entry.rooms.add(m.location || "Unknown");
+    entry.items.push(m);
+    groups.set(k, entry);
+  });
+
+  return list.map((m) => {
+    const g = groups.get(multiKeyFor(m));
+    const rooms = Array.from(g.rooms).sort();
+    return { ...m, multiRoom: rooms.length > 1, multiRoomCount: rooms.length, multiRooms: rooms };
+  });
+};
+
+const dedupeByGroup = (list = []) => {
+  const seen = new Set();
+  return list.filter((m) => {
+    const k = multiKeyFor(m);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+};
+/* ============================================================= */
+
+/** Stats: unique meetings for counts/avg/active, per-room minutes for utilization */
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
-  let activeCount = 0, totalAttendees = 0, totalDuration = 0, totalUsedMinutes = 0;
+
+  // group by multiKey to get unique meetings
+  const groupMap = new Map();
   for (const m of meetings) {
-    const start = new Date(m.startTime); const end = new Date(m.endTime);
-    if (now >= start && now <= end) activeCount++;
-    totalAttendees += getAttendeesCount(m);
-    const duration = (end - start) / (1000 * 60);
-    totalDuration += duration; totalUsedMinutes += duration;
+    const k = multiKeyFor(m);
+    if (!groupMap.has(k)) groupMap.set(k, []);
+    groupMap.get(k).push(m);
   }
-  const avgDuration = meetings.length > 0 ? Math.round(totalDuration / meetings.length) : 0;
+  const uniques = Array.from(groupMap.values()).map((items) => items[0]); // one rep per group
+
+  // unique-based metrics
+  let activeUnique = 0, totalAttendeesUnique = 0, totalDurationUnique = 0;
+  for (const m of uniques) {
+    const start = new Date(m.startTime);
+    const end = new Date(m.endTime);
+    if (now >= start && now <= end) activeUnique++;
+    totalAttendeesUnique += getAttendeesCount(m);
+    totalDurationUnique += (end - start) / (1000 * 60);
+  }
+  const avgDuration = uniques.length > 0 ? Math.round(totalDurationUnique / uniques.length) : 0;
+
+  // per-room utilization (count each room booking)
+  let usedMinutesPerRoom = 0;
+  for (const m of meetings) {
+    const start = new Date(m.startTime);
+    const end = new Date(m.endTime);
+    usedMinutesPerRoom += (end - start) / (1000 * 60);
+  }
   const totalPossibleMinutes = floors * hoursPerFloor * 60;
-  const roomUtilization = totalPossibleMinutes > 0 ? Math.min(100, Math.round((totalUsedMinutes / totalPossibleMinutes) * 100)) : 0;
-  return { activeMeetings: activeCount, totalAttendees, avgDuration, roomUtilization };
+  const roomUtilization =
+    totalPossibleMinutes > 0 ? Math.min(100, Math.round((usedMinutesPerRoom / totalPossibleMinutes) * 100)) : 0;
+
+  return {
+    totalMeetings: uniques.length,
+    activeMeetings: activeUnique,
+    totalAttendees: totalAttendeesUnique,
+    avgDuration,
+    roomUtilization,
+  };
 };
+
 const LoadingIndicator = () => (
   <div className="d-flex justify-content-center align-items-center p-3">
     <div className="spinner-border spinner-border-sm text-primary me-2" role="status"><span className="visually-hidden">Loading...</span></div>
@@ -170,7 +247,7 @@ const SIDE_PANEL_MAX_WIDTH = 540;
 const MeetingsDashboard = () => {
   const [date, setDate] = useState(new Date());
   const [meetings, setMeetings] = useState([]);
-  const [stats, setStats] = useState({ activeMeetings: 0, totalAttendees: 0, avgDuration: 0, roomUtilization: 0 });
+  const [stats, setStats] = useState({ totalMeetings: 0, activeMeetings: 0, totalAttendees: 0, avgDuration: 0, roomUtilization: 0 });
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -186,14 +263,12 @@ const MeetingsDashboard = () => {
   const [selectedMeetingKey, setSelectedMeetingKey] = useState(null);
   const [deleteSearch, setDeleteSearch] = useState("");
 
-  // Side panel state
   const [panelDate, setPanelDate] = useState(new Date());
   const [panelMeetings, setPanelMeetings] = useState([]);
   const [panelLoading, setPanelLoading] = useState(false);
 
   const getKey = (m) => m.id ?? `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
 
-  // get MSAL account
   const { instance, accounts } = useMsal();
   const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
   const isAuthenticated = accounts && accounts.length > 0;
@@ -212,78 +287,58 @@ const MeetingsDashboard = () => {
 
   const handleScheduleMeeting = () => setShowBookingModal(true);
   const handleCloseBookingModal = () => setShowBookingModal(false);
-  const handleSaveMeeting = (meetingData) => {
+  const handleSaveMeeting = () => {
     setShowBookingModal(false);
     fetchMeetings(true);
     fetchPanelMeetings();
     showAlert("Meeting created successfully!", "Success");
   };
 
- const deleteSingleMeeting = async (meeting) => {
-  console.log("[Delete] Called with meeting:", meeting);
-
-  const organizerEmail = (meeting.organizerEmail || "").trim().toLowerCase();
-  const userEmail = (signedInEmail || "").trim().toLowerCase();
-
-  console.log("[Delete] Normalized organizer email:", organizerEmail);
-  console.log("[Delete] Normalized user email:", userEmail);
-
-  if (!userEmail) {
-    console.warn("[Delete] No signed-in email found");
-    showAlert("You must be signed in to cancel this meeting.", "Access Denied");
-    return;
-  }
-
-  // Only check against organizerEmail (not display name)
-  if (organizerEmail !== userEmail) {
-    console.warn("[Delete] Organizer mismatch — access denied");
-    showAlert(
-      `Only the meeting organizer can cancel this meeting.\n\nOrganizer: ${organizerEmail}\nYou: ${userEmail}`,
-      "Access Denied"
-    );
-    return;
-  }
-
-  try {
-    console.log("[Delete] Acquiring token...");
-    const token = await instance.acquireTokenSilent({
-      scopes: ["Calendars.ReadWrite"],
-      account: accounts[0],
-    });
-    console.log("[Delete] Token acquired:", token ? "YES" : "NO");
-
-    if (!meeting.iCalUId) {
-      console.error("[Delete] No iCalUId found on meeting");
-      showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
+  const deleteSingleMeeting = async (meeting) => {
+    const organizerEmail = (meeting.organizerEmail || "").trim().toLowerCase();
+    const userEmail = (signedInEmail || "").trim().toLowerCase();
+    if (!userEmail) {
+      showAlert("You must be signed in to cancel this meeting.", "Access Denied");
+      return;
+    }
+    if (organizerEmail !== userEmail) {
+      showAlert(
+        `Only the meeting organizer can cancel this meeting.\n\nOrganizer: ${organizerEmail}\nYou: ${userEmail}`,
+        "Access Denied"
+      );
       return;
     }
 
-    const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
-    console.log("[Delete] API URL built:", url);
-    console.log("[Delete] OrganizerEmail param sent:", organizerEmail); 
+    try {
+      const token = await instance.acquireTokenSilent({
+        scopes: ["Calendars.ReadWrite"],
+        account: accounts[0],
+      });
 
-    console.log("[Delete] Sending DELETE request...");
-    const resp = await api.delete(url, {
-      params: { organizerEmail: organizerEmail }, 
-      headers: { Authorization: `Bearer ${token.accessToken}` },
-    });
-    console.log("[Delete] DELETE response:", resp.status, resp.data);
+      if (!meeting.iCalUId) {
+        showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
+        return;
+      }
 
-    setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-    setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+      const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
+      await api.delete(url, {
+        params: { organizerEmail: organizerEmail },
+        headers: { Authorization: `Bearer ${token.accessToken}` },
+      });
 
-    console.log("[Delete] Success — showing alert");
-    showAlert("Meeting deleted successfully!", "Success");
-  } catch (err) {
-    console.error("[Delete] Error caught:", err);
-    console.error("[Delete] Response data:", err.response?.data);
-    console.error("[Delete] Message:", err.message);
-    showAlert("Failed to delete meeting.", "Error");
-  }
-};
+      setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+      setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
 
+      showAlert("Meeting deleted successfully!", "Success");
+    } catch (err) {
+      console.error("[Delete] Error caught:", err);
+      console.error("[Delete] Response data:", err.response?.data);
+      console.error("[Delete] Message:", err.message);
+      showAlert("Failed to delete meeting.", "Error");
+    }
+  };
 
-  // === API fetch handlers (unchanged) ===
+  // === API fetch handlers ===
   const fetchPanelMeetings = useCallback(
     async () => {
       setPanelLoading(true);
@@ -296,7 +351,9 @@ const MeetingsDashboard = () => {
           "contconference@conservesolution.com",
         ];
         const res = await api.get("/api/Meetings", { params: { userEmails, date: formattedDate } });
-        setPanelMeetings(res.data?.meetings || []);
+        const raw = res.data?.meetings || [];
+        const annotated = annotateMultiRoom(raw);
+        setPanelMeetings(dedupeByGroup(annotated)); // show unique in the side panel
       } catch (err) {
         setPanelMeetings([]);
       } finally {
@@ -323,9 +380,11 @@ const MeetingsDashboard = () => {
           "contconference@conservesolution.com",
         ];
         const res = await api.get("/api/Meetings", { params: { userEmails, date: formattedDate } });
-        const meetingsData = res.data?.meetings || [];
+        const meetingsRaw = res.data?.meetings || [];
+        const meetingsData = annotateMultiRoom(meetingsRaw);
+
         setMeetings(meetingsData);
-        setStats(calculateStats(meetingsData));
+        setStats(calculateStats(meetingsData)); // unique counts, per-room utilization
         setPage(1);
         setShowErrorModal(false);
         setErrorMessage("");
@@ -363,6 +422,7 @@ const MeetingsDashboard = () => {
     });
     return copy;
   }, [meetings]);
+
   const meetingsByFloor = useMemo(() => {
     return floorHeaders.reduce((acc, floor) => {
       acc[floor] = sortedMeetings.filter((m) =>
@@ -371,6 +431,7 @@ const MeetingsDashboard = () => {
       return acc;
     }, {});
   }, [sortedMeetings]);
+
   const totalPages = Math.ceil(
     Math.max(...floorHeaders.map((f) => meetingsByFloor[f]?.length || 0)) / PAGE_SIZE
   );
@@ -381,6 +442,7 @@ const MeetingsDashboard = () => {
       return acc;
     }, {});
   }, [meetingsByFloor, page]);
+
   const upcomingMeetings = useMemo(
     () => sortedMeetings.filter((m) => getMeetingStatus(m.startTime, m.endTime) === "upcoming"),
     [sortedMeetings]
@@ -393,12 +455,13 @@ const MeetingsDashboard = () => {
       return hay.includes(q);
     });
   }, [upcomingMeetings, deleteSearch]);
-  const selectedMeeting = useMemo(
-  () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
-  [panelMeetings, selectedMeetingKey]
-);
 
-  // Side Panel Component
+  const selectedMeeting = useMemo(
+    () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
+    [panelMeetings, selectedMeetingKey]
+  );
+
+  // Side Panel
   const SidePanel = () => {
     const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
 
@@ -413,13 +476,11 @@ const MeetingsDashboard = () => {
               animate={{ opacity: 0.45 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              style={{
-                position: "fixed", inset: 0, background: "#000", zIndex: 1200,
-              }}
+              style={{ position: "fixed", inset: 0, background: "#000", zIndex: 1200 }}
               onClick={closeSidePanel}
             />
 
-            {/* Side Panel */}
+            {/* Panel */}
             <motion.div
               key="side-panel"
               initial={{ x: "100%" }}
@@ -441,9 +502,9 @@ const MeetingsDashboard = () => {
                 borderTopLeftRadius: 0, borderBottomLeftRadius: 24,
                 borderLeft: "1.5px solid #e6e8ec",
               }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Header: Title + DatePicker */}
+              {/* Header */}
               <div
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -461,37 +522,14 @@ const MeetingsDashboard = () => {
                     WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
                   }}>Manage Meetings</span>
                 </div>
-                {/* Inline DatePicker for the panel */}
                 <div style={{ minWidth: 155, marginRight: 4 }}>
-                  <DatePickerComponent
-                    selectedDate={panelDate}
-                    setSelectedDate={setPanelDate}
-                    label={null}
-                  />
+                  <DatePickerComponent selectedDate={panelDate} setSelectedDate={setPanelDate} label={null} />
                 </div>
-                <button
-                  className="btn-close"
-                  style={{
-                    fontSize: 24,
-                    background: "#f5f8fc",
-                    borderRadius: 8, border: "none", outline: "none",
-                    boxShadow: "0 2px 7px #e8f2fa8b",
-                    marginLeft: 7
-                  }}
-                  onClick={closeSidePanel}
-                />
+                <button className="btn-close" style={{ fontSize: 24, background: "#f5f8fc", borderRadius: 8 }} onClick={closeSidePanel} />
               </div>
 
               {/* Content */}
-              <div
-                style={{
-                  padding: "19px 22px 15px 22px",
-                  overflowY: "auto",
-                  flex: 1,
-                  minHeight: 0,
-                  maxHeight: "100%",
-                }}
-              >
+              <div style={{ padding: "19px 22px 15px 22px", overflowY: "auto", flex: 1, minHeight: 0, maxHeight: "100%" }}>
                 <button
                   className="btn w-100 btn-success mb-3"
                   style={{
@@ -508,10 +546,9 @@ const MeetingsDashboard = () => {
                   {panelLoading ? (
                     <LoadingIndicator />
                   ) : panelMeetings.length === 0 ? (
-                    <div className="text-center text-muted p-4" style={{
-                      background: "#f7fafc88",
-                      borderRadius: 14, marginBottom: 9, fontWeight: 500
-                    }}>No meetings found for this day.</div>
+                    <div className="text-center text-muted p-4" style={{ background: "#f7fafc88", borderRadius: 14, marginBottom: 9, fontWeight: 500 }}>
+                      No meetings found for this day.
+                    </div>
                   ) : (
                     panelMeetings.map((meeting, idx) => {
                       const status = getMeetingStatus(meeting.startTime, meeting.endTime);
@@ -519,8 +556,7 @@ const MeetingsDashboard = () => {
                         (meeting.organizer || "").toLowerCase() === signedInEmail ||
                         (meeting.organizerEmail || "").toLowerCase() === signedInEmail;
                       const isCompleted = status === "completed";
-                      const canDelete =
-                        status === "upcoming" && isAuthenticated && isOrganizer;
+                      const canDelete = status === "upcoming" && isAuthenticated && isOrganizer;
 
                       return (
                         <motion.div
@@ -534,54 +570,46 @@ const MeetingsDashboard = () => {
                           <div
                             style={{
                               background: statusGradients[status],
-                              borderLeft: `5px solid ${status === "completed"
-                                ? "#b2bec3" : status === "Live"
-                                  ? "#38df6c" : "#3498db"
-                                }`,
+                              borderLeft: `5px solid ${status === "completed" ? "#b2bec3" : status === "Live" ? "#38df6c" : "#3498db"}`,
                               padding: "15px 13px 15px 18px", borderRadius: 15,
                               display: "flex", flexDirection: "column", boxShadow: "0 2px 6px #deeefc3a",
                               position: "relative", opacity: isCompleted ? 0.72 : 1,
-                              filter: isCompleted ? "grayscale(0.26)" : undefined,
-                              marginBottom: 4,
+                              filter: isCompleted ? "grayscale(0.26)" : undefined, marginBottom: 4,
                             }}
                           >
-                            <div style={{
-                              fontWeight: 700, fontSize: 15.8, color: "#24416c",
-                              textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden"
-                            }}>
+                            {meeting.multiRoom && (
+                              <span className="badge-multiroom" title={(meeting.multiRooms || []).join(" • ")}>
+                                MULTI-ROOM ×{meeting.multiRoomCount}
+                              </span>
+                            )}
+
+                            <div style={{ fontWeight: 700, fontSize: 15.8, color: "#24416c", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}>
                               {meeting.subject || "Untitled"}
                             </div>
+
                             <div style={{ fontSize: 13.9, color: "#484f65", margin: "2px 0" }}>
-                              <b>Room:</b> {meeting.location || "Unassigned"}
+                              <b>Room{meeting.multiRoom ? "s" : ""}:</b>{" "}
+                              {meeting.multiRoom ? (meeting.multiRooms || []).join(" • ") : (meeting.location || "Unassigned")}
                             </div>
+
                             <div style={{ fontSize: 13.4, color: "#484f65" }}>
                               <b>Time:</b> {formatTimeOnly(meeting.startTime)} – {formatTimeOnly(meeting.endTime)}
                             </div>
                             <div style={{ fontSize: 12.6, color: "#6a7b98", marginTop: 2 }}>
                               <b>Organizer:</b> {meeting.organizer || meeting.organizerEmail || "Unknown"}
                             </div>
-                            <div style={{
-                              display: "flex", alignItems: "center", marginTop: 10, gap: 8,
-                            }}>
-                              <span style={{
-                                background: "#eef2ff", color: "#43438a", fontWeight: 600,
-                                borderRadius: 8, fontSize: 13.2, padding: "1.5px 9px"
-                              }}>
+                            <div style={{ display: "flex", alignItems: "center", marginTop: 10, gap: 8 }}>
+                              <span style={{ background: "#eef2ff", color: "#43438a", fontWeight: 600, borderRadius: 8, fontSize: 13.2, padding: "1.5px 9px" }}>
                                 {status.toUpperCase()}
                               </span>
                               <span style={{ color: "#555", fontSize: 12.6 }}>
                                 🙎🏻‍♂️ {getAttendeesCount(meeting)}
                               </span>
-                              {/* Only show Delete if organizer, authenticated, and upcoming */}
                               {canDelete ? (
                                 <button
                                   className="btn btn-sm btn-outline-danger ms-auto"
-                                  style={{
-                                    padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600,
-                                    opacity: canDelete ? 1 : 0.3,
-                                  }}
+                                  style={{ padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600 }}
                                   onClick={() => {
-                                    console.log("[UI] Delete button clicked for:", meeting);
                                     setSelectedMeetingKey(getKey(meeting));
                                     setDeleteStep(2);
                                     setSidePanelTab("delete");
@@ -592,18 +620,9 @@ const MeetingsDashboard = () => {
                               ) : status === "upcoming" ? (
                                 <button
                                   className="btn btn-sm btn-outline-danger ms-auto"
-                                  style={{
-                                    padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600,
-                                    opacity: 0.5, cursor: "not-allowed",
-                                  }}
+                                  style={{ padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600, opacity: 0.5, cursor: "not-allowed" }}
                                   disabled
-                                  title={
-                                    !isAuthenticated
-                                      ? "Sign in to delete"
-                                      : isOrganizer
-                                        ? "Not allowed"
-                                        : "Only the organizer can delete"
-                                  }
+                                  title={!isAuthenticated ? "Sign in to delete" : isOrganizer ? "Not allowed" : "Only the organizer can delete"}
                                 >
                                   Delete
                                 </button>
@@ -616,46 +635,27 @@ const MeetingsDashboard = () => {
                   )}
                 </div>
 
-                {/* Deletion Confirmation */}
                 {sidePanelTab === "delete" && deleteStep === 2 && selectedMeeting && (
                   <div>
-                    {console.log("[UI] Rendered confirmation for:", selectedMeeting)}
-
                     <div className="mb-3" style={{ fontWeight: 600, fontSize: 18 }}>
                       Confirm Deletion
                     </div>
                     <div className="p-3 mb-2 rounded" style={{ background: "#f8fbff", fontSize: 15 }}>
                       <div><b>Subject:</b> {selectedMeeting.subject || "Untitled"}</div>
                       <div><b>Organizer:</b> {selectedMeeting.organizer || "Unknown"}</div>
-                      <div><b>Room:</b> {selectedMeeting.location || "Unassigned"}</div>
-                      <div>
-                        <b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}
-                      </div>
+                      <div><b>Room{selectedMeeting.multiRoom ? "s" : ""}:</b> {selectedMeeting.multiRoom ? (selectedMeeting.multiRooms || []).join(" • ") : (selectedMeeting.location || "Unassigned")}</div>
+                      <div><b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</div>
                     </div>
 
                     <div className="d-flex gap-2 justify-content-end mt-3">
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          console.log("[UI] Cancel clicked — returning to list");
-                          setSidePanelTab("list");
-                        }}
-                      >
-                        Cancel
-                      </button>
-
+                      <button className="btn btn-secondary" onClick={() => setSidePanelTab("list")}>Cancel</button>
                       <button
                         className="btn btn-danger"
                         onClick={async () => {
-                          console.log("[UI] Yes, Delete clicked for:", selectedMeeting);
                           await deleteSingleMeeting(selectedMeeting);
-                          console.log("[UI] Delete function finished");
-
                           setSidePanelTab("list");
                           setDeleteStep(1);
                           setSelectedMeetingKey(null);
-
-                          // don’t double-fire alert, let deleteSingleMeeting handle it
                         }}
                       >
                         Yes, Delete
@@ -663,8 +663,6 @@ const MeetingsDashboard = () => {
                     </div>
                   </div>
                 )}
-
-
               </div>
             </motion.div>
           </>
@@ -672,7 +670,6 @@ const MeetingsDashboard = () => {
       </AnimatePresence>
     );
   };
-
 
   const AlertModal = () => (
     <AnimatePresence>
@@ -698,7 +695,7 @@ const MeetingsDashboard = () => {
               background: "#fff", borderRadius: 13, padding: 32, boxShadow: "0 8px 32px #43488a33",
               minWidth: 300, maxWidth: "96vw", textAlign: "center"
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>{alertModal.title || "Notice"}</div>
             <div style={{ fontSize: 15.6, color: "#444", whiteSpace: "pre-wrap", marginBottom: 24 }}>{alertModal.message}</div>
@@ -746,6 +743,21 @@ const MeetingsDashboard = () => {
           }
           .btn-custom { background-color:#0074bdff; border:none; color:white; font-size:16px; padding:0.8rem 1rem; border-radius:6px; cursor:pointer; }
           .btn-custom:disabled { opacity:0.6; cursor:not-allowed; }
+
+          /* Multi-room badge */
+          .badge-multiroom{
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 11.5px;
+            color: #fff;
+            background: linear-gradient(90deg,#7C3AED,#EC4899);
+            box-shadow: 0 2px 6px rgba(124,58,237,0.25);
+            letter-spacing: .2px;
+          }
         `}
       </style>
       <div className="scaling-container">
@@ -754,24 +766,12 @@ const MeetingsDashboard = () => {
             <div className="header-container">
               <div className="header-left">
                 <img src={logoImage} alt="R&D Conserve Logo" className="rounded shadow-sm" style={{ width: 60, height: 65 }} />
-                <h2
-                  className="fs-3 fs-md-2 mb-0 fw-bold"
-                  style={{ background: "linear-gradient(90deg, #0074BD, #76B042)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
-                >
+                <h2 className="fs-3 fs-md-2 mb-0 fw-bold" style={{ background: "linear-gradient(90deg, #0074BD, #76B042)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   Meetly Dashboard
                 </h2>
               </div>
               <div className="header-center">
-                <h2
-                  className="fs-4 fs-md-3 mb-0 fw-bolder"
-                  style={{
-                    background: "linear-gradient(90deg, #20498a, #20498a)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    fontFamily: "stylus bt",
-                    margin: 0,
-                  }}
-                >
+                <h2 className="fs-4 fs-md-3 mb-0 fw-bolder" style={{ background: "linear-gradient(90deg, #20498a, #20498a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: "stylus bt", margin: 0 }}>
                   WE ADD VALUE TO YOUR VISION...
                 </h2>
               </div>
@@ -807,12 +807,15 @@ const MeetingsDashboard = () => {
               </div>
             </div>
           </div>
+
           <div className="mb-3">
             <h4 className="text-muted fw-bold" style={{ fontFamily: "calibri", paddingLeft: 10, fontSize: 32, color: "#333" }}>
               {date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </h4>
           </div>
+
           {loading && isManualRefresh && <LoadingIndicator />}
+
           <div className="card mb-4" style={{ borderRadius: 20, backgroundColor: "rgba(233, 230, 230, 0.5)" }}>
             <div className="card-body">
               <div className="dashboard-container">
@@ -822,7 +825,7 @@ const MeetingsDashboard = () => {
                     <CalendarIcon className="card-icon" />
                   </div>
                   <div className="card-body-main">
-                    <p className="card-value">{meetings.length}</p>
+                    <p className="card-value">{stats.totalMeetings}</p>
                     <p className="card-subtext">{stats.activeMeetings} currently active</p>
                   </div>
                 </div>
@@ -833,7 +836,7 @@ const MeetingsDashboard = () => {
                   </div>
                   <div className="card-body-main">
                     <p className="card-value">{stats.totalAttendees}</p>
-                    <p className="card-subtext">Across all meetings</p>
+                    <p className="card-subtext">Across unique meetings</p>
                   </div>
                 </div>
                 <div className="dashboard-card card-duration-color">
@@ -843,7 +846,7 @@ const MeetingsDashboard = () => {
                   </div>
                   <div className="card-body-main">
                     <p className="card-value">{stats.avgDuration}m</p>
-                    <p className="card-subtext">Per meeting</p>
+                    <p className="card-subtext">Per unique meeting</p>
                   </div>
                 </div>
                 <div className="dashboard-card card-utilization-color">
@@ -859,6 +862,7 @@ const MeetingsDashboard = () => {
               </div>
             </div>
           </div>
+
           {!loading || !isManualRefresh ? (
             <div className="row g-2 g-md-3 g-lg-4">
               {floorHeaders.map((floor, colIdx) => (
@@ -891,19 +895,33 @@ const MeetingsDashboard = () => {
                                 className="p-2 p-md-3 mb-2 mb-md-3 rounded shadow-sm"
                                 style={{
                                   background: statusGradients[status],
-                                  borderLeft: `4px solid ${status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"
-                                    }`,
+                                  borderLeft: `4px solid ${status === "completed" ? "#95a5a6" : status === "Live" ? "#06d373ff" : "#3498db"}`,
                                   minHeight: 80,
                                   fontWeight: 700,
                                   opacity: status === "completed" ? 0.8 : 1,
+                                  position: "relative",
                                 }}
                               >
+                                {meeting.multiRoom && (
+                                  <span className="badge-multiroom" title={(meeting.multiRooms || []).join(" • ")}>
+                                    ×{meeting.multiRoomCount} ROOMS
+                                  </span>
+                                )}
+
                                 <div
                                   style={{ fontSize: "clamp(0.85rem, 1.8vw, 1rem)", color: "#2c3e50" }}
                                   className="text-truncate"
                                   title={meeting.subject}
                                 >
                                   {meeting.subject}
+                                </div>
+
+                                {/* Show explicit rooms line */}
+                                <div
+                                  style={{ fontSize: "clamp(0.7rem, 1.6vw, 0.85rem)", color: "#444", marginTop: 2 }}
+                                  className="text-truncate"
+                                  title={meeting.multiRoom ? (meeting.multiRooms || []).join(" • ") : meeting.location}
+                                >
                                 </div>
                                 <div className="d-flex justify-content-between align-items-center mt-1">
                                   <div
@@ -966,46 +984,34 @@ const MeetingsDashboard = () => {
               ))}
             </div>
           ) : null}
+
           {totalPages > 1 && !loading && (
             <nav className="d-flex justify-content-center mt-3 mt-md-4">
               <ul className="pagination pagination-sm">
                 <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-                  <button className="page-link" onClick={() => setPage(page - 1)}>
-                    Previous
-                  </button>
+                  <button className="page-link" onClick={() => setPage(page - 1)}>Previous</button>
                 </li>
                 {Array.from({ length: totalPages }, (_, i) => (
                   <li key={i} className={`page-item ${page === i + 1 ? "active" : ""}`}>
-                    <button className="page-link" onClick={() => setPage(i + 1)}>
-                      {i + 1}
-                    </button>
+                    <button className="page-link" onClick={() => setPage(i + 1)}>{i + 1}</button>
                   </li>
                 ))}
                 <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
-                  <button className="page-link" onClick={() => setPage(page + 1)}>
-                    Next
-                  </button>
+                  <button className="page-link" onClick={() => setPage(page + 1)}>Next</button>
                 </li>
               </ul>
             </nav>
           )}
-          <div
-            style={{
-              position: "fixed",
-              bottom: "1rem",
-              right: "1rem",
-              opacity: 0.9,
-              fontSize: "0.85rem",
-              color: "#ffffff",
-              zIndex: 100,
-            }}
-          >
+
+          <div style={{ position: "fixed", bottom: "1rem", right: "1rem", opacity: 0.9, fontSize: "0.85rem", color: "#ffffff", zIndex: 100 }}>
             Powered by R&D Conserve
           </div>
         </div>
-        {SidePanel()}
-        {AlertModal()}
+
+        <SidePanel />
+        <AlertModal />
       </div>
+
       {showBookingModal && <BookingComponent onClose={handleCloseBookingModal} onSave={handleSaveMeeting} />}
     </>
   );
