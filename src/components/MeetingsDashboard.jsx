@@ -260,11 +260,11 @@ const MeetingsDashboard = () => {
 
     const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
     console.log("[Delete] API URL built:", url);
-    console.log("[Delete] OrganizerEmail param sent:", meeting.organizerEmail);
+    console.log("[Delete] OrganizerEmail param sent:", organizerEmail); 
 
     console.log("[Delete] Sending DELETE request...");
     const resp = await api.delete(url, {
-      params: { organizerEmail: meeting.organizerEmail },
+      params: { organizerEmail: organizerEmail }, 
       headers: { Authorization: `Bearer ${token.accessToken}` },
     });
     console.log("[Delete] DELETE response:", resp.status, resp.data);
