@@ -194,7 +194,7 @@ const MeetingsDashboard = () => {
   const getKey = (m) => m.id ?? `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
 
   // get MSAL account
-  const { accounts } = useMsal();
+  const { instance, accounts } = useMsal();
   const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
   const isAuthenticated = accounts && accounts.length > 0;
 
@@ -219,48 +219,48 @@ const MeetingsDashboard = () => {
     showAlert("Meeting created successfully!", "Success");
   };
 
-const deleteSingleMeeting = async (meeting) => {
-  const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
-  if (organizer !== signedInEmail.toLowerCase()) {
-    showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
-    return;
-  }
-
-  try {
-    if (!meeting.iCalUId) {
-      console.error("No iCalUId found for meeting:", meeting);
-      showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
+  const deleteSingleMeeting = async (meeting) => {
+    const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
+    if (organizer !== signedInEmail.toLowerCase()) {
+      showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
       return;
     }
 
-    // Resolve base URL (from .env or fallback)
-    const API_BASE_URL =
-      process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
+    try {
+      const token = await instance.acquireTokenSilent({
+        scopes: ["Calendars.ReadWrite"],
+        account: accounts[0],
+      });
 
-    const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(
-      meeting.iCalUId
-    )}`;
+      if (!meeting.iCalUId) {
+        console.error("No iCalUId found for meeting:", meeting);
+        showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
+        return;
+      }
 
-    console.log("Deleting meeting:", {
-      iCalUId: meeting.iCalUId,
-      organizerEmail: meeting.organizerEmail,
-      url,
-    });
+      const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
 
-    await api.delete(url, {
-      params: { organizerEmail: meeting.organizerEmail },
-    });
+      console.log("Deleting meeting:", {
+        iCalUId: meeting.iCalUId,
+        organizerEmail: meeting.organizerEmail,
+        url,
+      });
 
-    // Update UI state
-    setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-    setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+      await api.delete(url, {
+        params: { organizerEmail: meeting.organizerEmail },
+        headers: { Authorization: `Bearer ${token.accessToken}` },
+      });
 
-    showAlert("Meeting deleted successfully!", "Success");
-  } catch (err) {
-    console.error("Delete failed:", err.response?.data || err.message);
-    showAlert("Failed to delete meeting.", "Error");
-  }
-};
+      setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+      setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+
+      showAlert("Meeting deleted successfully!", "Success");
+    } catch (err) {
+      console.error("Delete failed:", err.response?.data || err.message);
+      showAlert("Failed to delete meeting.", "Error");
+    }
+  };
+
 
 
   // === API fetch handlers (unchanged) ===
