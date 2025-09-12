@@ -503,8 +503,6 @@ const BookingComponent = ({ onClose, onSave }) => {
     } else if (eventData.startTime && eventData.endTime) {
       const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
       const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-
-      // ✅ Add +1s so back-to-back meetings don’t overlap
       end.setSeconds(end.getSeconds() + 1);
 
       startDateTime = start.toISOString();
@@ -776,23 +774,22 @@ const BookingComponent = ({ onClose, onSave }) => {
       return;
     }
 
-   try {
-  // Build Start/End based on All day
-  let startIso, endIso;
-  if (eventData.isAllDay) {
-    const start = new Date(`${eventData.startDate}T00:00:00`);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    startIso = start.toISOString();
-    endIso = end.toISOString();
-  } else {
-    const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
-    const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-
-    // Keep exact values (no -1s hack)
-    startIso = start.toISOString();
-    endIso = end.toISOString();
-  }
+     try {
+       // Build Start/End based on All day
+       let startIso, endIso;
+       if (eventData.isAllDay) {
+         const start = new Date(`${eventData.startDate}T00:00:00`);
+         const end = new Date(start);
+         end.setDate(end.getDate() + 1);
+         startIso = start.toISOString();
+         endIso = end.toISOString();
+       } else {
+         const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
+         const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+         end.setSeconds(end.getSeconds() - 1);
+         startIso = start.toISOString();
+         endIso = end.toISOString();
+       }
 
 
       const requestBody = {
