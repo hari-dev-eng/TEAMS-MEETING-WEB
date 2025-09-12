@@ -486,53 +486,57 @@ const BookingComponent = ({ onClose, onSave }) => {
 
   // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
-    if (!eventData.startDate) return;
+  if (!eventData.startDate) return;
 
-    setIsCheckingAvailability(true);
-    try {
-      const token = await getAccessToken();
-      if (!token) return;
+  setIsCheckingAvailability(true);
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
 
-      let startDateTime, endDateTime;
-      if (eventData.isAllDay) {
-        const start = new Date(`${eventData.startDate}T00:00:00`);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        startDateTime = start.toISOString();
-        endDateTime = end.toISOString();
-      } else if (eventData.startTime && eventData.endTime) {
-        const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
-        const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-        end.setMinutes(end.getMinutes() + 1); // ✅ catch events ending at endTime
-
-        startDateTime = start.toISOString();
-        endDateTime = end.toISOString();
-      } else {
-        return;
-      }
-
-      const availabilityResults = {};
-      for (const room of rooms) {
-        try {
-          const response = await axios.get(
-            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${startDateTime}&endDateTime=${endDateTime}&$select=id,subject,start,end`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          availabilityResults[room.email] =
-            response.data.value.length > 0 ? "busy" : "available";
-        } catch (err) {
-          availabilityResults[room.email] = "unknown";
-          console.error(`Error fetching ${room.email}:`, err);
-        }
-      }
-      setRoomAvailability(availabilityResults);
-    } catch (error) {
-      console.error("Failed to fetch availability:", error);
-    } finally {
-      setIsCheckingAvailability(false);
+    let startDateTime, endDateTime;
+    if (eventData.isAllDay) {
+      const start = new Date(`${eventData.startDate}T00:00:00`);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      startDateTime = start.toISOString();
+      endDateTime = end.toISOString();
+    } else if (eventData.startTime && eventData.endTime) {
+      const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
+      const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
+      // ❌ no +1s, no -1s. Graph API expects exclusive end.
+      startDateTime = start.toISOString();
+      endDateTime = end.toISOString();
+    } else {
+      return;
     }
-  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken,
-  ]);
+
+    const availabilityResults = {};
+    for (const room of rooms) {
+      try {
+        const response = await axios.get(
+          `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${encodeURIComponent(startDateTime)}&endDateTime=${encodeURIComponent(endDateTime)}&$select=id,subject,start,end`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        availabilityResults[room.email] =
+          response.data.value.length > 0 ? "busy" : "available";
+      } catch (err) {
+        availabilityResults[room.email] = "unknown";
+        console.error(`Error fetching ${room.email}:`, err);
+      }
+    }
+    setRoomAvailability(availabilityResults);
+  } catch (error) {
+    console.error("Failed to fetch availability:", error);
+  } finally {
+    setIsCheckingAvailability(false);
+  }
+}, [
+  eventData.startDate,
+  eventData.startTime,
+  eventData.endTime,
+  eventData.isAllDay,
+  getAccessToken,
+]);
 
 
 
@@ -778,7 +782,6 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
 
     try {
-      // Build Start/End based on All day
       let startIso, endIso;
       if (eventData.isAllDay) {
         const start = new Date(`${eventData.startDate}T00:00:00`);
@@ -789,7 +792,7 @@ const BookingComponent = ({ onClose, onSave }) => {
       } else {
         const start = new Date(`${eventData.startDate}T${eventData.startTime}`);
         const end = new Date(`${eventData.startDate}T${eventData.endTime}`);
-        //no -1s hack, send exact values
+        //send real times, no adjustments
         startIso = start.toISOString();
         endIso = end.toISOString();
       }
