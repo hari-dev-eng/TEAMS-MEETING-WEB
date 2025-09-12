@@ -484,18 +484,19 @@ const BookingComponent = ({ onClose, onSave }) => {
     }
   }, [showAlertMessage]);
 
-  const buildIsoTime = (date, time, isEnd = false) => {
-  const dt = new Date(`${date}T${time}:00.000`);
-  if (isEnd) {
-    // subtract 1 ms so end is exclusive (09:00–10:00 ends at 09:59:59.999)
-    dt.setMilliseconds(dt.getMilliseconds() - 1);
-  }
-  return dt.toISOString();
-};
+  const buildIsoTime = (date, time, isEnd = false, forAvailability = false) => {
+    const dt = new Date(`${date}T${time}:00.000`);
+    if (isEnd && forAvailability) {
+      // Only shift for availability checks
+      dt.setMilliseconds(dt.getMilliseconds() - 1);
+    }
+    return dt.toISOString();
+  };
+
 
   // availability respects All-day (00:00→next day 00:00)
   const checkRoomAvailability = useCallback(async () => {
-  if (!eventData.startDate) return;
+    if (!eventData.startDate) return;
 
     setIsCheckingAvailability(true);
     try {
@@ -510,40 +511,40 @@ const BookingComponent = ({ onClose, onSave }) => {
         startDateTime = start.toISOString();
         endDateTime = end.toISOString();
       } else if (eventData.startTime && eventData.endTime) {
-        startDateTime = buildIsoTime(eventData.startDate, eventData.startTime, false);
-        endDateTime = buildIsoTime(eventData.startDate, eventData.endTime, true);
+        startDateTime = buildIsoTime(eventData.startDate, eventData.startTime, false, true);
+        endDateTime = buildIsoTime(eventData.startDate, eventData.endTime, true, true);
       }
       else {
         return;
       }
 
-    const availabilityResults = {};
-    for (const room of rooms) {
-      try {
-        const response = await axios.get(
-          `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${encodeURIComponent(startDateTime)}&endDateTime=${encodeURIComponent(endDateTime)}&$select=id,subject,start,end`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        availabilityResults[room.email] =
-          response.data.value.length > 0 ? "busy" : "available";
-      } catch (err) {
-        availabilityResults[room.email] = "unknown";
-        console.error(`Error fetching ${room.email}:`, err);
+      const availabilityResults = {};
+      for (const room of rooms) {
+        try {
+          const response = await axios.get(
+            `https://graph.microsoft.com/v1.0/users/${room.email}/calendarView?startDateTime=${encodeURIComponent(startDateTime)}&endDateTime=${encodeURIComponent(endDateTime)}&$select=id,subject,start,end`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          availabilityResults[room.email] =
+            response.data.value.length > 0 ? "busy" : "available";
+        } catch (err) {
+          availabilityResults[room.email] = "unknown";
+          console.error(`Error fetching ${room.email}:`, err);
+        }
       }
+      setRoomAvailability(availabilityResults);
+    } catch (error) {
+      console.error("Failed to fetch availability:", error);
+    } finally {
+      setIsCheckingAvailability(false);
     }
-    setRoomAvailability(availabilityResults);
-  } catch (error) {
-    console.error("Failed to fetch availability:", error);
-  } finally {
-    setIsCheckingAvailability(false);
-  }
-}, [
-  eventData.startDate,
-  eventData.startTime,
-  eventData.endTime,
-  eventData.isAllDay,
-  getAccessToken,
-]);
+  }, [
+    eventData.startDate,
+    eventData.startTime,
+    eventData.endTime,
+    eventData.isAllDay,
+    getAccessToken,
+  ]);
 
 
 
@@ -797,8 +798,8 @@ const BookingComponent = ({ onClose, onSave }) => {
         startIso = start.toISOString();
         endIso = end.toISOString();
       } else {
-        startIso = buildIsoTime(eventData.startDate, eventData.startTime, false);
-        endIso = buildIsoTime(eventData.startDate, eventData.endTime, true);
+        startIso = buildIsoTime(eventData.startDate, eventData.startTime, false, false);
+        endIso = buildIsoTime(eventData.startDate, eventData.endTime, true, false);
       }
       const requestBody = {
         Title: eventData.title,
