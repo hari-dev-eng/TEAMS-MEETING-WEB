@@ -219,53 +219,8 @@ const MeetingsDashboard = () => {
     showAlert("Meeting created successfully!", "Success");
   };
 
-  // helper to extract username before @
-const extractUserName = (email) => {
-  if (!email) return "";
-  return email.split("@")[0].trim().toLowerCase();
-};
-
-const deleteSingleMeeting = async (meeting) => {
+  const deleteSingleMeeting = async (meeting) => {
   console.log("[Delete] Called with meeting:", meeting);
-
-  // Log raw values
-  console.log("[Delete] Raw meeting.organizer:", meeting.organizer);
-  console.log("[Delete] Raw meeting.organizerEmail:", meeting.organizerEmail);
-  console.log("[Delete] Raw signedInEmail:", signedInEmail);
-
-  // Normalize organizer email
-  const organizerEmail =
-    typeof meeting.organizer === "string"
-      ? meeting.organizer.trim().toLowerCase()
-      : typeof meeting.organizer?.emailAddress?.address === "string"
-      ? meeting.organizer.emailAddress.address.trim().toLowerCase()
-      : (meeting.organizerEmail || "").trim().toLowerCase();
-
-  const userEmail = (signedInEmail || "").trim().toLowerCase();
-
-  // Extract usernames (before @)
-  const organizerUser = extractUserName(organizerEmail);
-  const signedInUser = extractUserName(userEmail);
-
-  console.log("[Delete] Normalized organizer email:", organizerEmail);
-  console.log("[Delete] Normalized user email:", userEmail);
-  console.log("[Delete] Organizer username:", organizerUser);
-  console.log("[Delete] Signed-in username:", signedInUser);
-
-  if (!signedInUser) {
-    console.warn("[Delete] No signed-in user found");
-    showAlert("You must be signed in to cancel this meeting.", "Access Denied");
-    return;
-  }
-
-  if (organizerUser !== signedInUser) {
-    console.warn("[Delete] Organizer mismatch — access denied");
-    showAlert(
-      `Only the meeting organizer can cancel this meeting.\n\nOrganizer: ${organizerUser}\nYou: ${signedInUser}`,
-      "Access Denied"
-    );
-    return;
-  }
 
   try {
     console.log("[Delete] Acquiring token...");
@@ -307,7 +262,6 @@ const deleteSingleMeeting = async (meeting) => {
     showAlert("Failed to delete meeting.", "Error");
   }
 };
-
 
   // === API fetch handlers (unchanged) ===
   const fetchPanelMeetings = useCallback(
