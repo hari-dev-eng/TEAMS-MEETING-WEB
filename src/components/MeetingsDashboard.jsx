@@ -220,56 +220,65 @@ const MeetingsDashboard = () => {
   };
 
   const deleteSingleMeeting = async (meeting) => {
-    console.log("[Delete] Called with meeting:", meeting);
+  console.log("[Delete] Called with meeting:", meeting);
 
-    const organizer = (meeting.organizer || meeting.organizerEmail || "").toLowerCase();
-    console.log("[Delete] Organizer from meeting:", organizer);
-    console.log("[Delete] Signed-in email:", signedInEmail);
+  const organizerEmail = (meeting.organizer || meeting.organizerEmail || "").trim().toLowerCase();
+  const userEmail = (signedInEmail || "").trim().toLowerCase();
 
-    if (organizer !== signedInEmail.toLowerCase()) {
-      console.warn("[Delete] Organizer mismatch — access denied");
-      showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
+  console.log("[Delete] Organizer from meeting:", organizerEmail);
+  console.log("[Delete] Signed-in email:", userEmail);
+
+  if (!userEmail) {
+    console.warn("[Delete] No signed-in email found");
+    showAlert("You must be signed in to cancel this meeting.", "Access Denied");
+    return;
+  }
+
+  if (organizerEmail !== userEmail) {
+    console.warn("[Delete] Organizer mismatch — access denied");
+    showAlert("Only the meeting organizer can cancel this meeting.", "Access Denied");
+    return;
+  }
+
+  try {
+    console.log("[Delete] Acquiring token...");
+    const token = await instance.acquireTokenSilent({
+      scopes: ["Calendars.ReadWrite"],
+      account: accounts[0],
+    });
+    console.log("[Delete] Token acquired:", token ? "YES" : "NO");
+
+    if (!meeting.iCalUId) {
+      console.error("[Delete] No iCalUId found on meeting");
+      showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
       return;
     }
 
-    try {
-      console.log("[Delete] Acquiring token...");
-      const token = await instance.acquireTokenSilent({
-        scopes: ["Calendars.ReadWrite"],
-        account: accounts[0],
-      });
-      console.log("[Delete] Token acquired:", token ? "YES" : "NO");
+    const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
+    console.log("[Delete] API URL built:", url);
+    console.log("[Delete] OrganizerEmail param:", meeting.organizerEmail);
 
-      if (!meeting.iCalUId) {
-        console.error("[Delete] No iCalUId found on meeting");
-        showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error");
-        return;
-      }
+    console.log("[Delete] Sending DELETE request...");
+    const resp = await api.delete(url, {
+      params: { organizerEmail: meeting.organizerEmail },
+      headers: { Authorization: `Bearer ${token.accessToken}` },
+    });
+    console.log("[Delete] DELETE response:", resp.status, resp.data);
 
-      const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
-      console.log("[Delete] API URL built:", url);
-      console.log("[Delete] OrganizerEmail param:", meeting.organizerEmail);
+    console.log("[Delete] Updating local state (panel + dashboard)...");
+    setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
+    setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
 
-      console.log("[Delete] Sending DELETE request...");
-      const resp = await api.delete(url, {
-        params: { organizerEmail: meeting.organizerEmail },
-        headers: { Authorization: `Bearer ${token.accessToken}` },
-      });
-      console.log("[Delete] DELETE response:", resp.status, resp.data);
+    console.log("[Delete] Success — showing alert");
+    showAlert("Meeting deleted successfully!", "Success");
+  } catch (err) {
+    console.error("[Delete] Error caught:", err);
+    console.error("[Delete] Response data:", err.response?.data);
+    console.error("[Delete] Message:", err.message);
+    showAlert("Failed to delete meeting.", "Error");
+  }
+};
 
-      console.log("[Delete] Updating local state (panel + dashboard)...");
-      setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-      setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
-
-      console.log("[Delete] Success — showing alert");
-      showAlert("Meeting deleted successfully!", "Success");
-    } catch (err) {
-      console.error("[Delete] Error caught:", err);
-      console.error("[Delete] Response data:", err.response?.data);
-      console.error("[Delete] Message:", err.message);
-      showAlert("Failed to delete meeting.", "Error");
-    }
-  };
 
   // === API fetch handlers (unchanged) ===
   const fetchPanelMeetings = useCallback(
