@@ -324,13 +324,11 @@ const MeetingsDashboard = () => {
   const signedInEmail = (accounts?.[0]?.username || "").toLowerCase();
   const isAuthenticated = !!(accounts && accounts.length > 0);
   const isAdmin = ADMIN_EMAILS.includes(signedInEmail);
-const getKey = useCallback(
-  (m) =>
-    m.iCalUId ||
-    m.id ||
-    `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`,
-  []
-);
+
+const getKey = useCallback((m) =>
+  m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`
+, []);
+
 
   const listAbortRef = useRef(null);
   const panelAbortRef = useRef(null);
@@ -503,7 +501,8 @@ const getKey = useCallback(
         showAlert(msg, "Error");
       }
     }
-  }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, isAdmin]);
+ }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, getKey]);
+
 
   /* Edit (subject-only quick edit) with admin override */
  const openEdit = useCallback((m) => {
@@ -512,7 +511,8 @@ const getKey = useCallback(
   setEditStart(m.startTime || "");
   setEditEnd(m.endTime || "");
   setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
-}, [getKey]);
+}, [getKey]); 
+
 
 
   const closeEdit = useCallback(() => {
@@ -562,20 +562,14 @@ const getKey = useCallback(
       console.error("[Edit] Error:", err);
       showAlert(err?.response?.data?.message || err?.message || "Failed to update meeting.", "Error");
     }
-  }, [
+}, [
   accounts, instance,
-  editMeetingKey, editSubject, editStart, editEnd, editAttendees,   // added here
-  panelMeetings, isAdmin, showSidePanel,
+  editMeetingKey, editSubject, editStart, editEnd, editAttendees,
+  panelMeetings, showSidePanel,
   fetchMeetings, fetchPanelMeetings,
-  signedInEmail, closeEdit
-]);
+  signedInEmail, closeEdit, getKey   
+]); 
 
-  const openSidePanel = useCallback(() => {
-  setShowSidePanel(true);
-  setSidePanelTab("list");
-  setDeleteStep(1);
-  setSelectedMeetingKey(null);
-}, []);
 
   const closeSidePanel = useCallback(() => {
     setShowSidePanel(false);
@@ -656,15 +650,16 @@ const getKey = useCallback(
   }, [meetingsByFloor, page]);
 
   const selectedMeeting = useMemo(
-    () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
-    [panelMeetings, selectedMeetingKey]
-  );
+  () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
+  [panelMeetings, selectedMeetingKey, getKey]   
+);
 
   const openDeleteConfirm = useCallback((m) => {
-    setSelectedMeetingKey(getKey(m));
-    setDeleteStep(2);
-    setSidePanelTab("delete");
-  }, []);
+  setSelectedMeetingKey(getKey(m));
+  setDeleteStep(2);
+  setSidePanelTab("delete");
+}, [getKey]);   
+
   const closeSidePanelToList = useCallback(() => {
     setSidePanelTab("list");
     setDeleteStep(1);
