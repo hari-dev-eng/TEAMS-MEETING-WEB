@@ -574,7 +574,7 @@ const MeetingsDashboard = () => {
               animate={{ opacity: 0.45 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              style={{ position: "fixed", inset: 0, background: "#000", zIndex: 1200 }}
+              style={{ position: "fixed", inset: 0, background: "#000", zIndex: 1200,height: "Auto",width: "Auto" }}
               onClick={closeSidePanel}
             />
             <motion.div
