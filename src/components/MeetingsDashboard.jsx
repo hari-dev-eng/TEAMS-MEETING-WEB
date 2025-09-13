@@ -503,25 +503,33 @@ const getKey = useCallback((m) =>
     }
  }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, getKey]);
 
+ // helper
+const toLocalDateTimeInput = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "";
+  return d.toISOString().slice(0,16); // "YYYY-MM-DDTHH:MM"
+};
+
 
   /* Edit (subject-only quick edit) with admin override */
  const openEdit = useCallback((m) => {
   setEditMeetingKey(getKey(m));
   setEditSubject(m.subject || "");
-  setEditStart(m.startTime || "");
-  setEditEnd(m.endTime || "");
+  setEditStart(toLocalDateTimeInput(m.startTime));  
+  setEditEnd(toLocalDateTimeInput(m.endTime)); 
   setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
 }, [getKey]); 
 
 
 
   const closeEdit = useCallback(() => {
-    setEditMeetingKey(null);
-    setEditSubject("");
-    setEditStart("");
-    setEditEnd("");
-    setEditAttendees([]);
-  }, []);
+  setEditMeetingKey(null);
+  setEditSubject("");
+  setEditStart("");
+  setEditEnd("");
+  setEditAttendees("");
+}, []);
 
   const saveEdit = useCallback(async () => {
     const meeting = panelMeetings.find((m) => (m.iCalUId || m.id) === editMeetingKey);
@@ -995,7 +1003,7 @@ const getKey = useCallback((m) =>
                               <input
                                 type="datetime-local"
                                 className="form-control"
-                                value={editStart}
+                                 value={editStart || ""}  
                                 onChange={(e) => setEditStart(e.target.value)}
                               />
                             </div>
@@ -1005,7 +1013,7 @@ const getKey = useCallback((m) =>
                               <input
                                 type="datetime-local"
                                 className="form-control"
-                                value={editEnd}
+                               value={editEnd || ""}
                                 onChange={(e) => setEditEnd(e.target.value)}
                                 />
                               </div>
@@ -1015,7 +1023,7 @@ const getKey = useCallback((m) =>
                                 <input
                                   className="form-control"
                                   placeholder="Comma-separated emails"
-                                  value={editAttendees}
+                                  value={editAttendees || ""}
                                   onChange={(e) => setEditAttendees(e.target.value)}
                                 />
                               </div>
