@@ -967,16 +967,16 @@ const toLocalDateTimeInput = (dateStr) => {
                       </div>
                     )}
 
-                    {/* Edit Sheet (subject only) */}
+                    {/* Edit Sheet*/}
                     <AnimatePresence>
                       {editMeetingKey && (
-                        <motion.div
-                         key="edit-form-stable"
-                          initial={{ y: 30, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          exit={{ y: 30, opacity: 0 }}
-                          style={{
-                            position: "sticky",
+                          <motion.div
+                            key="edit-form-stable"
+                            initial={false}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 30, opacity: 0 }}
+                            style={{
+                              position: "sticky",
                             bottom: 0,
                             background: "#fff",
                             border: "1px solid #e5e7eb",
