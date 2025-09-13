@@ -997,7 +997,7 @@ const MeetingsDashboard = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           style={{
-            position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+            position: "fixed", top: 0, left: 0, width: "Auto", height: "Auto",
             zIndex: 2500, display: "flex", alignItems: "center", justifyContent: "center",
             background: "rgba(0,0,0,0.45)"
           }}
