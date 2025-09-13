@@ -328,7 +328,7 @@ const MeetingsDashboard = () => {
     m.iCalUId ||
     m.id ||
     `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
-    
+
   const listAbortRef = useRef(null);
   const panelAbortRef = useRef(null);
   const listInFlightRef = useRef(false);
@@ -355,46 +355,46 @@ const MeetingsDashboard = () => {
 
   /* -------- FETCHERS ---------- */
   const fetchPanelMeetings = useCallback(async () => {
-  if (panelInFlightRef.current) return;
-  panelInFlightRef.current = true;
+    if (panelInFlightRef.current) return;
+    panelInFlightRef.current = true;
 
-  if (panelAbortRef.current) panelAbortRef.current.abort();
-  const ctrl = new AbortController();
-  panelAbortRef.current = ctrl;
+    if (panelAbortRef.current) panelAbortRef.current.abort();
+    const ctrl = new AbortController();
+    panelAbortRef.current = ctrl;
 
-  setPanelLoading(true);
-  try {
-    const formattedDate = formatYMDLocal(panelDate);
-    const userEmails = [
-      "ffmeeting@conservesolution.com",
-      "gfmeeting@conservesolution.com",
-      "sfmeeting@conservesolution.com",
-      "contconference@conservesolution.com",
-    ];
-    const res = await api.get("/api/Meetings", {
-      params: { userEmails, date: formattedDate },
-      signal: ctrl.signal,
-    });
-    const raw = res.data?.meetings || [];
-    const annotated = annotateMultiRoom(raw);
+    setPanelLoading(true);
+    try {
+      const formattedDate = formatYMDLocal(panelDate);
+      const userEmails = [
+        "ffmeeting@conservesolution.com",
+        "gfmeeting@conservesolution.com",
+        "sfmeeting@conservesolution.com",
+        "contconference@conservesolution.com",
+      ];
+      const res = await api.get("/api/Meetings", {
+        params: { userEmails, date: formattedDate },
+        signal: ctrl.signal,
+      });
+      const raw = res.data?.meetings || [];
+      const annotated = annotateMultiRoom(raw);
 
-    const filtered = annotated.filter(
-      (m) => {
-        const status = getMeetingStatus(m.startTime, m.endTime);
-        return status === "upcoming" || status === "Live";
+      const filtered = annotated.filter(
+        (m) => {
+          const status = getMeetingStatus(m.startTime, m.endTime);
+          return status === "upcoming" || status === "Live";
+        }
+      );
+
+      setPanelMeetings(dedupeByGroup(filtered));
+    } catch (err) {
+      if (!axios.isCancel?.(err) && err?.name !== "CanceledError") {
+        console.error("[panel] fetch error:", err);
       }
-    );
-
-    setPanelMeetings(dedupeByGroup(filtered));
-  } catch (err) {
-    if (!axios.isCancel?.(err) && err?.name !== "CanceledError") {
-      console.error("[panel] fetch error:", err);
+    } finally {
+      setPanelLoading(false);
+      panelInFlightRef.current = false;
     }
-  } finally {
-    setPanelLoading(false);
-    panelInFlightRef.current = false;
-  }
-}, [panelDate]);
+  }, [panelDate]);
 
 
   const fetchMeetings = useCallback(async () => {
@@ -510,8 +510,8 @@ const MeetingsDashboard = () => {
     setEditEnd(m.endTime || "");
     setEditAttendees(m.attendees ? [...m.attendees] : []);
   }, []);
-  
-const closeEdit = useCallback(() => {
+
+  const closeEdit = useCallback(() => {
     setEditMeetingKey(null);
     setEditSubject("");
     setEditStart("");
@@ -962,49 +962,71 @@ const closeEdit = useCallback(() => {
                             marginTop: 12
                           }}
                         >
-                          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>Quick Edit</div>
-                          <div className="input-group">
+                          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
+
+                          <div className="d-flex flex-column gap-3">
+                            <div>
+                              <label className="form-label fw-semibold">Subject</label>
                               <input
                                 className="form-control"
-                                placeholder="New subject"
+                                placeholder="Enter meeting subject"
                                 value={editSubject}
                                 onChange={(e) => setEditSubject(e.target.value)}
                               />
+                            </div>
 
+                            <div>
+                              <label className="form-label fw-semibold">Start Time</label>
                               <input
                                 type="datetime-local"
                                 className="form-control"
-                                placeholder="Start time"
                                 value={editStart}
                                 onChange={(e) => setEditStart(e.target.value)}
                               />
+                            </div>
 
+                            <div>
+                              <label className="form-label fw-semibold">End Time</label>
                               <input
                                 type="datetime-local"
                                 className="form-control"
-                                placeholder="End time"
                                 value={editEnd}
                                 onChange={(e) => setEditEnd(e.target.value)}
                               />
+                            </div>
 
+                            <div>
+                              <label className="form-label fw-semibold">Attendees</label>
                               <input
                                 className="form-control"
-                                placeholder="Attendees (comma-separated emails)"
+                                placeholder="Comma-separated emails"
                                 value={editAttendees}
                                 onChange={(e) => setEditAttendees(e.target.value)}
                               />
-                            <button className="btn btn-light" onClick={closeEdit}>Cancel</button>
-                            <button
-                              className="btn"
-                              onClick={saveEdit}
-                              style={{ background: "linear-gradient(90deg,#10b981,#22c55e)", color: "#fff", fontWeight: 800 }}
-                            >
-                              Save
-                            </button>
+                            </div>
+
+                            <div className="d-flex justify-content-end gap-2 mt-2">
+                              <button className="btn btn-light" onClick={closeEdit}>
+                                Cancel
+                              </button>
+                              <button
+                                className="btn"
+                                onClick={saveEdit}
+                                style={{
+                                  background: "linear-gradient(90deg,#10b981,#22c55e)",
+                                  color: "#fff",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                Save
+                              </button>
+                            </div>
                           </div>
-                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
+
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 10 }}>
                             Admins can edit any meeting. Non-admins can edit only their own upcoming/live meetings.
                           </div>
+
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1026,72 +1048,72 @@ const closeEdit = useCallback(() => {
   };
 
   const AlertModal = () => (
-  <AnimatePresence initial={false}>
-    {alertModal.show && (
-      <motion.div
-        key="alert-modal"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          position: "fixed",
-          inset: 0,
-          width: "auto",
-          height: "auto",
-          zIndex: 2500,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "rgba(0,0,0,0.45)",
-          padding: "20px",
-          boxSizing: "border-box",
-        }}
-        onClick={() => setAlertModal({ ...alertModal, show: false })}
-      >
+    <AnimatePresence initial={false}>
+      {alertModal.show && (
         <motion.div
-          initial={{ scale: 0.86, y: -40 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.85, y: 40 }}
-          transition={{ type: "spring", stiffness: 280, damping: 23 }}
+          key="alert-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           style={{
-            background: "#fff",
-            borderRadius: 16,
-            padding: 32,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+            position: "fixed",
+            inset: 0,
             width: "auto",
-            maxWidth: "90%",
             height: "auto",
-            maxHeight: "80vh",
-            overflowY: "auto",
-            textAlign: "center",
+            zIndex: 2500,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.45)",
+            padding: "20px",
+            boxSizing: "border-box",
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={() => setAlertModal({ ...alertModal, show: false })}
         >
-          <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>
-            {alertModal.title || "Notice"}
-          </div>
-          <div
+          <motion.div
+            initial={{ scale: 0.86, y: -40 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.85, y: 40 }}
+            transition={{ type: "spring", stiffness: 280, damping: 23 }}
             style={{
-              fontSize: 16,
-              color: "#444",
-              whiteSpace: "pre-wrap",
-              marginBottom: 28,
+              background: "#fff",
+              borderRadius: 16,
+              padding: 32,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+              width: "auto",
+              maxWidth: "90%",
+              height: "auto",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              textAlign: "center",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {alertModal.message}
-          </div>
-          <button
-            className="btn btn-primary"
-            style={{ fontWeight: 700, padding: "8px 18px", borderRadius: 8 }}
-            onClick={() => setAlertModal({ ...alertModal, show: false })}
-          >
-            OK
-          </button>
+            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>
+              {alertModal.title || "Notice"}
+            </div>
+            <div
+              style={{
+                fontSize: 16,
+                color: "#444",
+                whiteSpace: "pre-wrap",
+                marginBottom: 28,
+              }}
+            >
+              {alertModal.message}
+            </div>
+            <button
+              className="btn btn-primary"
+              style={{ fontWeight: 700, padding: "8px 18px", borderRadius: 8 }}
+              onClick={() => setAlertModal({ ...alertModal, show: false })}
+            >
+              OK
+            </button>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
+      )}
+    </AnimatePresence>
+  );
 
 
 
