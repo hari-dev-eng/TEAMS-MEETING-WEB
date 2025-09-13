@@ -965,31 +965,31 @@ const MeetingsDashboard = () => {
                           </button>
                         </div>
                       </div>
-                    )}
+                      )}
 
-                    {/* Edit Sheet*/}
+                      {/* Edit Sheet*/}
 
-                    {editMeetingKey && (
-                      <motion.div
-                        key="edit-form"        // stable key
-                        initial={{ y: 30, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 30, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{
-                          position: "sticky",
-                          bottom: 0,
-                          background: "#fff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 14,
-                          padding: 14,
-                          boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
-                          marginTop: 12,
-                        }}
-                      >
-                        <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
+                      {editMeetingKey && (
+                        <motion.div
+                          key="quick-edit-form"     
+                          initial={false}           
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: 30, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          style={{
+                            position: "sticky",
+                            bottom: 0,
+                            background: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 14,
+                            padding: 14,
+                            boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
+                            marginTop: 12,
+                          }}
+                        >
+                          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
 
-                        <div className="d-flex flex-column gap-3">
+                          <div className="d-flex flex-column gap-3">
                           <div>
                             <label className="form-label fw-semibold">Subject</label>
                             <input
