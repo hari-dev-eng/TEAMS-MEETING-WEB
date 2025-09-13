@@ -620,7 +620,7 @@ const MeetingsDashboard = () => {
                 <div>
                   <NewMeetingButton compact />
                 </div>
-                <button className="btn-close ms-1" style={{ fontSize: 22, background: "#f5f8fc", borderRadius: 8 }} onClick={closeSidePanel} />
+                <button className="btn-close ms-1" style={{ fontSize: 18, color:"#e60f0fff", borderRadius: 8 }} onClick={closeSidePanel} />
               </div>
 
               {/* Date picker for small screens */}
