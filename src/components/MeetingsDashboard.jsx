@@ -318,16 +318,19 @@ const MeetingsDashboard = () => {
   const [editSubject, setEditSubject] = useState("");
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
-  const [editAttendees, setEditAttendees] = useState([]);
+  const [editAttendees, setEditAttendees] = useState("");
 
   const { instance, accounts } = useMsal();
   const signedInEmail = (accounts?.[0]?.username || "").toLowerCase();
   const isAuthenticated = !!(accounts && accounts.length > 0);
   const isAdmin = ADMIN_EMAILS.includes(signedInEmail);
-  const getKey = (m) =>
+const getKey = useCallback(
+  (m) =>
     m.iCalUId ||
     m.id ||
-    `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
+    `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`,
+  []
+);
 
   const listAbortRef = useRef(null);
   const panelAbortRef = useRef(null);
@@ -503,13 +506,14 @@ const MeetingsDashboard = () => {
   }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, isAdmin]);
 
   /* Edit (subject-only quick edit) with admin override */
-  const openEdit = useCallback((m) => {
-    setEditMeetingKey(m.iCalUId || m.id || "");
-    setEditSubject(m.subject || "");
-    setEditStart(m.startTime || "");
-    setEditEnd(m.endTime || "");
-    setEditAttendees(m.attendees ? [...m.attendees] : []);
-  }, []);
+ const openEdit = useCallback((m) => {
+  setEditMeetingKey(getKey(m));
+  setEditSubject(m.subject || "");
+  setEditStart(m.startTime || "");
+  setEditEnd(m.endTime || "");
+  setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
+}, [getKey]);
+
 
   const closeEdit = useCallback(() => {
     setEditMeetingKey(null);
@@ -538,7 +542,16 @@ const MeetingsDashboard = () => {
     try {
       const token = await instance.acquireTokenSilent({ scopes: ["Calendars.ReadWrite"], account: accounts[0] });
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
-      await api.patch(url, { subject: editSubject, StartTime: editStart, EndTime: editEnd, organizerEmail }, {
+      await api.patch(url, {
+        subject: editSubject,
+        StartTime: editStart,
+        EndTime: editEnd,
+        organizerEmail,
+        attendees: editAttendees
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean)   // remove empties
+}, {
         headers: { Authorization: `Bearer ${token.accessToken}` }
       });
       closeEdit();
@@ -549,14 +562,21 @@ const MeetingsDashboard = () => {
       console.error("[Edit] Error:", err);
       showAlert(err?.response?.data?.message || err?.message || "Failed to update meeting.", "Error");
     }
-  }, [accounts, instance, editMeetingKey, editSubject, editStart, editEnd, panelMeetings, isAdmin, showSidePanel, fetchMeetings, fetchPanelMeetings, signedInEmail, closeEdit]);
+  }, [
+  accounts, instance,
+  editMeetingKey, editSubject, editStart, editEnd, editAttendees,   // added here
+  panelMeetings, isAdmin, showSidePanel,
+  fetchMeetings, fetchPanelMeetings,
+  signedInEmail, closeEdit
+]);
 
   const openSidePanel = useCallback(() => {
-    setShowSidePanel(true);
-    setSidePanelTab("list");
-    setDeleteStep(1);
-    setSelectedMeetingKey(null);
-  }, []);
+  setShowSidePanel(true);
+  setSidePanelTab("list");
+  setDeleteStep(1);
+  setSelectedMeetingKey(null);
+}, []);
+
   const closeSidePanel = useCallback(() => {
     setShowSidePanel(false);
     setDeleteStep(1);
@@ -992,18 +1012,18 @@ const MeetingsDashboard = () => {
                                 className="form-control"
                                 value={editEnd}
                                 onChange={(e) => setEditEnd(e.target.value)}
-                              />
-                            </div>
+                                />
+                              </div>
 
-                            <div>
-                              <label className="form-label fw-semibold">Attendees</label>
-                              <input
-                                className="form-control"
-                                placeholder="Comma-separated emails"
-                                value={editAttendees}
-                                onChange={(e) => setEditAttendees(e.target.value)}
-                              />
-                            </div>
+                              <div>
+                                <label className="form-label fw-semibold">Attendees</label>
+                                <input
+                                  className="form-control"
+                                  placeholder="Comma-separated emails"
+                                  value={editAttendees}
+                                  onChange={(e) => setEditAttendees(e.target.value)}
+                                />
+                              </div>
 
                             <div className="d-flex justify-content-end gap-2 mt-2">
                               <button className="btn btn-light" onClick={closeEdit}>
