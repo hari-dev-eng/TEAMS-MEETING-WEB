@@ -1,3 +1,4 @@
+// MeetingsDashboard.jsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,6 +8,7 @@ import WebFont from "webfontloader";
 import BookingComponent from "./BookingComponent";
 import { useMsal } from "@azure/msal-react";
 
+/* ========= Icons ========= */
 const CalendarIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM5 20V9h14v11zM8 7h8v2H8z" />
@@ -27,14 +29,32 @@ const ClockIcon = (props) => (
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 7h1.5v4.9l3.6 2.26-.8.71L11 12V7z" />
   </svg>
 );
+const PencilIcon = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 000-1.42l-2.34-2.34a1.003 1.003 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" />
+  </svg>
+);
+const TrashIcon = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+  </svg>
+);
 const PlusIcon = (props) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
   </svg>
 );
 
+/* ========= Config / API ========= */
 const PAGE_SIZE = 10;
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
+const ORG_DOMAIN = "conservesolution.com";
+/* Static super-admins who can edit/delete ANY meeting */
+const ADMIN_EMAILS = [
+   "hariprasath.c@conservesolution.com",
+ "madhanraj@conservesolution.com",
+];
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   paramsSerializer: (params) => {
@@ -69,24 +89,17 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
   const formattedDate = formatYMDLocal(selectedDate);
 
   const handleDateChange = (e) => {
-    const inputValue = e.target.value; // "YYYY-MM-DD"
+    const inputValue = e.target.value;
     const [yStr, mStr, dStr] = inputValue.split("-");
     const y = Number(yStr), m = Number(mStr), d = Number(dStr);
-
-    // Validate parts
     if (!y || !m || !d) { setLocalError("Please enter a valid date."); return; }
-
-    // Create a LOCAL date (avoid UTC parsing of "YYYY-MM-DD")
     const newDate = new Date();
     newDate.setFullYear(y, m - 1, d);
     newDate.setHours(0, 0, 0, 0);
-
-    // Cross-check validity (e.g., Feb 30)
     if (newDate.getFullYear() !== y || newDate.getMonth() + 1 !== m || newDate.getDate() !== d) {
       setLocalError("Invalid date. This month doesn't have that many days.");
       return;
     }
-
     setLocalError("");
     setSelectedDate(newDate);
   };
@@ -108,17 +121,23 @@ const DatePickerComponent = ({ selectedDate, setSelectedDate, label }) => {
   );
 };
 
-const getMeetingStatus = (startTime, endTime) => {
+const getMeetingStatus = (start, end) => {
   const now = new Date();
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-  if (now > end) return "completed";
-  if (now >= start && now <= end) return "Live";
+  const s = new Date(start), e = new Date(end);
+  if (now > e) return "completed";
+  if (now >= s && now <= e) return "Live";
   return "upcoming";
 };
+
 const formatTimeOnly = (dateStr) =>
-  new Date(dateStr).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
-const getAttendeesCount = (meeting) => meeting.attendeesCount || meeting.attendeeCount || meeting.AttendeeCount || 0;
+  new Date(dateStr).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+
+const getAttendeesCount = (m) => m.attendeesCount || m.attendeeCount || m.AttendeeCount || 0;
 
 const LiveIndicator = () => (
   <span className="blinking-dot me-1" style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ff0000" }} />
@@ -215,7 +234,6 @@ const PanelOverlaySpinner = ({ show, text = "Refreshing…" }) =>
 
 const ensureParticlesOnce = () => {
   WebFont.load({ google: { families: ["stylus bt", "Montserrat:600"] } });
-
   const scriptId = "particles-js-lib";
   let script = document.getElementById(scriptId);
   if (!script) {
@@ -272,10 +290,11 @@ const ParticlesBackground = () => {
   );
 };
 
-const SIDE_PANEL_WIDTH = 500;
+const SIDE_PANEL_WIDTH = 520;
 const SIDE_PANEL_MIN_WIDTH = 340;
-const SIDE_PANEL_MAX_WIDTH = 540;
+const SIDE_PANEL_MAX_WIDTH = 560;
 
+/* ============ Component ============ */
 const MeetingsDashboard = () => {
   const [date, setDate] = useState(new Date());
   const [meetings, setMeetings] = useState([]);
@@ -285,7 +304,7 @@ const MeetingsDashboard = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   const [showSidePanel, setShowSidePanel] = useState(false);
-  const [sidePanelTab, setSidePanelTab] = useState("list"); // list | delete (creation uses modal)
+  const [sidePanelTab, setSidePanelTab] = useState("list"); // list | delete
   const [alertModal, setAlertModal] = useState({ show: false, title: "", message: "" });
 
   const [deleteStep, setDeleteStep] = useState(1);
@@ -295,11 +314,16 @@ const MeetingsDashboard = () => {
   const [panelMeetings, setPanelMeetings] = useState([]);
   const [panelLoading, setPanelLoading] = useState(false);
 
+  /* Edit modal state (subject-only quick edit) */
+  const [editMeetingKey, setEditMeetingKey] = useState(null);
+  const [editSubject, setEditSubject] = useState("");
+
   const getKey = (m) => m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
 
   const { instance, accounts } = useMsal();
-  const signedInEmail = accounts?.[0]?.username?.toLowerCase() || "";
-  const isAuthenticated = accounts && accounts.length > 0;
+  const signedInEmail = (accounts?.[0]?.username || "").toLowerCase();
+  const isAuthenticated = !!(accounts && accounts.length > 0);
+  const isAdmin = ADMIN_EMAILS.includes(signedInEmail);
 
   const listAbortRef = useRef(null);
   const panelAbortRef = useRef(null);
@@ -313,7 +337,6 @@ const MeetingsDashboard = () => {
 
   const showAlert = (message, title = "Notice") => setAlertModal({ show: true, message, title });
 
-  //const handleScheduleMeeting = () => setShowBookingModal(true);
   const handleCloseBookingModal = () => setShowBookingModal(false);
   const handleSaveMeeting = () => {
     setShowBookingModal(false);
@@ -323,11 +346,10 @@ const MeetingsDashboard = () => {
   };
   const openBookingFromPanel = useCallback(() => {
     setShowSidePanel(false);
-    // let the slide-out animation finish to avoid UI overlap
     setTimeout(() => setShowBookingModal(true), 260);
   }, []);
 
-  // -------- FETCHERS (with in-flight guards) ----------
+  /* -------- FETCHERS ---------- */
   const fetchPanelMeetings = useCallback(async () => {
     if (panelInFlightRef.current) return;
     panelInFlightRef.current = true;
@@ -397,23 +419,58 @@ const MeetingsDashboard = () => {
       listInFlightRef.current = false;
     }
   }, [date]);
-  // ----------------------------------------------------
+  /* ---------------------------- */
 
+  /* Filter: in side panel, only show meetings that the user can delete.
+     - Admins: see ALL meetings
+     - Non-admins: only meetings they ORGANIZE *and* whose status is 'upcoming'  */
+  const deletablePanelMeetings = useMemo(() => {
+    if (!isAuthenticated) return [];
+    if (isAdmin) return panelMeetings;
+    const you = signedInEmail;
+    return panelMeetings.filter((m) => {
+      const organizer = (m.organizerEmail || m.organizer || "").toLowerCase();
+      return organizer === you && getMeetingStatus(m.startTime, m.endTime) === "upcoming";
+    });
+  }, [isAuthenticated, isAdmin, panelMeetings, signedInEmail]);
+
+  /* Delete with admin override */
   const deleteSingleMeeting = useCallback(async (meeting) => {
     const organizerEmail = (meeting.organizerEmail || "").trim().toLowerCase();
     const userEmail = (signedInEmail || "").trim().toLowerCase();
     if (!userEmail) { showAlert("You must be signed in to cancel this meeting.", "Access Denied"); return; }
-    if (organizerEmail !== userEmail) {
-      showAlert(`Only the meeting organizer can cancel this meeting.\n\nOrganizer: ${organizerEmail}\nYou: ${userEmail}`, "Access Denied");
+
+    const userDomainOk = userEmail.endsWith(`@${ORG_DOMAIN}`);
+    if (!userDomainOk && !isAdmin) {
+      showAlert(`Please sign in with your @${ORG_DOMAIN} email to manage meetings.`, "Access Denied");
       return;
     }
 
+    const status = getMeetingStatus(meeting.startTime, meeting.endTime);
+    if (status !== "upcoming" && !isAdmin) {
+      showAlert("Only admins can delete live or completed meetings.", "Blocked");
+      return;
+    }
+
+    const isOrganizer =
+      (meeting.organizer || "").toLowerCase() === userEmail ||
+      (meeting.organizerEmail || "").toLowerCase() === userEmail;
+
+    if (!isOrganizer && !isAdmin) {
+      showAlert(`Only the organizer or an admin can cancel this meeting.\n\nOrganizer: ${organizerEmail}\nYou: ${userEmail}`, "Access Denied");
+      return;
+    }
+
+    if (!meeting.iCalUId) { showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error"); return; }
+    if (!organizerEmail) { showAlert("Meeting cannot be deleted because organizer email is missing.", "Error"); return; }
+
     try {
       const token = await instance.acquireTokenSilent({ scopes: ["Calendars.ReadWrite"], account: accounts[0] });
-      if (!meeting.iCalUId) { showAlert("Meeting cannot be deleted because iCalUId is missing.", "Error"); return; }
-
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
-      await api.delete(url, { params: { organizerEmail }, headers: { Authorization: `Bearer ${token.accessToken}` } });
+      await api.delete(url, {
+        params: { organizerEmail },
+        headers: { Authorization: `Bearer ${token.accessToken}` }
+      });
 
       setPanelMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
       setMeetings((prev) => prev.filter((m) => getKey(m) !== getKey(meeting)));
@@ -423,10 +480,62 @@ const MeetingsDashboard = () => {
     } catch (err) {
       if (!axios.isCancel?.(err) && err?.name !== "CanceledError") {
         console.error("[Delete] Error:", err);
-        showAlert("Failed to delete meeting.", "Error");
+        const msg = err?.response?.data?.message || err?.message || "Failed to delete meeting.";
+        showAlert(msg, "Error");
       }
     }
-  }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel]);
+  }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, isAdmin]);
+
+  /* Edit (subject-only quick edit) with admin override */
+  const openEdit = useCallback((m) => {
+    setEditMeetingKey(getKey(m));
+    setEditSubject(m.subject || "");
+  }, []);
+  const closeEdit = useCallback(() => {
+    setEditMeetingKey(null);
+    setEditSubject("");
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    const meeting = panelMeetings.find((m) => getKey(m) === editMeetingKey);
+    if (!meeting) return;
+    const organizerEmail = (meeting.organizerEmail || "").trim().toLowerCase();
+    const userEmail = (signedInEmail || "").trim().toLowerCase();
+
+    if (!userEmail) { showAlert("You must be signed in to edit this meeting.", "Access Denied"); return; }
+    if (!editSubject || editSubject.trim().length < 3) { showAlert("Please enter a subject (at least 3 characters).", "Validation"); return; }
+
+    const status = getMeetingStatus(meeting.startTime, meeting.endTime);
+    if (status === "completed" && !isAdmin) {
+      showAlert("Completed meetings cannot be edited by non-admins.", "Blocked");
+      return;
+    }
+
+    const isOrganizer =
+      (meeting.organizer || "").toLowerCase() === userEmail ||
+      (meeting.organizerEmail || "").toLowerCase() === userEmail;
+
+    if (!isOrganizer && !isAdmin) {
+      showAlert("Only the organizer or an admin can edit this meeting.", "Access Denied");
+      return;
+    }
+
+    try {
+      const token = await instance.acquireTokenSilent({ scopes: ["Calendars.ReadWrite"], account: accounts[0] });
+      const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
+      await api.patch(url, { subject: editSubject, organizerEmail }, {
+        headers: { Authorization: `Bearer ${token.accessToken}` }
+      });
+      closeEdit();
+      fetchMeetings();
+      if (showSidePanel) fetchPanelMeetings();
+      showAlert("Meeting updated successfully!", "Success");
+    } catch (err) {
+      console.error("[Edit] Error:", err);
+      const msg = err?.response?.data?.message || err?.message || "Failed to update meeting.";
+      showAlert(msg, "Error");
+    }
+  }, [accounts, instance, editMeetingKey, editSubject, panelMeetings, isAdmin, showSidePanel, fetchMeetings, fetchPanelMeetings, signedInEmail]);
 
   const openSidePanel = useCallback(() => {
     setShowSidePanel(true);
@@ -441,7 +550,7 @@ const MeetingsDashboard = () => {
     setSidePanelTab("list");
   }, []);
 
-  // Panel lifecycle: delay first fetch after animation; poll while open; debounce on date change
+  /* Side panel lifecycle */
   useEffect(() => {
     if (!showSidePanel) {
       clearInterval(panelPollerRef.current);
@@ -468,12 +577,9 @@ const MeetingsDashboard = () => {
     return () => clearTimeout(panelDebounceRef.current);
   }, [panelDate, showSidePanel, fetchPanelMeetings]);
 
-  /** Fetch immediately on mount AND whenever the dashboard date changes */
-  useEffect(() => {
-    fetchMeetings();
-  }, [date, fetchMeetings]);
+  useEffect(() => { fetchMeetings(); }, [date, fetchMeetings]);
 
-  // Main grid polling; pause when tab hidden
+  /* Polling while tab visible */
   useEffect(() => {
     const startPoll = () => {
       if (mainPollerRef.current) return;
@@ -484,7 +590,6 @@ const MeetingsDashboard = () => {
       mainPollerRef.current = null;
     };
     const onVisibility = () => (document.hidden ? stopPoll() : startPoll());
-
     startPoll();
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
@@ -532,9 +637,10 @@ const MeetingsDashboard = () => {
     setSelectedMeetingKey(null);
   }, []);
 
-  // ----- Side Panel UI -----
+  /* ====== Side Panel UI ====== */
   const SidePanel = () => {
-    const signedInEmailLocal = accounts?.[0]?.username?.toLowerCase() || "";
+    const { instance: msalInstance } = useMsal();
+    const signedInEmailLocal = signedInEmail;
 
     const NewMeetingButton = ({ compact = false }) => (
       <motion.button
@@ -564,6 +670,42 @@ const MeetingsDashboard = () => {
       </motion.button>
     );
 
+    /* Pretty action buttons */
+    const ActionBtn = ({ kind, onClick, title, disabled }) => {
+      const base = {
+        border: "1px solid transparent",
+        padding: "6px 12px",
+        borderRadius: 10,
+        fontWeight: 800,
+        letterSpacing: 0.2,
+        fontSize: 13.5,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        boxShadow: "0 4px 18px rgba(0,0,0,0.08)",
+        transition: "transform .05s ease",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.55 : 1
+      };
+      const styles = {
+        edit: { background: "linear-gradient(90deg,#eef2ff,#e0e7ff)", color: "#1e3a8a" },
+        delete: { background: "linear-gradient(90deg,#ffe4e6,#fecaca)", color: "#7f1d1d" }
+      };
+      const Icon = kind === "edit" ? PencilIcon : TrashIcon;
+      return (
+        <button
+          className="btn btn-sm"
+          onClick={disabled ? undefined : onClick}
+          title={title}
+          style={{ ...base, ...styles[kind] }}
+          disabled={disabled}
+        >
+          <Icon style={{ width: 16, height: 16 }} />
+          {kind === "edit" ? "Edit" : "Delete"}
+        </button>
+      );
+    };
+
     return (
       <AnimatePresence initial={false}>
         {showSidePanel && (
@@ -574,7 +716,7 @@ const MeetingsDashboard = () => {
               animate={{ opacity: 0.45 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              style={{ position: "fixed", inset: 0, background: "#000", zIndex: 1200,height: "Auto",width: "Auto" }}
+              style={{ position: "fixed", inset: 0, background: "#000", zIndex: 1200, height: "auto", width: "auto" }}
               onClick={closeSidePanel}
             />
             <motion.div
@@ -620,149 +762,225 @@ const MeetingsDashboard = () => {
                 <div>
                   <NewMeetingButton compact />
                 </div>
-                <button className="btn-close ms-1" style={{ fontSize: 18, color:"#e60f0fff", borderRadius: 8 }} onClick={closeSidePanel} />
+                <button className="btn-close ms-1" style={{ fontSize: 18, color: "#e60f0fff", borderRadius: 8 }} onClick={closeSidePanel} />
               </div>
 
-              {/* Date picker for small screens */}
+              {/* Small-screen date picker */}
               <div className="d-sm-none" style={{ padding: "10px 14px", borderBottom: "1px solid #eef2f7" }}>
                 <DatePickerComponent selectedDate={panelDate} setSelectedDate={setPanelDate} label={null} />
               </div>
 
               {/* Content */}
               <div style={{ position: "relative", padding: "14px", overflowY: "auto", flex: 1, minHeight: 0 }}>
-                {/* Empty state with CTA */}
-                {panelMeetings.length === 0 && !panelLoading ? (
+                {/* ======= AUTH GATE ======= */}
+                {!isAuthenticated ? (
                   <div
-                    className="text-center p-4"
+                    className="p-4 text-center"
                     style={{
+                      border: "1px dashed #c7d2fe",
                       background: "linear-gradient(180deg,#f8fbff,#f1f5ff)",
                       borderRadius: 16,
-                      border: "1px dashed #c7d2fe",
-                      color: "#4b5563"
+                      color: "#334155"
                     }}
                   >
-                    <div style={{ fontWeight: 900, fontSize: 18, color: "#1f2937" }}>No meetings on this day</div>
-                    <div style={{ fontSize: 14, margin: "8px 0 14px" }}>Get started by creating your first meeting.</div>
-                    {/* <NewMeetingButton /> */}
+                    <div style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>
+                      Please sign in with your organizational email to delete or edit meetings
+                    </div>
+                    <div style={{ fontSize: 14, marginTop: 8 }}>
+                      Only <b>@{ORG_DOMAIN}</b> accounts are allowed. Admins can manage all meetings.
+                    </div>
+                    <button
+                      className="btn mt-3"
+                      style={{
+                        background: "linear-gradient(90deg,#0074BD,#78b042)",
+                        color: "#fff",
+                        fontWeight: 800,
+                        borderRadius: 10,
+                        padding: "10px 16px",
+                        boxShadow: "0 8px 24px rgba(0,116,189,0.25)"
+                      }}
+                      onClick={() => msalInstance.loginPopup?.().catch(() => {})}
+                    >
+                      Sign in
+                    </button>
                   </div>
                 ) : (
-                  panelMeetings.map((meeting) => {
-                    const status = getMeetingStatus(meeting.startTime, meeting.endTime);
-                    const isOrganizer =
-                      (meeting.organizer || "").toLowerCase() === signedInEmailLocal ||
-                      (meeting.organizerEmail || "").toLowerCase() === signedInEmailLocal;
-                    const isCompleted = status === "completed";
-                    const canDelete = status === "upcoming" && isAuthenticated && isOrganizer;
-
-                    return (
-                      <motion.div
-                        key={getKey(meeting)}
-                        initial={false}
-                        animate={{ opacity: isCompleted ? 0.54 : 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ duration: 0.2 }}
-                        className="mb-2"
+                  <>
+                    {/* Organizer-only (or admin) list: deletablePanelMeetings */}
+                    {deletablePanelMeetings.length === 0 && !panelLoading ? (
+                      <div
+                        className="text-center p-4"
+                        style={{
+                          background: "linear-gradient(180deg,#f8fbff,#f1f5ff)",
+                          borderRadius: 16,
+                          border: "1px dashed #c7d2fe",
+                          color: "#4b5563"
+                        }}
                       >
-                        <div
+                        <div style={{ fontWeight: 900, fontSize: 18, color: "#1f2937" }}>
+                          {isAdmin ? "No meetings today." : "No deletable meetings for you today."}
+                        </div>
+                        <div style={{ fontSize: 14, margin: "8px 0 14px" }}>
+                          {isAdmin ? "Create a new meeting or pick another day." : "Only your upcoming meetings appear here."}
+                        </div>
+                      </div>
+                    ) : (
+                      deletablePanelMeetings.map((meeting) => {
+                        const status = getMeetingStatus(meeting.startTime, meeting.endTime);
+                        const isOrganizer =
+                          (meeting.organizer || "").toLowerCase() === signedInEmailLocal ||
+                          (meeting.organizerEmail || "").toLowerCase() === signedInEmailLocal;
+
+                        const userDomainOk = signedInEmailLocal.endsWith(`@${ORG_DOMAIN}`);
+                        const canManage = isAuthenticated && userDomainOk && (isOrganizer || isAdmin);
+
+                        const canEdit = canManage && status !== "completed";
+                        const canDelete = canManage && (status === "upcoming" || isAdmin);
+
+                        return (
+                          <motion.div
+                            key={getKey(meeting)}
+                            initial={false}
+                            animate={{ opacity: status === "completed" && !isAdmin ? 0.54 : 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className="mb-2"
+                          >
+                            <div
+                              style={{
+                                background: statusGradients[status],
+                                borderLeft: `5px solid ${status === "completed" ? "#b2bec3" : status === "Live" ? "#38df6c" : "#3498db"}`,
+                                padding: "14px 12px 14px 16px", borderRadius: 15,
+                                display: "flex", flexDirection: "column", boxShadow: "0 2px 6px #deeefc3a",
+                                position: "relative", marginBottom: 4,
+                              }}
+                            >
+                              {meeting.multiRoom && (
+                                <span className="badge-multiroom" title={(meeting.multiRooms || []).join(" • ")}>
+                                  MULTI-ROOM ×{meeting.multiRoomCount}
+                                </span>
+                              )}
+
+                              <div style={{ fontWeight: 800, fontSize: 16, color: "#1f2937", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}>
+                                {meeting.subject || "Untitled"}
+                              </div>
+
+                              <div style={{ fontSize: 13.9, color: "#374151", margin: "2px 0" }}>
+                                <b>Room{meeting.multiRoom ? "s" : ""}:</b>{" "}
+                                {meeting.multiRoom ? (meeting.multiRooms || []).join(" • ") : (meeting.location || "Unassigned")}
+                              </div>
+
+                              <div style={{ fontSize: 13.4, color: "#374151" }}>
+                                <b>Time:</b> {formatTimeOnly(meeting.startTime)} – {formatTimeOnly(meeting.endTime)}
+                              </div>
+                              <div style={{ fontSize: 12.6, color: "#6b7280", marginTop: 2 }}>
+                                <b>Organizer:</b> {meeting.organizer || meeting.organizerEmail || "Unknown"}
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", marginTop: 10, gap: 8 }}>
+                                <span style={{ background: "#eef2ff", color: "#4338ca", fontWeight: 700, borderRadius: 8, fontSize: 12.8, padding: "2px 9px" }}>
+                                  {status.toUpperCase()}
+                                </span>
+                                <span style={{ color: "#555", fontSize: 12.6 }}>
+                                  🙎🏻‍♂️ {getAttendeesCount(meeting)}
+                                </span>
+
+                                <div className="ms-auto d-flex gap-2">
+                                  <ActionBtn
+                                    kind="edit"
+                                    title={canEdit ? "Edit meeting title" : "Only organizer/admin can edit"}
+                                    onClick={() => openEdit(meeting)}
+                                    disabled={!canEdit}
+                                  />
+                                  <ActionBtn
+                                    kind="delete"
+                                    title={canDelete ? "Delete meeting" : (!isAuthenticated ? "Sign in" : "Only organizer/admin can delete")}
+                                    onClick={() => openDeleteConfirm(meeting)}
+                                    disabled={!canDelete}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+
+                    <PanelOverlaySpinner show={panelLoading} text="Refreshing…" />
+
+                    {sidePanelTab === "delete" && deleteStep === 2 && selectedMeeting && (
+                      <div style={{ position: "sticky", bottom: 0, marginTop: 12 }}>
+                        <div className="mb-2" style={{ fontWeight: 900, fontSize: 18 }}>Confirm Deletion</div>
+                        <div className="p-3 mb-2 rounded" style={{ background: "#f8fbff", fontSize: 15, border: "1px solid #e2e8f0" }}>
+                          <div><b>Subject:</b> {selectedMeeting.subject || "Untitled"} </div>
+                          <div><b>Organizer:</b> {selectedMeeting.organizer || selectedMeeting.organizerEmail || "Unknown"}</div>
+                          <div><b>Room{selectedMeeting.multiRoom ? "s" : ""}:</b> {selectedMeeting.multiRoom ? (selectedMeeting.multiRooms || []).join(" • ") : (selectedMeeting.location || "Unassigned")}</div>
+                          <div><b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</div>
+                        </div>
+                        <div className="d-flex gap-2 justify-content-end">
+                          <button className="btn btn-light" onClick={closeSidePanelToList} style={{ border: "1px solid #e2e8f0", borderRadius: 10, fontWeight: 700 }}>Cancel</button>
+                          <button
+                            className="btn"
+                            onClick={async () => { await deleteSingleMeeting(selectedMeeting); closeSidePanelToList(); }}
+                            style={{ borderRadius: 10, fontWeight: 900, minWidth: 140, background: "linear-gradient(90deg,#ef4444,#f97316)", color: "#fff" }}
+                          >
+                            Yes, Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Edit Sheet (subject only) */}
+                    <AnimatePresence>
+                      {editMeetingKey && (
+                        <motion.div
+                          initial={{ y: 30, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: 30, opacity: 0 }}
                           style={{
-                            background: statusGradients[status],
-                            borderLeft: `5px solid ${status === "completed" ? "#b2bec3" : status === "Live" ? "#38df6c" : "#3498db"}`,
-                            padding: "14px 12px 14px 16px", borderRadius: 15,
-                            display: "flex", flexDirection: "column", boxShadow: "0 2px 6px #deeefc3a",
-                            position: "relative", marginBottom: 4,
+                            position: "sticky",
+                            bottom: 0,
+                            background: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 14,
+                            padding: 14,
+                            boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
+                            marginTop: 12
                           }}
                         >
-                          {meeting.multiRoom && (
-                            <span className="badge-multiroom" title={(meeting.multiRooms || []).join(" • ")}>
-                              MULTI-ROOM ×{meeting.multiRoomCount}
-                            </span>
-                          )}
-
-                          <div style={{ fontWeight: 700, fontSize: 15.8, color: "#24416c", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}>
-                            {meeting.subject || "Untitled"}
+                          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>Quick Edit</div>
+                          <div className="input-group">
+                            <input
+                              className="form-control"
+                              placeholder="New subject"
+                              value={editSubject}
+                              onChange={(e) => setEditSubject(e.target.value)}
+                            />
+                            <button className="btn btn-light" onClick={closeEdit}>Cancel</button>
+                            <button
+                              className="btn"
+                              onClick={saveEdit}
+                              style={{ background: "linear-gradient(90deg,#10b981,#22c55e)", color: "#fff", fontWeight: 800 }}
+                            >
+                              Save
+                            </button>
                           </div>
-
-                          <div style={{ fontSize: 13.9, color: "#484f65", margin: "2px 0" }}>
-                            <b>Room{meeting.multiRoom ? "s" : ""}:</b>{" "}
-                            {meeting.multiRoom ? (meeting.multiRooms || []).join(" • ") : (meeting.location || "Unassigned")}
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
+                            Admins can edit any meeting. Non-admins can edit only their own upcoming/live meetings.
                           </div>
-
-                          <div style={{ fontSize: 13.4, color: "#484f65" }}>
-                            <b>Time:</b> {formatTimeOnly(meeting.startTime)} – {formatTimeOnly(meeting.endTime)}
-                          </div>
-                          <div style={{ fontSize: 12.6, color: "#6a7b98", marginTop: 2 }}>
-                            <b>Organizer:</b> {meeting.organizer || meeting.organizerEmail || "Unknown"}
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", marginTop: 10, gap: 8 }}>
-                            <span style={{ background: "#eef2ff", color: "#43438a", fontWeight: 600, borderRadius: 8, fontSize: 13.2, padding: "1.5px 9px" }}>
-                              {status.toUpperCase()}
-                            </span>
-                            <span style={{ color: "#555", fontSize: 12.6 }}>
-                              🙎🏻‍♂️ {getAttendeesCount(meeting)}
-                            </span>
-                            {canDelete ? (
-                              <button
-                                className="btn btn-sm btn-outline-danger ms-auto"
-                                style={{ padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600 }}
-                                onClick={() => openDeleteConfirm(meeting)}
-                              >
-                                Delete
-                              </button>
-                            ) : status === "upcoming" ? (
-                              <span title={!isAuthenticated ? "Sign in to delete" : "Only the organizer can delete"}>
-                                <button
-                                  className="btn btn-sm btn-outline-danger ms-auto"
-                                  style={{
-                                    padding: "2.5px 13px",
-                                    fontSize: 13.7,
-                                    borderRadius: 7,
-                                    fontWeight: 600,
-                                    opacity: 0.5,
-                                    cursor: "not-allowed",
-                                  }}
-                                  disabled
-                                >
-                                  Delete
-                                </button>
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                )}
-
-                <PanelOverlaySpinner show={panelLoading} text="Refreshing…" />
-
-                {sidePanelTab === "delete" && deleteStep === 2 && selectedMeeting && (
-                  <div style={{ position: "sticky", bottom: 0, marginTop: 12 }}>
-                    <div className="mb-2" style={{ fontWeight: 700, fontSize: 18 }}>Confirm Deletion</div>
-                    <div className="p-3 mb-2 rounded" style={{ background: "#f8fbff", fontSize: 15, border: "1px solid #e2e8f0" }}>
-                      <div><b>Subject:</b> {selectedMeeting.subject || "Untitled"} </div>
-                      <div><b>Organizer:</b> {selectedMeeting.organizer || selectedMeeting.organizerEmail || "Unknown"}</div>
-                      <div><b>Room{selectedMeeting.multiRoom ? "s" : ""}:</b> {selectedMeeting.multiRoom ? (selectedMeeting.multiRooms || []).join(" • ") : (selectedMeeting.location || "Unassigned")}</div>
-                      <div><b>Time:</b> {formatTimeOnly(selectedMeeting.startTime)} – {formatTimeOnly(selectedMeeting.endTime)}</div>
-                    </div>
-                    <div className="d-flex gap-2 justify-content-end">
-                      <button className="btn btn-light" onClick={closeSidePanelToList} style={{ border: "1px solid #e2e8f0", borderRadius: 10, fontWeight: 600 }}>Cancel</button>
-                      <button className="btn btn-danger" onClick={async () => { await deleteSingleMeeting(selectedMeeting); closeSidePanelToList(); }}
-                        style={{ borderRadius: 10, fontWeight: 700, minWidth: 120 }}>
-                        Yes, Delete
-                      </button>
-                    </div>
-                  </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
                 )}
               </div>
 
-              {/* Floating Action Button (always present in list tab) */}
+              {/* Spacer / layout footer */}
               {sidePanelTab === "list" && (
                 <div style={{ position: "sticky", bottom: 14, display: "flex", justifyContent: "flex-end", padding: "0 14px 12px" }}>
                   {/* <NewMeetingButton /> */}
                 </div>
               )}
-
-
             </motion.div>
           </>
         )}
@@ -844,15 +1062,15 @@ const MeetingsDashboard = () => {
           .btn-custom:disabled { opacity:0.6; cursor:not-allowed; }
           .badge-multiroom{
             position: absolute;
-            top: 6px,
-            right: 6px,
-            padding: 2px 8px,
-            border-radius: 999px,
-            font-weight: 700,
-            font-size: 11.5px,
-            color: #fff,
-            background: linear-gradient(90deg,#7C3AED,#EC4899),
-            box-shadow: 0 2px 6px rgba(124,58,237,0.25),
+            top: 6px;
+            right: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 11.5px;
+            color: #fff;
+            background: linear-gradient(90deg,#7C3AED,#EC4899);
+            box-shadow: 0 2px 6px rgba(124,58,237,0.25);
             letter-spacing: .2px
           }
         `}
@@ -880,7 +1098,7 @@ const MeetingsDashboard = () => {
                 <button
                   className="btn-custom"
                   style={{ fontFamily: "calibri", fontSize: 16, color: "#fff", backgroundImage: "linear-gradient(to right, #0074bd, #78b042)", borderRadius: 6, cursor: "pointer" }}
-                  onClick={openSidePanel}
+                  onClick={() => setShowSidePanel(true)}
                 >
                   Manage Meetings
                 </button>
@@ -1054,7 +1272,7 @@ const MeetingsDashboard = () => {
         <AlertModal />
       </div>
 
-      {/* Uses your existing component; opens from side panel buttons */}
+      {/* Booking modal */}
       {showBookingModal && (
         <BookingComponent onClose={handleCloseBookingModal} onSave={handleSaveMeeting} />)}
     </>
