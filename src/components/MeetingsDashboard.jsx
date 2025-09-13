@@ -342,7 +342,7 @@ const MeetingsDashboard = () => {
     setShowBookingModal(false);
     fetchMeetings();
     if (showSidePanel) fetchPanelMeetings();
-    showAlert("Meeting created successfully!", "Success");
+    showAlert("Meeting created successfully!", "Done");
   };
   const openBookingFromPanel = useCallback(() => {
     setShowSidePanel(false);
@@ -351,35 +351,47 @@ const MeetingsDashboard = () => {
 
   /* -------- FETCHERS ---------- */
   const fetchPanelMeetings = useCallback(async () => {
-    if (panelInFlightRef.current) return;
-    panelInFlightRef.current = true;
+  if (panelInFlightRef.current) return;
+  panelInFlightRef.current = true;
 
-    if (panelAbortRef.current) panelAbortRef.current.abort();
-    const ctrl = new AbortController();
-    panelAbortRef.current = ctrl;
+  if (panelAbortRef.current) panelAbortRef.current.abort();
+  const ctrl = new AbortController();
+  panelAbortRef.current = ctrl;
 
-    setPanelLoading(true);
-    try {
-      const formattedDate = formatYMDLocal(panelDate);
-      const userEmails = [
-        "ffmeeting@conservesolution.com",
-        "gfmeeting@conservesolution.com",
-        "sfmeeting@conservesolution.com",
-        "contconference@conservesolution.com",
-      ];
-      const res = await api.get("/api/Meetings", { params: { userEmails, date: formattedDate }, signal: ctrl.signal });
-      const raw = res.data?.meetings || [];
-      const annotated = annotateMultiRoom(raw);
-      setPanelMeetings(dedupeByGroup(annotated));
-    } catch (err) {
-      if (!axios.isCancel?.(err) && err?.name !== "CanceledError") {
-        console.error("[panel] fetch error:", err);
+  setPanelLoading(true);
+  try {
+    const formattedDate = formatYMDLocal(panelDate);
+    const userEmails = [
+      "ffmeeting@conservesolution.com",
+      "gfmeeting@conservesolution.com",
+      "sfmeeting@conservesolution.com",
+      "contconference@conservesolution.com",
+    ];
+    const res = await api.get("/api/Meetings", {
+      params: { userEmails, date: formattedDate },
+      signal: ctrl.signal,
+    });
+    const raw = res.data?.meetings || [];
+    const annotated = annotateMultiRoom(raw);
+
+    const filtered = annotated.filter(
+      (m) => {
+        const status = getMeetingStatus(m.startTime, m.endTime);
+        return status === "upcoming" || status === "Live";
       }
-    } finally {
-      setPanelLoading(false);
-      panelInFlightRef.current = false;
+    );
+
+    setPanelMeetings(dedupeByGroup(filtered));
+  } catch (err) {
+    if (!axios.isCancel?.(err) && err?.name !== "CanceledError") {
+      console.error("[panel] fetch error:", err);
     }
-  }, [panelDate]);
+  } finally {
+    setPanelLoading(false);
+    panelInFlightRef.current = false;
+  }
+}, [panelDate]);
+
 
   const fetchMeetings = useCallback(async () => {
     if (listInFlightRef.current) return;
