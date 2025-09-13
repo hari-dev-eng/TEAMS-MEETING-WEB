@@ -51,8 +51,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-p
 const ORG_DOMAIN = "conservesolution.com";
 /* Static super-admins who can edit/delete ANY meeting */
 const ADMIN_EMAILS = [
-   "hariprasath.c@conservesolution.com",
- "madhanraj@conservesolution.com",
+  "hariprasath.c@conservesolution.com",
+  "madhanraj@conservesolution.com",
 ];
 
 const api = axios.create({
@@ -799,7 +799,7 @@ const MeetingsDashboard = () => {
                         padding: "10px 16px",
                         boxShadow: "0 8px 24px rgba(0,116,189,0.25)"
                       }}
-                      onClick={() => msalInstance.loginPopup?.().catch(() => {})}
+                      onClick={() => msalInstance.loginPopup?.().catch(() => { })}
                     >
                       Sign in
                     </button>
@@ -997,9 +997,16 @@ const MeetingsDashboard = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           style={{
-            position: "fixed", top: 0, left: 0, width: "Auto", height: "Auto",
-            zIndex: 2500, display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(0,0,0,0.45)"
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 2500,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.45)",
           }}
           onClick={() => setAlertModal({ ...alertModal, show: false })}
         >
@@ -1009,14 +1016,39 @@ const MeetingsDashboard = () => {
             exit={{ scale: 0.85, y: 40 }}
             transition={{ type: "spring", stiffness: 280, damping: 23 }}
             style={{
-              background: "#fff", borderRadius: 13, padding: 32, boxShadow: "0 8px 32px #43488a33",
-              minWidth: 300, maxWidth: "96vw", textAlign: "center"
+              background: "#fff",
+              borderRadius: 13,
+              padding: 32,
+              boxShadow: "0 8px 32px #43488a33",
+              minWidth: 300,
+              maxWidth: "96vw",
+              textAlign: "center",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>{alertModal.title || "Notice"}</div>
-            <div style={{ fontSize: 15.6, color: "#444", whiteSpace: "pre-wrap", marginBottom: 24 }}>{alertModal.message}</div>
-            <button className="btn btn-primary" onClick={() => setAlertModal({ ...alertModal, show: false })}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 20,
+                marginBottom: 12,
+              }}
+            >
+              {alertModal.title || "Notice"}
+            </div>
+            <div
+              style={{
+                fontSize: 15.6,
+                color: "#444",
+                whiteSpace: "pre-wrap",
+                marginBottom: 24,
+              }}
+            >
+              {alertModal.message}
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => setAlertModal({ ...alertModal, show: false })}
+            >
               OK
             </button>
           </motion.div>
@@ -1024,6 +1056,7 @@ const MeetingsDashboard = () => {
       )}
     </AnimatePresence>
   );
+
 
   return (
     <>
