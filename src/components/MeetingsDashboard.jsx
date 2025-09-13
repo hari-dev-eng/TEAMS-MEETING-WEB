@@ -325,9 +325,9 @@ const MeetingsDashboard = () => {
   const isAuthenticated = !!(accounts && accounts.length > 0);
   const isAdmin = ADMIN_EMAILS.includes(signedInEmail);
 
-const getKey = useCallback((m) =>
-  m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`
-, []);
+  const getKey = useCallback((m) =>
+    m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`
+    , []);
 
 
   const listAbortRef = useRef(null);
@@ -501,35 +501,35 @@ const getKey = useCallback((m) =>
         showAlert(msg, "Error");
       }
     }
- }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, getKey]);
+  }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, getKey]);
 
- // helper
-const toLocalDateTimeInput = (dateStr) => {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d)) return "";
-  return d.toISOString().slice(0,16); // "YYYY-MM-DDTHH:MM"
-};
+  // helper
+  const toLocalDateTimeInput = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return "";
+    return d.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  };
 
 
   /* Edit (subject-only quick edit) with admin override */
- const openEdit = useCallback((m) => {
-  setEditMeetingKey(getKey(m));
-  setEditSubject(m.subject || "");
-  setEditStart(toLocalDateTimeInput(m.startTime));  
-  setEditEnd(toLocalDateTimeInput(m.endTime)); 
-  setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
-}, [getKey]); 
+  const openEdit = useCallback((m) => {
+    setEditMeetingKey(getKey(m));
+    setEditSubject(m.subject || "");
+    setEditStart(toLocalDateTimeInput(m.startTime));
+    setEditEnd(toLocalDateTimeInput(m.endTime));
+    setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
+  }, [getKey]);
 
 
 
   const closeEdit = useCallback(() => {
-  setEditMeetingKey(null);
-  setEditSubject("");
-  setEditStart("");
-  setEditEnd("");
-  setEditAttendees("");
-}, []);
+    setEditMeetingKey(null);
+    setEditSubject("");
+    setEditStart("");
+    setEditEnd("");
+    setEditAttendees("");
+  }, []);
 
   const saveEdit = useCallback(async () => {
     const meeting = panelMeetings.find((m) => (m.iCalUId || m.id) === editMeetingKey);
@@ -556,10 +556,10 @@ const toLocalDateTimeInput = (dateStr) => {
         EndTime: editEnd,
         organizerEmail,
         attendees: editAttendees
-    .split(",")
-    .map((a) => a.trim())
-    .filter(Boolean)   // remove empties
-}, {
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean)   // remove empties
+      }, {
         headers: { Authorization: `Bearer ${token.accessToken}` }
       });
       closeEdit();
@@ -570,13 +570,13 @@ const toLocalDateTimeInput = (dateStr) => {
       console.error("[Edit] Error:", err);
       showAlert(err?.response?.data?.message || err?.message || "Failed to update meeting.", "Error");
     }
-}, [
-  accounts, instance,
-  editMeetingKey, editSubject, editStart, editEnd, editAttendees,
-  panelMeetings, showSidePanel,
-  fetchMeetings, fetchPanelMeetings,
-  signedInEmail, closeEdit, getKey   
-]); 
+  }, [
+    accounts, instance,
+    editMeetingKey, editSubject, editStart, editEnd, editAttendees,
+    panelMeetings, showSidePanel,
+    fetchMeetings, fetchPanelMeetings,
+    signedInEmail, closeEdit, getKey
+  ]);
 
 
   const closeSidePanel = useCallback(() => {
@@ -658,15 +658,15 @@ const toLocalDateTimeInput = (dateStr) => {
   }, [meetingsByFloor, page]);
 
   const selectedMeeting = useMemo(
-  () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
-  [panelMeetings, selectedMeetingKey, getKey]   
-);
+    () => panelMeetings.find((m) => getKey(m) === selectedMeetingKey) || null,
+    [panelMeetings, selectedMeetingKey, getKey]
+  );
 
   const openDeleteConfirm = useCallback((m) => {
-  setSelectedMeetingKey(getKey(m));
-  setDeleteStep(2);
-  setSidePanelTab("delete");
-}, [getKey]);   
+    setSelectedMeetingKey(getKey(m));
+    setDeleteStep(2);
+    setSidePanelTab("delete");
+  }, [getKey]);
 
   const closeSidePanelToList = useCallback(() => {
     setSidePanelTab("list");
@@ -968,91 +968,92 @@ const toLocalDateTimeInput = (dateStr) => {
                     )}
 
                     {/* Edit Sheet*/}
-                    
-                      {editMeetingKey && (
-                          <div
-                            key="edit-form-stable"
-                            initial={false}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 30, opacity: 0 }}
-                            style={{
-                              position: "sticky",
-                            bottom: 0,
-                            background: "#fff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: 14,
-                            padding: 14,
-                            boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
-                            marginTop: 12
-                          }}
-                        >
-                          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
 
-                          <div className="d-flex flex-column gap-3">
-                            <div>
-                              <label className="form-label fw-semibold">Subject</label>
-                              <input
-                                className="form-control"
-                                placeholder="Enter meeting subject"
-                                value={editSubject}
-                                onChange={(e) => setEditSubject(e.target.value)}
-                              />
-                            </div>
+                    {editMeetingKey && (
+                      <motion.div
+                        key="edit-form"        // stable key
+                        initial={{ y: 30, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 30, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{
+                          position: "sticky",
+                          bottom: 0,
+                          background: "#fff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 14,
+                          padding: 14,
+                          boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
+                          marginTop: 12,
+                        }}
+                      >
+                        <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
 
-                            <div>
-                              <label className="form-label fw-semibold">Start Time</label>
-                              <input
-                                type="datetime-local"
-                                className="form-control"
-                                 value={editStart || ""}  
-                                onChange={(e) => setEditStart(e.target.value)}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="form-label fw-semibold">End Time</label>
-                              <input
-                                type="datetime-local"
-                                className="form-control"
-                               value={editEnd || ""}
-                                onChange={(e) => setEditEnd(e.target.value)}
-                                />
-                              </div>
-
-                              <div>
-                                <label className="form-label fw-semibold">Attendees</label>
-                                <input
-                                  className="form-control"
-                                  placeholder="Comma-separated emails"
-                                  value={editAttendees || ""}
-                                  onChange={(e) => setEditAttendees(e.target.value)}
-                                />
-                              </div>
-
-                            <div className="d-flex justify-content-end gap-2 mt-2">
-                              <button className="btn btn-light" onClick={closeEdit}>
-                                Cancel
-                              </button>
-                              <button
-                                className="btn"
-                                onClick={saveEdit}
-                                style={{
-                                  background: "linear-gradient(90deg,#10b981,#22c55e)",
-                                  color: "#fff",
-                                  fontWeight: 800,
-                                }}
-                              >
-                                Save
-                              </button>
-                            </div>
+                        <div className="d-flex flex-column gap-3">
+                          <div>
+                            <label className="form-label fw-semibold">Subject</label>
+                            <input
+                              className="form-control"
+                              placeholder="Enter meeting subject"
+                              value={editSubject}
+                              onChange={(e) => setEditSubject(e.target.value)}
+                            />
                           </div>
 
-                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 10 }}>
-                            Admins can edit any meeting. Non-admins can edit only their own upcoming/live meetings.
+                          <div>
+                            <label className="form-label fw-semibold">Start Time</label>
+                            <input
+                              type="datetime-local"
+                              className="form-control"
+                              value={editStart || ""}
+                              onChange={(e) => setEditStart(e.target.value)}
+                            />
                           </div>
 
+                          <div>
+                            <label className="form-label fw-semibold">End Time</label>
+                            <input
+                              type="datetime-local"
+                              className="form-control"
+                              value={editEnd || ""}
+                              onChange={(e) => setEditEnd(e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="form-label fw-semibold">Attendees</label>
+                            <input
+                              className="form-control"
+                              placeholder="Comma-separated emails"
+                              value={editAttendees || ""}
+                              onChange={(e) => setEditAttendees(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="d-flex justify-content-end gap-2 mt-2">
+                            <button className="btn btn-light" onClick={closeEdit}>
+                              Cancel
+                            </button>
+                            <button
+                              className="btn"
+                              onClick={saveEdit}
+                              style={{
+                                background: "linear-gradient(90deg,#10b981,#22c55e)",
+                                color: "#fff",
+                                fontWeight: 800,
+                              }}
+                            >
+                              Save
+                            </button>
+                          </div>
                         </div>
-                      )}
+
+                        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 10 }}>
+                          Admins can edit any meeting. Non-admins can edit only their own upcoming/live meetings.
+                        </div>
+
+                      </motion.div>
+                    )}
                   </>
                 )}
               </div>
