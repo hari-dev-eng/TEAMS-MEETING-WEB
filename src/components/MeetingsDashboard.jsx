@@ -977,6 +977,7 @@ const MeetingsDashboard = () => {
                           exit={{ y: 30, opacity: 0 }}
                           transition={{ duration: 0.2 }}
                           style={{
+                            display: editMeetingKey ? "block" : "none",
                             position: "sticky",
                             bottom: 0,
                             background: "#fff",
