@@ -1000,13 +1000,15 @@ const MeetingsDashboard = () => {
             position: "fixed",
             top: 0,
             left: 0,
-            width: "100vw",
-            height: "100vh",
+            width: "Auto",
+            height: "Auto",
             zIndex: 2500,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: "rgba(0,0,0,0.45)",
+            padding:"20px",
+            boxSizing: "border-box",
           }}
           onClick={() => setAlertModal({ ...alertModal, show: false })}
         >
@@ -1016,13 +1018,16 @@ const MeetingsDashboard = () => {
             exit={{ scale: 0.85, y: 40 }}
             transition={{ type: "spring", stiffness: 280, damping: 23 }}
             style={{
-              background: "#fff",
-              borderRadius: 13,
-              padding: 32,
-              boxShadow: "0 8px 32px #43488a33",
-              minWidth: 300,
-              maxWidth: "96vw",
-              textAlign: "center",
+               background: "#fff",
+            borderRadius: 16,
+            padding: 32,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+            width: "auto",
+            maxWidth: "90%",
+            height: "auto",
+            maxHeight: "80vh",
+            overflowY: "auto",
+            textAlign: "center",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1037,20 +1042,21 @@ const MeetingsDashboard = () => {
             </div>
             <div
               style={{
-                fontSize: 15.6,
+                fontSize: 16,
                 color: "#444",
                 whiteSpace: "pre-wrap",
-                marginBottom: 24,
+                marginBottom: 28,
               }}
             >
               {alertModal.message}
             </div>
             <button
-              className="btn btn-primary"
-              onClick={() => setAlertModal({ ...alertModal, show: false })}
-            >
-              OK
-            </button>
+            className="btn btn-primary"
+            style={{ fontWeight: 700, padding: "8px 18px", borderRadius: 8 }}
+            onClick={() => setAlertModal({ ...alertModal, show: false })}
+          >
+            OK
+          </button>
           </motion.div>
         </motion.div>
       )}
