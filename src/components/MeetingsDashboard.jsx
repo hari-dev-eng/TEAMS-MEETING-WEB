@@ -968,9 +968,9 @@ const toLocalDateTimeInput = (dateStr) => {
                     )}
 
                     {/* Edit Sheet*/}
-                    <AnimatePresence>
+                    
                       {editMeetingKey && (
-                          <motion.div
+                          <div
                             key="edit-form-stable"
                             initial={false}
                             animate={{ y: 0, opacity: 1 }}
@@ -1051,9 +1051,8 @@ const toLocalDateTimeInput = (dateStr) => {
                             Admins can edit any meeting. Non-admins can edit only their own upcoming/live meetings.
                           </div>
 
-                        </motion.div>
+                        </div>
                       )}
-                    </AnimatePresence>
                   </>
                 )}
               </div>
