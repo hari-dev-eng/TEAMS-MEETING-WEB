@@ -316,7 +316,10 @@ const MeetingsDashboard = () => {
 
   /* Edit modal state (subject-only quick edit) */
   const [editMeetingKey, setEditMeetingKey] = useState(null);
-  const [editSubject, setEditSubject] = useState("");
+const [editSubject, setEditSubject] = useState("");
+const [editStart, setEditStart] = useState("");
+const [editEnd, setEditEnd] = useState("");
+const [editAttendees, setEditAttendees] = useState([]);
 
   const getKey = (m) => m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
 
@@ -500,13 +503,19 @@ const MeetingsDashboard = () => {
 
   /* Edit (subject-only quick edit) with admin override */
   const openEdit = useCallback((m) => {
-    setEditMeetingKey(getKey(m));
-    setEditSubject(m.subject || "");
-  }, []);
-  const closeEdit = useCallback(() => {
-    setEditMeetingKey(null);
-    setEditSubject("");
-  }, []);
+  setEditMeetingKey(getKey(m));
+  setEditSubject(m.subject || "");
+  setEditStart(m.startTime || "");
+  setEditEnd(m.endTime || "");
+  setEditAttendees(m.attendees ? [...m.attendees] : []);
+}, []);
+ const closeEdit = useCallback(() => {
+  setEditMeetingKey(null);
+  setEditSubject("");
+  setEditStart("");
+  setEditEnd("");
+  setEditAttendees([]);
+}, []);
 
   const saveEdit = useCallback(async () => {
     const meeting = panelMeetings.find((m) => getKey(m) === editMeetingKey);
@@ -535,7 +544,8 @@ const MeetingsDashboard = () => {
     try {
       const token = await instance.acquireTokenSilent({ scopes: ["Calendars.ReadWrite"], account: accounts[0] });
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
-      await api.patch(url, { subject: editSubject, organizerEmail }, {
+      await api.patch(url, { subject: editSubject,StartTime: editStart,
+  EndTime: editEnd, organizerEmail }, {
         headers: { Authorization: `Bearer ${token.accessToken}` }
       });
       closeEdit();
