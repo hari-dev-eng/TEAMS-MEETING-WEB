@@ -304,7 +304,7 @@ const MeetingsDashboard = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   const [showSidePanel, setShowSidePanel] = useState(false);
-  const [sidePanelTab, setSidePanelTab] = useState("list"); // list | delete
+  const [sidePanelTab, setSidePanelTab] = useState("list");
   const [alertModal, setAlertModal] = useState({ show: false, title: "", message: "" });
 
   const [deleteStep, setDeleteStep] = useState(1);
@@ -314,20 +314,21 @@ const MeetingsDashboard = () => {
   const [panelMeetings, setPanelMeetings] = useState([]);
   const [panelLoading, setPanelLoading] = useState(false);
 
-  /* Edit modal state (subject-only quick edit) */
   const [editMeetingKey, setEditMeetingKey] = useState(null);
-const [editSubject, setEditSubject] = useState("");
-const [editStart, setEditStart] = useState("");
-const [editEnd, setEditEnd] = useState("");
-const [editAttendees, setEditAttendees] = useState([]);
-
-  const getKey = (m) => m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
+  const [editSubject, setEditSubject] = useState("");
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [editAttendees, setEditAttendees] = useState([]);
 
   const { instance, accounts } = useMsal();
   const signedInEmail = (accounts?.[0]?.username || "").toLowerCase();
   const isAuthenticated = !!(accounts && accounts.length > 0);
   const isAdmin = ADMIN_EMAILS.includes(signedInEmail);
-
+  const getKey = (m) =>
+    m.iCalUId ||
+    m.id ||
+    `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`;
+    
   const listAbortRef = useRef(null);
   const panelAbortRef = useRef(null);
   const listInFlightRef = useRef(false);
@@ -503,49 +504,41 @@ const [editAttendees, setEditAttendees] = useState([]);
 
   /* Edit (subject-only quick edit) with admin override */
   const openEdit = useCallback((m) => {
-  setEditMeetingKey(getKey(m));
-  setEditSubject(m.subject || "");
-  setEditStart(m.startTime || "");
-  setEditEnd(m.endTime || "");
-  setEditAttendees(m.attendees ? [...m.attendees] : []);
-}, []);
- const closeEdit = useCallback(() => {
-  setEditMeetingKey(null);
-  setEditSubject("");
-  setEditStart("");
-  setEditEnd("");
-  setEditAttendees([]);
-}, []);
+    setEditMeetingKey(m.iCalUId || m.id || "");
+    setEditSubject(m.subject || "");
+    setEditStart(m.startTime || "");
+    setEditEnd(m.endTime || "");
+    setEditAttendees(m.attendees ? [...m.attendees] : []);
+  }, []);
+  
+const closeEdit = useCallback(() => {
+    setEditMeetingKey(null);
+    setEditSubject("");
+    setEditStart("");
+    setEditEnd("");
+    setEditAttendees([]);
+  }, []);
 
   const saveEdit = useCallback(async () => {
-    const meeting = panelMeetings.find((m) => getKey(m) === editMeetingKey);
+    const meeting = panelMeetings.find((m) => (m.iCalUId || m.id) === editMeetingKey);
     if (!meeting) return;
+
     const organizerEmail = (meeting.organizerEmail || "").trim().toLowerCase();
     const userEmail = (signedInEmail || "").trim().toLowerCase();
 
-    if (!userEmail) { showAlert("You must be signed in to edit this meeting.", "Access Denied"); return; }
-    if (!editSubject || editSubject.trim().length < 3) { showAlert("Please enter a subject (at least 3 characters).", "Validation"); return; }
-
-    const status = getMeetingStatus(meeting.startTime, meeting.endTime);
-    if (status === "completed" && !isAdmin) {
-      showAlert("Completed meetings cannot be edited by non-admins.", "Blocked");
+    if (!userEmail) {
+      showAlert("You must be signed in to edit this meeting.", "Access Denied");
       return;
     }
-
-    const isOrganizer =
-      (meeting.organizer || "").toLowerCase() === userEmail ||
-      (meeting.organizerEmail || "").toLowerCase() === userEmail;
-
-    if (!isOrganizer && !isAdmin) {
-      showAlert("Only the organizer or an admin can edit this meeting.", "Access Denied");
+    if (!editSubject || editSubject.trim().length < 3) {
+      showAlert("Please enter a subject (at least 3 characters).", "Validation");
       return;
     }
 
     try {
       const token = await instance.acquireTokenSilent({ scopes: ["Calendars.ReadWrite"], account: accounts[0] });
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
-      await api.patch(url, { subject: editSubject,StartTime: editStart,
-  EndTime: editEnd, organizerEmail }, {
+      await api.patch(url, { subject: editSubject, StartTime: editStart, EndTime: editEnd, organizerEmail }, {
         headers: { Authorization: `Bearer ${token.accessToken}` }
       });
       closeEdit();
@@ -554,10 +547,9 @@ const [editAttendees, setEditAttendees] = useState([]);
       showAlert("Meeting updated successfully!", "Success");
     } catch (err) {
       console.error("[Edit] Error:", err);
-      const msg = err?.response?.data?.message || err?.message || "Failed to update meeting.";
-      showAlert(msg, "Error");
+      showAlert(err?.response?.data?.message || err?.message || "Failed to update meeting.", "Error");
     }
-  }, [accounts, instance, editMeetingKey, editSubject, panelMeetings, isAdmin, showSidePanel, fetchMeetings, fetchPanelMeetings, signedInEmail]);
+  }, [accounts, instance, editMeetingKey, editSubject, editStart, editEnd, panelMeetings, isAdmin, showSidePanel, fetchMeetings, fetchPanelMeetings, signedInEmail, closeEdit]);
 
   const openSidePanel = useCallback(() => {
     setShowSidePanel(true);
@@ -750,7 +742,7 @@ const [editAttendees, setEditAttendees] = useState([]);
               style={{
                 position: "fixed",
                 top: 0, right: 0,
-                height: "100vh",
+                height: "190vh",
                 width: SIDE_PANEL_WIDTH,
                 minWidth: SIDE_PANEL_MIN_WIDTH,
                 maxWidth: SIDE_PANEL_MAX_WIDTH,
@@ -972,12 +964,35 @@ const [editAttendees, setEditAttendees] = useState([]);
                         >
                           <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6 }}>Quick Edit</div>
                           <div className="input-group">
-                            <input
-                              className="form-control"
-                              placeholder="New subject"
-                              value={editSubject}
-                              onChange={(e) => setEditSubject(e.target.value)}
-                            />
+                              <input
+                                className="form-control"
+                                placeholder="New subject"
+                                value={editSubject}
+                                onChange={(e) => setEditSubject(e.target.value)}
+                              />
+
+                              <input
+                                type="datetime-local"
+                                className="form-control"
+                                placeholder="Start time"
+                                value={editStart}
+                                onChange={(e) => setEditStart(e.target.value)}
+                              />
+
+                              <input
+                                type="datetime-local"
+                                className="form-control"
+                                placeholder="End time"
+                                value={editEnd}
+                                onChange={(e) => setEditEnd(e.target.value)}
+                              />
+
+                              <input
+                                className="form-control"
+                                placeholder="Attendees (comma-separated emails)"
+                                value={editAttendees}
+                                onChange={(e) => setEditAttendees(e.target.value)}
+                              />
                             <button className="btn btn-light" onClick={closeEdit}>Cancel</button>
                             <button
                               className="btn"
