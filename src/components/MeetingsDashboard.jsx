@@ -971,7 +971,7 @@ const toLocalDateTimeInput = (dateStr) => {
                     <AnimatePresence>
                       {editMeetingKey && (
                         <motion.div
-                         key="edit-form"
+                         key="edit-form-stable"
                           initial={{ y: 30, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           exit={{ y: 30, opacity: 0 }}
