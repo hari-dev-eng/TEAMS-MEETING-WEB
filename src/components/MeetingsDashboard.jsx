@@ -998,6 +998,7 @@ const MeetingsDashboard = () => {
                               placeholder="Enter meeting subject"
                               value={editSubject}
                               onChange={(e) => setEditSubject(e.target.value)}
+                              autoFocus
                             />
                           </div>
 
