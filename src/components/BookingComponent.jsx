@@ -245,8 +245,8 @@ const RecurringEventModal = ({ show, onClose, eventData, handleChange, account }
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex', justifyContent: 'center', alignItems: 'center',
       zIndex: 1000,
-      height:"Auto",
-      width:"Auto"
+      height: "Auto",
+      width: "Auto"
     }}>
       <div className="modal-content" style={{
         backgroundColor: 'white',
@@ -487,90 +487,90 @@ const BookingComponent = ({ onClose, onSave }) => {
   }, [showAlertMessage]);
 
   // Build ISO string in UTC. Optionally nudge availability end by -1ms.
-const buildIsoTime = (date, time, opts = {}) => {
-  const dt = new Date(`${date}T${time}:00.000`);
-  if (opts.forAvailabilityEnd) dt.setMilliseconds(dt.getMilliseconds() - 1); // 10:30 → 10:29:59.999
-  return dt.toISOString(); // UTC "Z"
-};
+  const buildIsoTime = (date, time, opts = {}) => {
+    const dt = new Date(`${date}T${time}:00.000`);
+    if (opts.forAvailabilityEnd) dt.setMilliseconds(dt.getMilliseconds() - 1); // 10:30 → 10:29:59.999
+    return dt.toISOString(); // UTC "Z"
+  };
 
 
 
-// availability respects All-day (00:00→next day 00:00) and uses strict overlap
-const checkRoomAvailability = useCallback(async () => {
-  if (!eventData.startDate) return;
+  // availability respects All-day (00:00→next day 00:00) and uses strict overlap
+  const checkRoomAvailability = useCallback(async () => {
+    if (!eventData.startDate) return;
 
-  setIsCheckingAvailability(true);
-  try {
-    const token = await getAccessToken();
-    if (!token) return;
+    setIsCheckingAvailability(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
 
-    // Build the desired window (UTC). For availability we use end-1ms.
-    let startDateTime, endDateTime;
-    if (eventData.isAllDay) {
-      const start = new Date(`${eventData.startDate}T00:00:00.000Z`);
-      const end = new Date(start);
-      end.setUTCDate(end.getUTCDate() + 1);
-      startDateTime = start.toISOString();
-      endDateTime = new Date(end.getTime() - 1).toISOString(); // 23:59:59.999 of the same local day
-    } else if (eventData.startTime && eventData.endTime) {
-      startDateTime = buildIsoTime(eventData.startDate, eventData.startTime);
-      endDateTime   = buildIsoTime(eventData.startDate, eventData.endTime, { forAvailabilityEnd: true });
-    } else {
-      return;
-    }
-
-    // For consistent parsing, ask Graph to return UTC times.
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      Prefer: 'outlook.timezone="UTC"' // response start/end.dateTime will be UTC
-    };
-
-    // Helper to parse Graph datetime reliably (UTC expected)
-    const parseGraphDate = (dtObjOrString) => {
-      if (dtObjOrString?.dateTime) {
-        // 'UTC' from header → append 'Z' to force UTC parse
-        return new Date(`${dtObjOrString.dateTime}Z`);
+      // Build the desired window (UTC). For availability we use end-1ms.
+      let startDateTime, endDateTime;
+      if (eventData.isAllDay) {
+        const start = new Date(`${eventData.startDate}T00:00:00.000Z`);
+        const end = new Date(start);
+        end.setUTCDate(end.getUTCDate() + 1);
+        startDateTime = start.toISOString();
+        endDateTime = new Date(end.getTime() - 1).toISOString(); // 23:59:59.999 of the same local day
+      } else if (eventData.startTime && eventData.endTime) {
+        startDateTime = buildIsoTime(eventData.startDate, eventData.startTime);
+        endDateTime = buildIsoTime(eventData.startDate, eventData.endTime, { forAvailabilityEnd: true });
+      } else {
+        return;
       }
-      if (typeof dtObjOrString === 'string') return new Date(dtObjOrString);
-      return new Date();
-    };
 
-    const desiredStart = new Date(startDateTime);
-    const desiredEnd   = new Date(endDateTime);
+      // For consistent parsing, ask Graph to return UTC times.
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Prefer: 'outlook.timezone="UTC"' // response start/end.dateTime will be UTC
+      };
 
-    const availabilityResults = {};
-    for (const room of rooms) {
-      try {
-        const url =
-          `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(room.email)}/calendarView` +
-          `?startDateTime=${encodeURIComponent(startDateTime)}` +
-          `&endDateTime=${encodeURIComponent(endDateTime)}` +
-          `&$select=id,subject,start,end`;
+      // Helper to parse Graph datetime reliably (UTC expected)
+      const parseGraphDate = (dtObjOrString) => {
+        if (dtObjOrString?.dateTime) {
+          // 'UTC' from header → append 'Z' to force UTC parse
+          return new Date(`${dtObjOrString.dateTime}Z`);
+        }
+        if (typeof dtObjOrString === 'string') return new Date(dtObjOrString);
+        return new Date();
+      };
 
-        const response = await axios.get(url, { headers });
+      const desiredStart = new Date(startDateTime);
+      const desiredEnd = new Date(endDateTime);
 
-        const events = response.data?.value || [];
-        // STRICT overlap (end is exclusive): s < desiredEnd && e > desiredStart
-        const isBusy = events.some(ev => {
-          const s = parseGraphDate(ev.start);
-          const e = parseGraphDate(ev.end);
-          return s < desiredEnd && e > desiredStart;
-        });
+      const availabilityResults = {};
+      for (const room of rooms) {
+        try {
+          const url =
+            `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(room.email)}/calendarView` +
+            `?startDateTime=${encodeURIComponent(startDateTime)}` +
+            `&endDateTime=${encodeURIComponent(endDateTime)}` +
+            `&$select=id,subject,start,end`;
 
-        availabilityResults[room.email] = isBusy ? "busy" : "available";
-      } catch (err) {
-        console.error(`Error fetching ${room.email}:`, err);
-        availabilityResults[room.email] = "unknown";
+          const response = await axios.get(url, { headers });
+
+          const events = response.data?.value || [];
+          // STRICT overlap (end is exclusive): s < desiredEnd && e > desiredStart
+          const isBusy = events.some(ev => {
+            const s = parseGraphDate(ev.start);
+            const e = parseGraphDate(ev.end);
+            return s < desiredEnd && e > desiredStart;
+          });
+
+          availabilityResults[room.email] = isBusy ? "busy" : "available";
+        } catch (err) {
+          console.error(`Error fetching ${room.email}:`, err);
+          availabilityResults[room.email] = "unknown";
+        }
       }
-    }
 
-    setRoomAvailability(availabilityResults);
-  } catch (error) {
-    console.error("Failed to fetch availability:", error);
-  } finally {
-    setIsCheckingAvailability(false);
-  }
-}, [eventData.startDate,eventData.startTime,eventData.endTime,eventData.isAllDay,getAccessToken,]);
+      setRoomAvailability(availabilityResults);
+    } catch (error) {
+      console.error("Failed to fetch availability:", error);
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  }, [eventData.startDate, eventData.startTime, eventData.endTime, eventData.isAllDay, getAccessToken,]);
 
   useEffect(() => {
     if (eventData.startDate && (eventData.isAllDay || (eventData.startTime && eventData.endTime))) {
@@ -783,7 +783,7 @@ const checkRoomAvailability = useCallback(async () => {
     if (account) logout(); else login();
   };
 
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -1308,31 +1308,36 @@ const checkRoomAvailability = useCallback(async () => {
                   Cancel
                 </button>
 
-                <button
-                  type="submit"
-                  className="btn btn-primary-2"
-                  disabled={isLoading || !account}
-                  style={{
-                    borderRadius: 14,
-                    minWidth: 140,
-                    fontWeight: "bolder",
-                    color: "rgba(13, 119, 25, 1)",
-                    border: "4px solid rgba(13,119,25,1)",
-                  }}
+                <span
+                  title={!account ? "Sign in to schedule new event" : "Only the organizer can create"}
                 >
-                  {isLoading ? (
-                    <>
-                      <span
-                        className="spinner-border spinner-border-sm me-2"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
-                      Scheduling...
-                    </>
-                  ) : (
-                    "Schedule Event"
-                  )}
-                </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary-2"
+                    disabled={isLoading || !account}
+                    style={{
+                      borderRadius: 14,
+                      minWidth: 140,
+                      fontWeight: "bolder",
+                      color: "rgba(13, 119, 25, 1)",
+                      border: "4px solid rgba(13,119,25,1)",
+                    }}
+                  >
+                    {isLoading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+                        Scheduling...
+                      </>
+                    ) : (
+                      "Schedule Event"
+                    )}
+                  </button>
+                </span>
+
               </div>
             </form>
           </div>

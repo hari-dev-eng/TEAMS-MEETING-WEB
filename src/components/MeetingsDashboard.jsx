@@ -709,14 +709,22 @@ const MeetingsDashboard = () => {
                                 Delete
                               </button>
                             ) : status === "upcoming" ? (
-                              <button
-                                className="btn btn-sm btn-outline-danger ms-auto"
-                                style={{ padding: "2.5px 13px", fontSize: 13.7, borderRadius: 7, fontWeight: 600, opacity: 0.5, cursor: "not-allowed" }}
-                                disabled
-                                title={!isAuthenticated ? "Sign in to delete" : "Only the organizer can delete"}
-                              >
-                                Delete
-                              </button>
+                              <span title={!isAuthenticated ? "Sign in to delete" : "Only the organizer can delete"}>
+                                <button
+                                  className="btn btn-sm btn-outline-danger ms-auto"
+                                  style={{
+                                    padding: "2.5px 13px",
+                                    fontSize: 13.7,
+                                    borderRadius: 7,
+                                    fontWeight: 600,
+                                    opacity: 0.5,
+                                    cursor: "not-allowed",
+                                  }}
+                                  disabled
+                                >
+                                  Delete
+                                </button>
+                              </span>
                             ) : null}
                           </div>
                         </div>
