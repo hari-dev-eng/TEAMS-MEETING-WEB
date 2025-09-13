@@ -728,7 +728,7 @@ const MeetingsDashboard = () => {
               style={{
                 position: "fixed",
                 top: 0, right: 0,
-                height: "190vh",
+                height: "100vh",
                 width: SIDE_PANEL_WIDTH,
                 minWidth: SIDE_PANEL_MIN_WIDTH,
                 maxWidth: SIDE_PANEL_MAX_WIDTH,
@@ -989,36 +989,35 @@ const MeetingsDashboard = () => {
   };
 
   const AlertModal = () => (
-    <AnimatePresence initial={false}>
-      {alertModal.show && (
+  <AnimatePresence initial={false}>
+    {alertModal.show && (
+      <motion.div
+        key="alert-modal"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          width: "auto",
+          height: "auto",
+          zIndex: 2500,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(0,0,0,0.45)",
+          padding: "20px",
+          boxSizing: "border-box",
+        }}
+        onClick={() => setAlertModal({ ...alertModal, show: false })}
+      >
         <motion.div
-          key="alert-modal"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ scale: 0.86, y: -40 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.85, y: 40 }}
+          transition={{ type: "spring", stiffness: 280, damping: 23 }}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "Auto",
-            height: "Auto",
-            zIndex: 2500,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.45)",
-            padding:"20px",
-            boxSizing: "border-box",
-          }}
-          onClick={() => setAlertModal({ ...alertModal, show: false })}
-        >
-          <motion.div
-            initial={{ scale: 0.86, y: -40 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.85, y: 40 }}
-            transition={{ type: "spring", stiffness: 280, damping: 23 }}
-            style={{
-               background: "#fff",
+            background: "#fff",
             borderRadius: 16,
             padding: 32,
             boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
@@ -1028,40 +1027,35 @@ const MeetingsDashboard = () => {
             maxHeight: "80vh",
             overflowY: "auto",
             textAlign: "center",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>
+            {alertModal.title || "Notice"}
+          </div>
+          <div
+            style={{
+              fontSize: 16,
+              color: "#444",
+              whiteSpace: "pre-wrap",
+              marginBottom: 28,
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 20,
-                marginBottom: 12,
-              }}
-            >
-              {alertModal.title || "Notice"}
-            </div>
-            <div
-              style={{
-                fontSize: 16,
-                color: "#444",
-                whiteSpace: "pre-wrap",
-                marginBottom: 28,
-              }}
-            >
-              {alertModal.message}
-            </div>
-            <button
+            {alertModal.message}
+          </div>
+          <button
             className="btn btn-primary"
             style={{ fontWeight: 700, padding: "8px 18px", borderRadius: 8 }}
             onClick={() => setAlertModal({ ...alertModal, show: false })}
           >
             OK
           </button>
-          </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
-  );
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 
 
   return (
