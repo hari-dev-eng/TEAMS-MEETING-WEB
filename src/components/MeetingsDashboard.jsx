@@ -976,11 +976,12 @@ const MeetingsDashboard = () => {
 
                     {editMeetingKey && (
                       <motion.div
+                        key="quick-edit-form"
                         initial={false}
-                        animate={{ y: editMeetingKey ? 0 : 30, opacity: editMeetingKey ? 1 : 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 30, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         style={{
-                          display: editMeetingKey ? "block" : "none", 
                           position: "sticky",
                           bottom: 0,
                           background: "#fff",
@@ -991,7 +992,9 @@ const MeetingsDashboard = () => {
                           marginTop: 12,
                         }}
                       >
-                        <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
+                        <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>
+                          Quick Edit
+                        </div>
 
                         <div className="d-flex flex-column gap-3">
                           <div>
@@ -1002,6 +1005,7 @@ const MeetingsDashboard = () => {
                               placeholder="Enter meeting subject"
                               value={editSubject}
                               onChange={(e) => setEditSubject(e.target.value)}
+                              autoFocus
                             />
                           </div>
 
@@ -1026,7 +1030,9 @@ const MeetingsDashboard = () => {
                           </div>
 
                           <div className="d-flex justify-content-end gap-2 mt-2">
-                            <button className="btn btn-light" onClick={closeEdit}>Cancel</button>
+                            <button className="btn btn-light" onClick={closeEdit}>
+                              Cancel
+                            </button>
                             <button
                               className="btn"
                               onClick={saveEdit}
