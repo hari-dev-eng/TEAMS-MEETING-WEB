@@ -462,9 +462,6 @@ const BookingComponent = ({ onClose, onSave }) => {
   const debounceTimeoutRef = useRef(null);
   const availabilityTimeoutRef = useRef(null);
 
-  const [hoveredUser, setHoveredUser] = useState(null);
-  const [profileData, setProfileData] = useState(null);
-
   const showAlertMessage = useCallback((message, type) => {
     setAlertMessage(message);
     setAlertType(type);
@@ -475,49 +472,6 @@ const BookingComponent = ({ onClose, onSave }) => {
   const isWorkSchoolAccount = useCallback((email) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
-
-  // --- inside handleHover ---
-  const handleHover = async (user) => {
-    setHoveredUser(user.mail);
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        setProfileData(null);
-        return;
-      }
-
-      // 1. Get user profile details
-      const profileResp = await axios.get(
-        `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(user.userPrincipalName)}?$select=displayName,mail,jobTitle,officeLocation,mobilePhone`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const profile = profileResp.data;
-
-      // 2. Get user photo (✅ FIXED)
-      let photoUrl = null;
-      try {
-        const photoResp = await axios.get(
-          `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        photoUrl = photoResp.data.image;   // use directly
-      } catch {
-        photoUrl = null;
-      }
-
-      // 3. Store everything in profileData
-      setProfileData({
-        ...profile,
-        photo: photoUrl,
-      });
-
-    } catch (err) {
-      console.error("Hover fetch error:", err);
-      setProfileData(null);
-    }
-  };
-
 
   const getAccessToken = useCallback(async () => {
     try {
@@ -983,6 +937,7 @@ const BookingComponent = ({ onClose, onSave }) => {
 
                 {account ? (
                   <div className="d-flex align-items-center gap-2">
+                    {/* Profile Photo + Availability */}
                     <input
                       type="email"
                       className="form-control"
@@ -1107,11 +1062,6 @@ const BookingComponent = ({ onClose, onSave }) => {
                             selectUser(user, true);
                           }}
                           style={{ cursor: "pointer", fontSize: 15 }}
-                          onMouseEnter={() => handleHover(user)}
-                          onMouseLeave={() => {
-                            setHoveredUser(null);
-                            setProfileData(null);
-                          }}
                         >
                           {user.photo ? (
                             <img
@@ -1143,39 +1093,6 @@ const BookingComponent = ({ onClose, onSave }) => {
                             </span>
                           )}
                           {user.displayName}
-
-                          {/* Hover card */}
-                          {hoveredUser === user.mail && profileData && (
-                            <div style={{
-                              position: "absolute",
-                              top: "110%",
-                              left: 0,
-                              background: "#fff",
-                              borderRadius: 10,
-                              padding: 15,
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                              width: 280,
-                              zIndex: 1000,
-                            }}>
-                              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                                <img
-                                  src={profileData.photo || "/default-avatar.png"}
-                                  alt={profileData.displayName}
-                                  style={{ width: 64, height: 64, borderRadius: "50%" }}
-                                />
-                                <div>
-                                  <div style={{ fontWeight: 600, fontSize: 16 }}>{profileData.displayName}</div>
-                                  <div style={{ fontSize: 13, color: "#666" }}>{profileData.jobTitle || "—"}</div>
-                                  <div style={{ fontSize: 13, color: "#666" }}>{profileData.officeLocation || "—"}</div>
-                                </div>
-                              </div>
-                              <div style={{ marginTop: 10, fontSize: 13 }}>
-                                📧 {profileData.mail} <br />
-                                📱 {profileData.mobilePhone || "N/A"}
-                              </div>
-                            </div>
-                          )}
-
                         </li>
                       ))}
                     </ul>
