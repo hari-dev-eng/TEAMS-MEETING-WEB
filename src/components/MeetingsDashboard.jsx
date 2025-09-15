@@ -183,6 +183,7 @@ const dedupeByGroup = (list = []) => {
   });
 };
 /* ============================================================= */
+const subjectRef = useRef(null);
 
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
@@ -519,12 +520,13 @@ const MeetingsDashboard = () => {
 
   /* Edit (subject-only quick edit) with admin override */
   const openEdit = useCallback((m) => {
-    setEditMeetingKey(getKey(m));
-    setEditSubject(m.subject || "");
-    setEditStart(toLocalDateTimeInput(m.startTime));
-    setEditEnd(toLocalDateTimeInput(m.endTime));
-    setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
-  }, [getKey]);
+  setEditMeetingKey(getKey(m));
+  setEditSubject(m.subject || "");
+  setEditStart(toLocalDateTimeInput(m.startTime));
+  setEditEnd(toLocalDateTimeInput(m.endTime));
+  setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
+  setTimeout(() => subjectRef.current?.focus(), 0);
+}, [getKey]);
 
 
 
@@ -991,21 +993,22 @@ const MeetingsDashboard = () => {
                       >
                         <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
 
-                        <div className="d-flex flex-column gap-3">
-                          <div>
-                            <label className="form-label fw-semibold">Subject</label>
-                            <input
-                              className="form-control"
-                              placeholder="Enter meeting subject"
-                              value={editSubject}
-                              onChange={(e) => setEditSubject(e.target.value)}
-                              autoFocus
-                            />
-                          </div>
+                          <div className="d-flex flex-column gap-3">
+                            <div>
+                              <label className="form-label fw-semibold">Subject</label>
+                              <input
+                                ref={subjectRef}
+                                className="form-control"
+                                placeholder="Enter meeting subject"
+                                value={editSubject}
+                                onChange={(e) => setEditSubject(e.target.value)}
+                              />
 
-                          <div>
-                            <label className="form-label fw-semibold">Start Time</label>
-                            <input
+                            </div>
+
+                            <div>
+                              <label className="form-label fw-semibold">Start Time</label>
+                              <input
                               type="datetime-local"
                               className="form-control"
                               value={editStart || ""}
