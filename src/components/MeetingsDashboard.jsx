@@ -49,11 +49,6 @@ const PlusIcon = (props) => (
 const PAGE_SIZE = 10;
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://teamsbackendapi-production.up.railway.app";
 const ORG_DOMAIN = "conservesolution.com";
-/* Static super-admins who can edit/delete ANY meeting */
-const ADMIN_EMAILS = [
-  "hariprasath.c@conservesolution.com",
-  "madhanraj@conservesolution.com",
-];
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -322,7 +317,7 @@ const MeetingsDashboard = () => {
   const { instance, accounts } = useMsal();
   const signedInEmail = (accounts?.[0]?.username || "").toLowerCase();
   const isAuthenticated = !!(accounts && accounts.length > 0);
-  const isAdmin = ADMIN_EMAILS.includes(signedInEmail);
+ const [isAdmin, setIsAdmin] = useState(false);
 
   const getKey = useCallback((m) =>
     m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`
@@ -582,6 +577,32 @@ const MeetingsDashboard = () => {
     fetchMeetings, fetchPanelMeetings,
     signedInEmail, closeEdit
   ]);
+
+  // Dynamic admin flag (fetched from Graph / backend)
+
+useEffect(() => {
+  const fetchAdminRole = async () => {
+    if (!isAuthenticated) { setIsAdmin(false); return; }
+    try {
+      const tokenResp = await instance.acquireTokenSilent({
+        scopes: ["Directory.Read.All"],
+        account: accounts[0],
+      });
+      const res = await axios.get("https://graph.microsoft.com/v1.0/me/memberOf", {
+        headers: { Authorization: `Bearer ${tokenResp.accessToken}` },
+      });
+      const roles = res.data?.value?.map(r => r.displayName?.toLowerCase()) || [];
+      const admin = roles.some(r =>
+        r === "company administrator" || r === "global administrator"
+      );
+      setIsAdmin(admin);
+    } catch (err) {
+      console.warn("[AdminRole] check failed:", err?.message || err);
+      setIsAdmin(false);
+    }
+  };
+  fetchAdminRole();
+}, [isAuthenticated, instance, accounts]);
 
 
   const closeSidePanel = useCallback(() => {
