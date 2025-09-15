@@ -599,16 +599,16 @@ const BookingComponent = ({ onClose, onSave }) => {
       const users = response.data.value || [];
       const withPhotos = await Promise.all(users.map(async (user) => {
         try {
-          const photoResp = await axios.get(
-            `https://graph.microsoft.com/v1.0/users/${user.id}/photo/$value`,
-            { headers: { Authorization: `Bearer ${token}` }, responseType: "arraybuffer" }
+          const resp = await axios.get(
+            `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
-          const base64 = Buffer.from(photoResp.data, "binary").toString("base64");
-          return { ...user, photo: `data:image/jpeg;base64,${base64}` };
+          return { ...user, photo: resp.data.image };
         } catch {
           return { ...user, photo: null };
         }
       }));
+
 
       if (isAttendeeField) {
         const newSuggestions = withPhotos.filter(user =>
