@@ -183,7 +183,6 @@ const dedupeByGroup = (list = []) => {
   });
 };
 /* ============================================================= */
-const subjectRef = useRef(null);
 
 const calculateStats = (meetings, floors = 4, hoursPerFloor = 8) => {
   const now = new Date();
@@ -319,7 +318,6 @@ const MeetingsDashboard = () => {
   const [editSubject, setEditSubject] = useState("");
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
-  const [editAttendees, setEditAttendees] = useState("");
 
   const { instance, accounts } = useMsal();
   const signedInEmail = (accounts?.[0]?.username || "").toLowerCase();
@@ -335,7 +333,7 @@ const MeetingsDashboard = () => {
   const panelAbortRef = useRef(null);
   const listInFlightRef = useRef(false);
   const panelInFlightRef = useRef(false);
-
+ const subjectRef = useRef(null);
   const panelPollerRef = useRef(null);
   const panelOpenDelayRef = useRef(null);
   const panelDebounceRef = useRef(null);
@@ -502,7 +500,8 @@ const MeetingsDashboard = () => {
         showAlert(msg, "Error");
       }
     }
-  }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, getKey]);
+ }, [accounts, instance, signedInEmail, fetchMeetings, fetchPanelMeetings, showSidePanel, getKey, isAdmin]);
+
 
   // helper
   const toLocalDateTimeInput = (dateStr) => {
@@ -520,13 +519,13 @@ const MeetingsDashboard = () => {
 
   /* Edit (subject-only quick edit) with admin override */
   const openEdit = useCallback((m) => {
-  setEditMeetingKey(getKey(m));
+  setEditMeetingKey(m.iCalUId || m.id || `${m.organizer || ""}|${m.subject || ""}|${m.startTime || ""}`);
   setEditSubject(m.subject || "");
   setEditStart(toLocalDateTimeInput(m.startTime));
   setEditEnd(toLocalDateTimeInput(m.endTime));
-  setEditAttendees(m.attendees ? m.attendees.join(", ") : "");
   setTimeout(() => subjectRef.current?.focus(), 0);
-}, [getKey]);
+}, []);
+
 
 
 
@@ -535,7 +534,6 @@ const MeetingsDashboard = () => {
     setEditSubject("");
     setEditStart("");
     setEditEnd("");
-    setEditAttendees("");
   }, []);
 
   const saveEdit = useCallback(async () => {
@@ -578,7 +576,7 @@ const MeetingsDashboard = () => {
     editMeetingKey, editSubject, editStart, editEnd,
     panelMeetings, showSidePanel,
     fetchMeetings, fetchPanelMeetings,
-    signedInEmail, closeEdit, getKey
+    signedInEmail, closeEdit
   ]);
 
 
@@ -1045,7 +1043,7 @@ const MeetingsDashboard = () => {
                         </div>
 
                         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 10 }}>
-                          Admins can edit any meeting. Non-admins can edit only their own upcoming/live meetings.
+                          Admins can edit any meeting.
                         </div>
 
                       </motion.div>
