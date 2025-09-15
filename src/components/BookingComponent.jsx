@@ -874,7 +874,8 @@ const BookingComponent = ({ onClose, onSave }) => {
           border: "none",
           boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
           overflow: "hidden",
-          background: "linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)"
+          opacity: 0.83,
+              background:"rgba(233, 230, 230, 0.5)"
         }}>
           {/* Alert Box */}
           {showAlert && (
