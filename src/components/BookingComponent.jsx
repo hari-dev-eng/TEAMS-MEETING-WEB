@@ -615,7 +615,10 @@ const BookingComponent = ({ onClose, onSave }) => {
           !attendeeList.some(attendee => attendee.mail === user.mail)
         );
         setAttendeeSuggestions(newSuggestions);
+      } else {
+        setAttendeeSuggestions(withPhotos);
       }
+
     } catch (error) {
       console.error("Error fetching users:", error);
       if (error.response) {
