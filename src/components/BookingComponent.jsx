@@ -1147,11 +1147,11 @@ const handleHover = async (user) => {
             <div style={{ marginTop: 10, fontSize: 13 }}>
               📧 {profileData.mail} <br />
               📱 {profileData.mobilePhone || "N/A"}
-                 </div>
-                </div>
-                )}
-              </li>
-                ))}
+            </div>
+          </div>
+        )}
+      </li>
+    ))}
                     </ul>
                   )}
 
@@ -1164,11 +1164,8 @@ const handleHover = async (user) => {
                       style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}
                     >
                       {attendee.photo ? (
-                        <img
-                          src={attendee.photo}
-                          alt={attendee.displayName}
-                          style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }}
-                        />
+                        <img src={attendee.photo} alt={attendee.displayName}
+                          style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }} />
                       ) : (
                         <span style={{
                           width: 22, height: 22, borderRadius: "50%", marginRight: 6,
