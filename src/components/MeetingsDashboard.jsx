@@ -504,17 +504,11 @@ const MeetingsDashboard = () => {
 
 
   // helper
-  const toLocalDateTimeInput = (dateStr) => {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (isNaN(d)) return "";
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
+ const toLocalDateTimeInput = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+};
 
 
   /* Edit (subject-only quick edit) with admin override */
@@ -972,13 +966,11 @@ const MeetingsDashboard = () => {
 
                     {editMeetingKey && (
                       <motion.div
-                        key="quick-edit-form"
                         initial={false}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 30, opacity: 0 }}
+                        animate={{ y: editMeetingKey ? 0 : 30, opacity: editMeetingKey ? 1 : 0 }}
                         transition={{ duration: 0.2 }}
                         style={{
-                          display: editMeetingKey ? "block" : "none",
+                          display: editMeetingKey ? "block" : "none", 
                           position: "sticky",
                           bottom: 0,
                           background: "#fff",
@@ -991,28 +983,25 @@ const MeetingsDashboard = () => {
                       >
                         <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
 
-                          <div className="d-flex flex-column gap-3">
-                            <div>
-                              <label className="form-label fw-semibold">Subject</label>
-                              <input
-                                ref={subjectRef}
-                                className="form-control"
-                                placeholder="Enter meeting subject"
-                                value={editSubject}
-                                onChange={(e) => setEditSubject(e.target.value)}
-                                autoFocus
-                              />
+                        <div className="d-flex flex-column gap-3">
+                          <div>
+                            <label className="form-label fw-semibold">Subject</label>
+                            <input
+                              ref={subjectRef}
+                              className="form-control"
+                              placeholder="Enter meeting subject"
+                              value={editSubject}
+                              onChange={(e) => setEditSubject(e.target.value)}
+                            />
+                          </div>
 
-                            </div>
-
-                            <div>
-                              <label className="form-label fw-semibold">Start Time</label>
-                              <input
+                          <div>
+                            <label className="form-label fw-semibold">Start Time</label>
+                            <input
                               type="datetime-local"
                               className="form-control"
                               value={editStart || ""}
                               onChange={(e) => setEditStart(e.target.value)}
-                              autoFocus
                             />
                           </div>
 
@@ -1023,7 +1012,6 @@ const MeetingsDashboard = () => {
                               className="form-control"
                               value={editEnd || ""}
                               onChange={(e) => setEditEnd(e.target.value)}
-                              autoFocus
                             />
                           </div>
 
@@ -1048,7 +1036,6 @@ const MeetingsDashboard = () => {
                         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 10 }}>
                           Admins can edit any meeting.
                         </div>
-
                       </motion.div>
                     )}
                   </>
