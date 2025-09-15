@@ -530,6 +530,18 @@ const MeetingsDashboard = () => {
     setEditEnd("");
   }, []);
 
+  const toGraphDateTime = (val) => {
+  if (!val) return "";
+  const d = new Date(val);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${hh}:${mm}:00`;
+};
+
+
   const saveEdit = useCallback(async () => {
     const meeting = panelMeetings.find((m) => (m.iCalUId || m.id) === editMeetingKey);
     if (!meeting) return;
@@ -551,12 +563,10 @@ const MeetingsDashboard = () => {
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
       await api.patch(url, {
         subject: editSubject,
-        StartTime: new Date(editStart).toISOString(),
-        EndTime: new Date(editEnd).toISOString(),
+        StartTime: toGraphDateTime(editStart),
+        EndTime: toGraphDateTime(editEnd),
         organizerEmail,
-      }, {
-        headers: { Authorization: `Bearer ${token.accessToken}` }
-      });
+      }, { headers: { Authorization: `Bearer ${token.accessToken}` } });
       closeEdit();
       fetchMeetings();
       if (showSidePanel) fetchPanelMeetings();
@@ -1016,9 +1026,7 @@ const MeetingsDashboard = () => {
                           </div>
 
                           <div className="d-flex justify-content-end gap-2 mt-2">
-                            <button className="btn btn-light" onClick={closeEdit}>
-                              Cancel
-                            </button>
+                            <button className="btn btn-light" onClick={closeEdit}>Cancel</button>
                             <button
                               className="btn"
                               onClick={saveEdit}
