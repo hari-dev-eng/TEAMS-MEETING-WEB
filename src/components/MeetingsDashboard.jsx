@@ -508,7 +508,12 @@ const MeetingsDashboard = () => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
     if (isNaN(d)) return "";
-    return d.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
 
@@ -552,13 +557,9 @@ const MeetingsDashboard = () => {
       const url = `${API_BASE_URL}/api/Meetings/by-ical/${encodeURIComponent(meeting.iCalUId)}`;
       await api.patch(url, {
         subject: editSubject,
-        StartTime: editStart,
-        EndTime: editEnd,
+        StartTime: new Date(editStart).toISOString(),
+        EndTime: new Date(editEnd).toISOString(),
         organizerEmail,
-        attendees: editAttendees
-          .split(",")
-          .map((a) => a.trim())
-          .filter(Boolean)   // remove empties
       }, {
         headers: { Authorization: `Bearer ${token.accessToken}` }
       });
@@ -572,7 +573,7 @@ const MeetingsDashboard = () => {
     }
   }, [
     accounts, instance,
-    editMeetingKey, editSubject, editStart, editEnd, editAttendees,
+    editMeetingKey, editSubject, editStart, editEnd,
     panelMeetings, showSidePanel,
     fetchMeetings, fetchPanelMeetings,
     signedInEmail, closeEdit, getKey
@@ -965,32 +966,32 @@ const MeetingsDashboard = () => {
                           </button>
                         </div>
                       </div>
-                      )}
+                    )}
 
-                      {/* Edit Sheet*/}
+                    {/* Edit Sheet*/}
 
-                      {editMeetingKey && (
-                        <motion.div
-                          key="quick-edit-form"     
-                          initial={false}           
-                          animate={{ y: 0, opacity: 1 }}
-                          exit={{ y: 30, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          style={{
-                            display: editMeetingKey ? "block" : "none",
-                            position: "sticky",
-                            bottom: 0,
-                            background: "#fff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: 14,
-                            padding: 14,
-                            boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
-                            marginTop: 12,
-                          }}
-                        >
-                          <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
+                    {editMeetingKey && (
+                      <motion.div
+                        key="quick-edit-form"
+                        initial={false}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 30, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{
+                          display: editMeetingKey ? "block" : "none",
+                          position: "sticky",
+                          bottom: 0,
+                          background: "#fff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 14,
+                          padding: 14,
+                          boxShadow: "0 -8px 28px rgba(2,6,23,0.08)",
+                          marginTop: 12,
+                        }}
+                      >
+                        <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 10 }}>Quick Edit</div>
 
-                          <div className="d-flex flex-column gap-3">
+                        <div className="d-flex flex-column gap-3">
                           <div>
                             <label className="form-label fw-semibold">Subject</label>
                             <input
@@ -1019,16 +1020,6 @@ const MeetingsDashboard = () => {
                               className="form-control"
                               value={editEnd || ""}
                               onChange={(e) => setEditEnd(e.target.value)}
-                            />
-                          </div>
-
-                          <div>
-                            <label className="form-label fw-semibold">Attendees</label>
-                            <input
-                              className="form-control"
-                              placeholder="Comma-separated emails"
-                              value={editAttendees || ""}
-                              onChange={(e) => setEditAttendees(e.target.value)}
                             />
                           </div>
 
