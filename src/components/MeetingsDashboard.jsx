@@ -1000,6 +1000,7 @@ const MeetingsDashboard = () => {
                                 placeholder="Enter meeting subject"
                                 value={editSubject}
                                 onChange={(e) => setEditSubject(e.target.value)}
+                                autoFocus
                               />
 
                             </div>
@@ -1011,6 +1012,7 @@ const MeetingsDashboard = () => {
                               className="form-control"
                               value={editStart || ""}
                               onChange={(e) => setEditStart(e.target.value)}
+                              autoFocus
                             />
                           </div>
 
@@ -1021,6 +1023,7 @@ const MeetingsDashboard = () => {
                               className="form-control"
                               value={editEnd || ""}
                               onChange={(e) => setEditEnd(e.target.value)}
+                              autoFocus
                             />
                           </div>
 
