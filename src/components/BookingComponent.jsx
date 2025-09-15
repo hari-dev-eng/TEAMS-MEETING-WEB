@@ -773,14 +773,22 @@ const handleHover = async (user) => {
   );
 
   const selectUser = (user, isAttendeeField = false) => {
-    if (isAttendeeField) {
-      setAttendeeList(prev => [...prev, user]);
-      setAttendeeSearchTerm("");
-      setAttendeeSuggestions([]);
-    } else {
-      setEventData(prev => ({ ...prev, userEmail: user.mail }));
-    }
-  };
+  if (isAttendeeField) {
+    setAttendeeList(prev => [
+      ...prev,
+      {
+        displayName: user.displayName,
+        mail: user.mail,
+        photo: user.photo || null, 
+      }
+    ]);
+    setAttendeeSearchTerm("");
+    setAttendeeSuggestions([]);
+  } else {
+    setEventData(prev => ({ ...prev, userEmail: user.mail }));
+  }
+};
+
 
   const removeAttendee = (email) => {
     setAttendeeList(prev => prev.filter(attendee => attendee.mail !== email));
@@ -1139,11 +1147,11 @@ const handleHover = async (user) => {
             <div style={{ marginTop: 10, fontSize: 13 }}>
               📧 {profileData.mail} <br />
               📱 {profileData.mobilePhone || "N/A"}
-            </div>
-          </div>
-        )}
-      </li>
-    ))}
+                 </div>
+                </div>
+                )}
+              </li>
+                ))}
                     </ul>
                   )}
 
@@ -1156,8 +1164,11 @@ const handleHover = async (user) => {
                       style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}
                     >
                       {attendee.photo ? (
-                        <img src={attendee.photo} alt={attendee.displayName}
-                          style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }} />
+                        <img
+                          src={attendee.photo}
+                          alt={attendee.displayName}
+                          style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }}
+                        />
                       ) : (
                         <span style={{
                           width: 22, height: 22, borderRadius: "50%", marginRight: 6,
