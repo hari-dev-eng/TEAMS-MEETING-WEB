@@ -462,6 +462,9 @@ const BookingComponent = ({ onClose, onSave }) => {
   const debounceTimeoutRef = useRef(null);
   const availabilityTimeoutRef = useRef(null);
 
+  const [hoveredUser, setHoveredUser] = useState(null);
+  const [profileData, setProfileData] = useState(null);
+
   const showAlertMessage = useCallback((message, type) => {
     setAlertMessage(message);
     setAlertType(type);
@@ -472,6 +475,18 @@ const BookingComponent = ({ onClose, onSave }) => {
   const isWorkSchoolAccount = useCallback((email) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
+
+  const handleHover = async (user) => {
+  setHoveredUser(user.mail);
+  try {
+    const resp = await axios.get(
+      `${API_BASE_URL}/api/Bookings/GetUserProfile?email=${encodeURIComponent(user.mail)}`
+    );
+    setProfileData(resp.data);
+  } catch {
+    setProfileData(null);
+  }
+};
 
   const getAccessToken = useCallback(async () => {
     try {
@@ -890,7 +905,6 @@ const BookingComponent = ({ onClose, onSave }) => {
           border: "none",
           boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
           overflow: "hidden",
-          opacity: 0.83,
           background: "rgba(233, 230, 230, 0.8)"
         }}>
           {/* Alert Box */}
@@ -1032,33 +1046,105 @@ const BookingComponent = ({ onClose, onSave }) => {
                       border: "5px solid #e0e6ed"
                     }}
                   />
-                  {isFetchingUsers && <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3"></div>}
-                  {attendeeSuggestions.length > 0 && (
-                    <ul className="list-group position-absolute w-100 mt-1" style={{ zIndex: 999 }}>
-                      {attendeeSuggestions.map(user => (
-                        <li
-                          key={user.id}
-                          className="list-group-item list-group-item-action d-flex align-items-center"
-                          onClick={e => { e.stopPropagation(); selectUser(user, true); }}
-                          style={{ cursor: "pointer", fontSize: 15 }}
-                        >
-                          {user.photo ? (
-                            <img src={user.photo} alt={user.displayName}
-                              style={{ width: 28, height: 28, borderRadius: "50%", marginRight: 8 }} />
-                          ) : (
-                            <span style={{
-                              width: 28, height: 28, borderRadius: "50%", marginRight: 8,
-                              background: "#ccc", color: "#fff", display: "flex",
-                              alignItems: "center", justifyContent: "center", fontSize: 14
-                            }}>
-                              {user.displayName?.[0] || "?"}
-                            </span>
-                          )}
-                          {user.displayName} ({user.mail})
-                        </li>
-                      ))}
+                  {isFetchingUsers && (
+  <div className="spinner-border spinner-border-sm text-primary position-absolute end-0 top-50 translate-middle-y me-3"></div>
+)}
+
+{attendeeSuggestions.length > 0 && (
+  <ul
+    className="list-group position-absolute w-100 mt-1"
+    style={{ zIndex: 999 }}
+  >
+    {attendeeSuggestions.map((user) => (
+      <li
+        key={user.id}
+        className="list-group-item list-group-item-action d-flex align-items-center position-relative"
+        onClick={(e) => {
+          e.stopPropagation();
+          selectUser(user, true);
+        }}
+        style={{ cursor: "pointer", fontSize: 15 }}
+        onMouseEnter={() => handleHover(user)}
+        onMouseLeave={() => {
+          setHoveredUser(null);
+          setProfileData(null);
+        }}
+      >
+        {user.photo ? (
+          <img
+            src={user.photo}
+            alt={user.displayName}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              marginRight: 8,
+            }}
+          />
+        ) : (
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              marginRight: 8,
+              background: "#ccc",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 14,
+            }}
+          >
+            {user.displayName?.[0] || "?"}
+          </span>
+        )}
+        {user.displayName} ({user.mail})
+
+        {/* Hover card */}
+        {hoveredUser === user.mail && profileData && (
+          <div
+            style={{
+              position: "absolute",
+              top: "110%",
+              left: 0,
+              background: "#fff",
+              borderRadius: 10,
+              padding: 15,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              width: 280,
+              zIndex: 1000,
+            }}
+          >
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <img
+                src={profileData.photo || "/default-avatar.png"}
+                alt={profileData.displayName}
+                style={{ width: 64, height: 64, borderRadius: "50%" }}
+              />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 16 }}>
+                  {profileData.displayName}
+                </div>
+                <div style={{ fontSize: 13, color: "#666" }}>
+                  {profileData.jobTitle}
+                </div>
+                <div style={{ fontSize: 13, color: "#666" }}>
+                  {profileData.officeLocation}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 13 }}>
+              📧 {profileData.mail} <br />
+              📱 {profileData.mobilePhone || "N/A"}
+            </div>
+          </div>
+        )}
+      </li>
+    ))}
                     </ul>
                   )}
+
                 </div>
                 <div className="mt-2 d-flex flex-wrap gap-2">
                   {attendeeList.map(attendee => (
