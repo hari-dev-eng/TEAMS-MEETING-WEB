@@ -476,6 +476,7 @@ const BookingComponent = ({ onClose, onSave }) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
 
+// --- inside handleHover ---
 const handleHover = async (user) => {
   setHoveredUser(user.mail);
   try {
@@ -493,17 +494,14 @@ const handleHover = async (user) => {
 
     const profile = profileResp.data;
 
-    // 2. Get user photo
+    // 2. Get user photo (✅ FIXED)
     let photoUrl = null;
     try {
       const photoResp = await axios.get(
         `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
-        { headers: { Authorization: `Bearer ${token}` }, responseType: "arraybuffer" }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      const base64 = btoa(
-        new Uint8Array(photoResp.data).reduce((data, byte) => data + String.fromCharCode(byte), "")
-      );
-      photoUrl = `data:image/jpeg;base64,${base64}`;
+      photoUrl = photoResp.data.image;   // use directly
     } catch {
       photoUrl = null;
     }
@@ -645,24 +643,19 @@ const handleHover = async (user) => {
       });
 
       const users = response.data.value || [];
+
+      // --- inside fetchUsers ---
       const withPhotos = await Promise.all(users.map(async (user) => {
         try {
           const resp = await axios.get(
             `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
-            { headers: { Authorization: `Bearer ${token}` }, responseType: "arraybuffer" }
+            { headers: { Authorization: `Bearer ${token}` } }
           );
-          // Convert binary → Base64 data URL
-          const base64 = btoa(
-            new Uint8Array(resp.data).reduce((data, byte) => data + String.fromCharCode(byte), "")
-          );
-          const imageUrl = `data:image/jpeg;base64,${base64}`;
-          return { ...user, photo: imageUrl };
+          return { ...user, photo: resp.data.image }; 
         } catch {
           return { ...user, photo: null };
         }
       }));
-
-
 
       if (isAttendeeField) {
         const newSuggestions = withPhotos.filter(user =>
