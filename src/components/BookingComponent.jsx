@@ -462,6 +462,10 @@ const BookingComponent = ({ onClose, onSave }) => {
   const debounceTimeoutRef = useRef(null);
   const availabilityTimeoutRef = useRef(null);
 
+  const [organizerProfile, setOrganizerProfile] = useState(null);
+  const [organizerPresence, setOrganizerPresence] = useState("unknown");
+
+
   const [hoveredUser, setHoveredUser] = useState(null);
   const [profileData, setProfileData] = useState(null);
 
@@ -488,33 +492,39 @@ const BookingComponent = ({ onClose, onSave }) => {
 
       // 1. Get user profile details
       const profileResp = await axios.get(
-        `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(user.userPrincipalName)}?$select=displayName,mail,jobTitle,officeLocation,mobilePhone`,
+        `https://graph.microsoft.com/v1.0/me?$select=displayName,mail,jobTitle,officeLocation,mobilePhone`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const profile = profileResp.data;
 
-      // 2. Get user photo (✅ FIXED)
+      // 2. Get user photo
       let photoUrl = null;
       try {
         const photoResp = await axios.get(
-          `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
+          `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(eventData.userEmail)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        photoUrl = photoResp.data.image;   // use directly
+        photoUrl = photoResp.data.image;
       } catch {
         photoUrl = null;
       }
 
-      // 3. Store everything in profileData
-      setProfileData({
-        ...profile,
-        photo: photoUrl,
-      });
+      let presence = "unknown";
+      try {
+        const presenceResp = await axios.get(
+          `https://graph.microsoft.com/v1.0/me/presence`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        presence = presenceResp.data.availability?.toLowerCase() || "unknown";
+      } catch (err) {
+        console.warn("Presence fetch failed", err);
+      }
 
+      setOrganizerProfile({ ...profile, photo: photoUrl });
+      setOrganizerPresence(presence);
     } catch (err) {
-      console.error("Hover fetch error:", err);
-      setProfileData(null);
+      console.error("Organizer profile fetch failed", err);
     }
   };
 
@@ -648,7 +658,7 @@ const BookingComponent = ({ onClose, onSave }) => {
       const withPhotos = await Promise.all(users.map(async (user) => {
         try {
           const resp = await axios.get(
-            `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
+            `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName || user.mail)}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           return { ...user, photo: resp.data.image };
@@ -974,29 +984,28 @@ const BookingComponent = ({ onClose, onSave }) => {
             <form onSubmit={handleSubmit}>
               {/* ORGANIZER */}
               <div className="mb-3">
-  <label
-    className="form-label fw-bold mb-1"
-    style={{ color: "#193565ff", fontSize: "20px" }}
-  >
-    Organizer <span className="text-danger">*</span>
-  </label>
+                <label
+                  className="form-label fw-bold mb-1"
+                  style={{ color: "#193565ff", fontSize: "20px" }}
+                >
+                  Organizer <span className="text-danger">*</span>
+                </label>
 
-  {account ? (
-    <div className="d-flex align-items-center gap-2">
-      {/* Profile Photo + Availability */}
-      <div style={{ position: "relative" }}>
-        <img
-          src={profileData?.photo || "/default-avatar.png"}
-          alt={profileData?.displayName || "User"}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            objectFit: "cover",
-                          border: "2px solid #e0e6ed"
+                {account ? (
+                  <div className="d-flex align-items-center gap-2">
+                    {/* Profile Photo + Availability */}
+                    <div style={{ position: "relative" }}>
+                      <img
+                        src={organizerProfile?.photo || "/default-avatar.png"}
+                        alt={organizerProfile?.displayName || "User"}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: "2px solid #e0e6ed",
                         }}
                       />
-                      {/* Availability Badge */}
                       <span
                         style={{
                           position: "absolute",
@@ -1006,15 +1015,16 @@ const BookingComponent = ({ onClose, onSave }) => {
                           height: 14,
                           borderRadius: "50%",
                           backgroundColor:
-                            roomAvailability[eventData.userEmail] === "available"
+                            organizerPresence === "available"
                               ? "green"
-                              : roomAvailability[eventData.userEmail] === "busy"
+                              : organizerPresence === "busy"
                                 ? "red"
                                 : "gray",
-                          border: "2px solid white"
+                          border: "2px solid white",
                         }}
                       ></span>
                     </div>
+
                     <input
                       type="email"
                       className="form-control"
@@ -1023,7 +1033,6 @@ const BookingComponent = ({ onClose, onSave }) => {
                       style={{
                         borderRadius: 8,
                         padding: "0.55rem 0.85rem",
-                        //background: "#e9ecef",
                         color: "#6c757d",
                         fontSize: "15px",
                         border: "1px solid #e0e6ed",
