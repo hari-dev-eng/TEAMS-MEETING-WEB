@@ -476,17 +476,18 @@ const BookingComponent = ({ onClose, onSave }) => {
     return email && email.toLowerCase().endsWith('@conservesolution.com');
   }, []);
 
-  const handleHover = async (user) => {
+const handleHover = async (user) => {
   setHoveredUser(user.mail);
   try {
     const resp = await axios.get(
-      `${API_BASE_URL}/api/Bookings/GetUserProfile?email=${encodeURIComponent(user.mail)}`
+      `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.mail)}`
     );
-    setProfileData(resp.data);
+    setProfileData(resp.data);   
   } catch {
     setProfileData(null);
   }
 };
+
 
   const getAccessToken = useCallback(async () => {
     try {
@@ -619,6 +620,7 @@ const BookingComponent = ({ onClose, onSave }) => {
             { headers: { Authorization: `Bearer ${token}` } }
           );
           return { ...user, photo: resp.data.image };
+
         } catch {
           return { ...user, photo: null };
         }
@@ -905,7 +907,7 @@ const BookingComponent = ({ onClose, onSave }) => {
           border: "none",
           boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
           overflow: "hidden",
-          background: "rgba(233, 230, 230, 0.8)"
+          background: "rgba(250, 250, 250)"
         }}>
           {/* Alert Box */}
           {showAlert && (
