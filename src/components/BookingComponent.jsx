@@ -479,19 +479,43 @@ const BookingComponent = ({ onClose, onSave }) => {
 const handleHover = async (user) => {
   setHoveredUser(user.mail);
   try {
-    const token = await getAccessToken();   // ✅ fetch token first
+    const token = await getAccessToken();
     if (!token) {
       setProfileData(null);
       return;
     }
 
-    const resp = await axios.get(
-      `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
+    // 1. Get user profile details
+    const profileResp = await axios.get(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(user.userPrincipalName)}?$select=displayName,mail,jobTitle,officeLocation,mobilePhone`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    setProfileData(resp.data);   
-  } catch {
+    const profile = profileResp.data;
+
+    // 2. Get user photo
+    let photoUrl = null;
+    try {
+      const photoResp = await axios.get(
+        `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
+        { headers: { Authorization: `Bearer ${token}` }, responseType: "arraybuffer" }
+      );
+      const base64 = btoa(
+        new Uint8Array(photoResp.data).reduce((data, byte) => data + String.fromCharCode(byte), "")
+      );
+      photoUrl = `data:image/jpeg;base64,${base64}`;
+    } catch {
+      photoUrl = null;
+    }
+
+    // 3. Store everything in profileData
+    setProfileData({
+      ...profile,
+      photo: photoUrl,
+    });
+
+  } catch (err) {
+    console.error("Hover fetch error:", err);
     setProfileData(null);
   }
 };
@@ -1126,19 +1150,17 @@ const handleHover = async (user) => {
 
         {/* Hover card */}
         {hoveredUser === user.mail && profileData && (
-          <div
-            style={{
-              position: "absolute",
-              top: "110%",
-              left: 0,
-              background: "#fff",
-              borderRadius: 10,
-              padding: 15,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              width: 280,
-              zIndex: 1000,
-            }}
-          >
+          <div style={{
+            position: "absolute",
+            top: "110%",
+            left: 0,
+            background: "#fff",
+            borderRadius: 10,
+            padding: 15,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            width: 280,
+            zIndex: 1000,
+          }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <img
                 src={profileData.photo || "/default-avatar.png"}
@@ -1146,15 +1168,9 @@ const handleHover = async (user) => {
                 style={{ width: 64, height: 64, borderRadius: "50%" }}
               />
               <div>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>
-                  {profileData.displayName}
-                </div>
-                <div style={{ fontSize: 13, color: "#666" }}>
-                  {profileData.jobTitle}
-                </div>
-                <div style={{ fontSize: 13, color: "#666" }}>
-                  {profileData.officeLocation}
-                </div>
+                <div style={{ fontWeight: 600, fontSize: 16 }}>{profileData.displayName}</div>
+                <div style={{ fontSize: 13, color: "#666" }}>{profileData.jobTitle || "—"}</div>
+                <div style={{ fontSize: 13, color: "#666" }}>{profileData.officeLocation || "—"}</div>
               </div>
             </div>
             <div style={{ marginTop: 10, fontSize: 13 }}>
@@ -1163,6 +1179,7 @@ const handleHover = async (user) => {
             </div>
           </div>
         )}
+
       </li>
     ))}
                     </ul>
