@@ -1191,7 +1191,7 @@ const BookingComponent = ({ onClose, onSave }) => {
                           style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }} />
                       ) : (
                         <span style={{
-                          width: 22, height: 22, borderRadius: "50%", marginRight: 6,
+                          width: 35, height: 35, borderRadius: "50%", marginRight: 6,
                           background: "#888", color: "#fff", display: "flex",
                           alignItems: "center", justifyContent: "center", fontSize: 12
                         }}>
