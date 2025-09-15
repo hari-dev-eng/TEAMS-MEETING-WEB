@@ -1188,10 +1188,10 @@ const BookingComponent = ({ onClose, onSave }) => {
                     >
                       {attendee.photo ? (
                         <img src={attendee.photo} alt={attendee.displayName}
-                          style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }} />
+                          style={{ width: 35, height: 35, borderRadius: "50%", marginRight: 6 }} />
                       ) : (
                         <span style={{
-                          width: 35, height: 35, borderRadius: "50%", marginRight: 6,
+                          width: 22, height: 22, borderRadius: "50%", marginRight: 6,
                           background: "#888", color: "#fff", display: "flex",
                           alignItems: "center", justifyContent: "center", fontSize: 12
                         }}>
