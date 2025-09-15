@@ -974,11 +974,47 @@ const BookingComponent = ({ onClose, onSave }) => {
             <form onSubmit={handleSubmit}>
               {/* ORGANIZER */}
               <div className="mb-3">
-                <label className="form-label fw-bold mb-1" style={{ color: "#193565ff", fontSize: "20px" }}>
-                  Organizer <span className="text-danger">*</span>
-                </label>
-                {account ? (
-                  <div className="d-flex align-items-center gap-2">
+  <label
+    className="form-label fw-bold mb-1"
+    style={{ color: "#193565ff", fontSize: "20px" }}
+  >
+    Organizer <span className="text-danger">*</span>
+  </label>
+
+  {account ? (
+    <div className="d-flex align-items-center gap-2">
+      {/* Profile Photo + Availability */}
+      <div style={{ position: "relative" }}>
+        <img
+          src={profileData?.photo || "/default-avatar.png"}
+          alt={profileData?.displayName || "User"}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            objectFit: "cover",
+                          border: "2px solid #e0e6ed"
+                        }}
+                      />
+                      {/* Availability Badge */}
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          right: 0,
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          backgroundColor:
+                            roomAvailability[eventData.userEmail] === "available"
+                              ? "green"
+                              : roomAvailability[eventData.userEmail] === "busy"
+                                ? "red"
+                                : "gray",
+                          border: "2px solid white"
+                        }}
+                      ></span>
+                    </div>
                     <input
                       type="email"
                       className="form-control"
