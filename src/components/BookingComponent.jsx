@@ -597,8 +597,21 @@ const BookingComponent = ({ onClose, onSave }) => {
       });
 
       const users = response.data.value || [];
+      const withPhotos = await Promise.all(users.map(async (user) => {
+        try {
+          const photoResp = await axios.get(
+            `https://graph.microsoft.com/v1.0/users/${user.id}/photo/$value`,
+            { headers: { Authorization: `Bearer ${token}` }, responseType: "arraybuffer" }
+          );
+          const base64 = Buffer.from(photoResp.data, "binary").toString("base64");
+          return { ...user, photo: `data:image/jpeg;base64,${base64}` };
+        } catch {
+          return { ...user, photo: null };
+        }
+      }));
+
       if (isAttendeeField) {
-        const newSuggestions = users.filter(user =>
+        const newSuggestions = withPhotos.filter(user =>
           !attendeeList.some(attendee => attendee.mail === user.mail)
         );
         setAttendeeSuggestions(newSuggestions);
@@ -875,7 +888,7 @@ const BookingComponent = ({ onClose, onSave }) => {
           boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
           overflow: "hidden",
           opacity: 0.83,
-              background:"rgba(233, 230, 230, 0.8)"
+          background: "rgba(233, 230, 230, 0.8)"
         }}>
           {/* Alert Box */}
           {showAlert && (
@@ -1022,13 +1035,22 @@ const BookingComponent = ({ onClose, onSave }) => {
                       {attendeeSuggestions.map(user => (
                         <li
                           key={user.id}
-                          className="list-group-item list-group-item-action"
-                          onClick={e => {
-                            e.stopPropagation();
-                            selectUser(user, true);
-                          }}
+                          className="list-group-item list-group-item-action d-flex align-items-center"
+                          onClick={e => { e.stopPropagation(); selectUser(user, true); }}
                           style={{ cursor: "pointer", fontSize: 15 }}
                         >
+                          {user.photo ? (
+                            <img src={user.photo} alt={user.displayName}
+                              style={{ width: 28, height: 28, borderRadius: "50%", marginRight: 8 }} />
+                          ) : (
+                            <span style={{
+                              width: 28, height: 28, borderRadius: "50%", marginRight: 8,
+                              background: "#ccc", color: "#fff", display: "flex",
+                              alignItems: "center", justifyContent: "center", fontSize: 14
+                            }}>
+                              {user.displayName?.[0] || "?"}
+                            </span>
+                          )}
                           {user.displayName} ({user.mail})
                         </li>
                       ))}
@@ -1037,7 +1059,23 @@ const BookingComponent = ({ onClose, onSave }) => {
                 </div>
                 <div className="mt-2 d-flex flex-wrap gap-2">
                   {attendeeList.map(attendee => (
-                    <span key={attendee.mail} className="badge bg-secondary d-flex align-items-center me-1" style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}>
+                    <span
+                      key={attendee.mail}
+                      className="badge bg-secondary d-flex align-items-center me-1"
+                      style={{ fontSize: "0.95em", padding: "0.5em 0.75em" }}
+                    >
+                      {attendee.photo ? (
+                        <img src={attendee.photo} alt={attendee.displayName}
+                          style={{ width: 22, height: 22, borderRadius: "50%", marginRight: 6 }} />
+                      ) : (
+                        <span style={{
+                          width: 22, height: 22, borderRadius: "50%", marginRight: 6,
+                          background: "#888", color: "#fff", display: "flex",
+                          alignItems: "center", justifyContent: "center", fontSize: 12
+                        }}>
+                          {attendee.displayName?.[0] || "?"}
+                        </span>
+                      )}
                       {attendee.displayName}
                       <button
                         type="button"
