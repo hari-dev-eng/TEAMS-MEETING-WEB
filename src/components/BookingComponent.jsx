@@ -479,9 +479,17 @@ const BookingComponent = ({ onClose, onSave }) => {
 const handleHover = async (user) => {
   setHoveredUser(user.mail);
   try {
+    const token = await getAccessToken();   // ✅ fetch token first
+    if (!token) {
+      setProfileData(null);
+      return;
+    }
+
     const resp = await axios.get(
-      `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.mail)}`
+      `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
+
     setProfileData(resp.data);   
   } catch {
     setProfileData(null);
@@ -617,14 +625,19 @@ const handleHover = async (user) => {
         try {
           const resp = await axios.get(
             `${API_BASE_URL}/api/Bookings/GetUserPhoto?email=${encodeURIComponent(user.userPrincipalName)}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` }, responseType: "arraybuffer" }
           );
-          return { ...user, photo: resp.data.image };
-
+          // Convert binary → Base64 data URL
+          const base64 = btoa(
+            new Uint8Array(resp.data).reduce((data, byte) => data + String.fromCharCode(byte), "")
+          );
+          const imageUrl = `data:image/jpeg;base64,${base64}`;
+          return { ...user, photo: imageUrl };
         } catch {
           return { ...user, photo: null };
         }
       }));
+
 
 
       if (isAttendeeField) {
